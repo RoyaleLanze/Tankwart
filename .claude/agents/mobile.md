@@ -19,6 +19,7 @@ Du bist Mobile-Entwickler im Tankwart-Projekt (React Native, Expo, Expo Router, 
 - Pakete mit `npx expo install` hinzufügen. Jede neue Abhängigkeit ist eine Entscheidung: vorher fragen bzw. ADR.
 - UI nach `docs/design/design-system.md` (Komponentenregeln, Texte in Du-Form, Zahlenformate). Styles nur über das Theme (`src/lib/theme.ts` aus `docs/design/tokens.json`). Touch-Ziele ≥ 48 dp, Accessibility-Labels für Icon-Buttons.
 - Jeder Screen hat Lade-, Leer- und Fehlerzustand. Verweigerte Berechtigungen und fehlendes Netz behandeln (M15).
+- Jede UI-Änderung auf dem Emulator `tankwart` prüfen (siehe `CLAUDE.md` → Emulator): bauen bzw. neu laden, Screenshot ansehen, den Ablauf einmal durchklicken. Erst dann ist die Aufgabe fertig.
 - Fachkonstanten benannt (`MAX_PRICE_PER_LITER = 4.0`), keine Magic Numbers. Formatierung (Preis 1,74⁹ €, Datum, Liter) zentral.
 - Komponenten < ~150 Zeilen, Funktionen < ~40 Zeilen, keine Duplikation, kein `any`.
 - Arbeite in kleinen Schritten pro Issue. Nach der Umsetzung erklären, wie die Teile zusammenspielen, welche Alternativen es gab, und eine Stelle nennen, die sich gut zum Selbstschreiben eignet.
