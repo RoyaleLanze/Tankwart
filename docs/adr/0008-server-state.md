@@ -1,6 +1,6 @@
 # 0008 – Server-State und Datenabruf
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Datum:** 2026-11-17
 - **Entscheider:** @SealJonny, @RoyaleLanze
 
@@ -20,4 +20,4 @@ Option 1. Wenig eigener Code, Lade- und Fehlerzustände sind einheitlich. Für r
 
 ## Entscheidung
 
-_offen_
+Option 1: **TanStack Query** für alle Server-Daten. Client-State (aktives Fahrzeug, Filter) liegt in React Context bzw. lokalem State. Query-Keys und Invalidierung nach Mutationen werden pro Feature in `hooks/` definiert.

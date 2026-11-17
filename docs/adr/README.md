@@ -15,7 +15,7 @@ Kurze, nummerierte Entscheidungen im Format von [MADR](https://adr.github.io/mad
 | 0005 | Spritpreise über Edge Function | Accepted |
 | 0006 | Schichtenarchitektur | Accepted |
 | 0007 | Teststrategie | Accepted |
-| 0008 | Server-State und Datenabruf | Proposed |
-| 0009 | Formulare und Validierung | Proposed |
-| 0010 | Lokale Speicherung (Session, Entwurf) | Proposed |
-| 0011 | Diagramm für die Statistik | Proposed |
+| 0008 | Server-State und Datenabruf | Accepted |
+| 0009 | Formulare und Validierung | Accepted |
+| 0010 | Lokale Speicherung (expo-sqlite/localStorage) | Accepted |
+| 0011 | Diagramm für die Statistik | Accepted |

@@ -1,6 +1,6 @@
 # 0009 – Formulare und Validierung
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Datum:** 2026-11-17
 - **Entscheider:** @SealJonny, @RoyaleLanze
 
@@ -20,4 +20,4 @@ Option 1, wobei die kontextabhängigen Regeln (km-Stand, Tankgröße) als reine 
 
 ## Entscheidung
 
-_offen_
+Option 1: **react-hook-form + zod**. Die zod-Schemas liegen in `src/features/<bereich>/logic/` und sind dort per Jest getestet. Kontextabhängige Regeln (km-Stand, Tankgröße) sind reine Funktionen, die das Schema verwendet.
