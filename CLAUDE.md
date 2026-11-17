@@ -87,7 +87,9 @@ Muster, die wir bewusst nutzen (im Gespräch erklärbar):
 
 ## Expo-Plugin
 
-Das offizielle Expo-Plugin ist in `.claude/settings.json` aktiviert (Skills `expo:*`, z. B. `expo-router`, `expo-data-fetching`, `expo-upgrade`). Nutzt es für aktuelle API-Details, Setup und SDK-Fragen. **Bei Widersprüchen gelten unsere ADRs.** Ein Beispiel: Das Plugin empfiehlt `@expo/ui` oder NativeTabs, wir nutzen react-native-paper (ADR 0004). Eine Abweichung davon wäre eine neue ADR.
+Das offizielle Expo-Plugin (`expo@claude-plugins-official`) wird über `.claude/settings.json` (`enabledPlugins`) für beide aktiviert (Skills `expo:*`, z. B. `expo-router`, `expo-data-fetching`, `expo-upgrade`). Nutzt es für aktuelle API-Details, Setup und SDK-Fragen. **Bei Widersprüchen gelten unsere ADRs.** Ein Beispiel: Das Plugin empfiehlt `@expo/ui` oder NativeTabs, wir nutzen react-native-paper (ADR 0004). Eine Abweichung davon wäre eine neue ADR.
+
+**Keine EAS-Dienste und nichts Kostenpflichtiges.** Kein EAS Build, Submit, Update, Workflows, Hosting, Observe, Cloud-Simulator oder Sandbox, auch nicht die entsprechenden `eas-*`-Skills und Plugin-Tools. Erlaubt sind nur die kostenlosen Teile: Dokumentation (`read_documentation`, `search_documentation`), die `expo-*`-Wissens-Skills und die lokale Expo CLI (`npx expo start`, `npx expo run:android`, `npx expo install`). Gebaut und getestet wird lokal auf Emulator bzw. Gerät.
 
 ## Lernmaterial des Dozenten
 
