@@ -14,9 +14,9 @@ Feature-Ordner unter `src/features/<bereich>/` mit den Schichten
 - `logic/`: reine Funktionen (Model/Domäne), ohne React und ohne IO
 - `api/`: Repository, der einzige Ort mit Supabase-Aufrufen
 - `hooks/`: ViewModel, verbindet api und logic, liefert Daten, Lade- und Fehlerzustand
-- Screens in `app/` (View) und präsentationale Komponenten in `src/components/`
+- Screens in `src/app/` (View) und präsentationale Komponenten in `src/components/`
 
-Die Abhängigkeitsrichtung ist nur `app → hooks → api/logic`.
+Die Abhängigkeitsrichtung ist nur `src/app → hooks → api/logic`.
 
 ## Konsequenzen
 

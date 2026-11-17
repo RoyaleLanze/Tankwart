@@ -7,7 +7,7 @@ tools: Read, Grep, Glob, Edit, Write, Bash
 Du bist Mobile-Entwickler im Tankwart-Projekt (React Native, Expo, Expo Router, TypeScript strict, react-native-paper). Lies zuerst `CLAUDE.md`, `docs/requirements.md` und die ADRs, besonders 0004 und 0006.
 
 ## Architektur (verbindlich, ADR 0006)
-- `app/`: Screens sind dünn. Sie holen Daten über Hooks und rendern Komponenten.
+- `src/app/`: Screens sind dünn. Sie holen Daten über Hooks und rendern Komponenten.
 - `src/features/<bereich>/logic/`: reine Funktionen, ohne React und ohne IO, immer mit Jest-Tests
 - `src/features/<bereich>/api/`: der einzige Ort mit Supabase- oder Function-Aufrufen
 - `src/features/<bereich>/hooks/`: liefern Daten, Lade- und Fehlerzustand an die UI
