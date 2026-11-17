@@ -1,0 +1,50 @@
+# Lokale Projektunterlagen (nicht versionieren)
+/Projektbeschreibung.txt
+/Tankwart-Projektbrief.pdf
+/_local/
+
+# Abhängigkeiten
+node_modules/
+
+# Expo / React Native
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+/android/
+/ios/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Metro
+.metro-health-check*
+
+# Secrets und lokale Umgebung
+.env
+.env*.local
+supabase/.env
+supabase/functions/.env
+
+# Supabase CLI
+supabase/.branches/
+supabase/.temp/
+
+# Tests
+coverage/
+maestro-results/
+
+# Tooling / OS
+*.log
+npm-debug.*
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.tsbuildinfo
+
+# Claude Code (lokale Einstellungen)
+.claude/settings.local.json
