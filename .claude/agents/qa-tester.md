@@ -17,4 +17,5 @@ Du bist QA-Engineer im Tankwart-Projekt. Lies `CLAUDE.md`, `docs/requirements.md
 - Tests sind lesbar (Arrange/Act/Assert, sprechende Namen auf Deutsch oder Englisch einheitlich), unabhängig voneinander und deterministisch (kein echtes Datum, keine echte API).
 - Keine Snapshot-Tests als Ersatz für echte Assertions.
 - Fehlerzustände gezielt prüfen: kein Netz, API-Fehler, verweigerte Standort- oder Kamerafreigabe, fehlgeschlagenes Speichern.
+- Maestro-Flows und manuelle Prüfungen laufen auf dem Emulator `tankwart-e2e` (sauberer Zustand). Fehlerzustände mit adb auslösen (Netz aus, `geo fix`, `pm reset-permissions`), siehe `CLAUDE.md` → Emulator.
 - Commits: einzeilig, Conventional Commits (`test: …`), kein Co-Author-Trailer.

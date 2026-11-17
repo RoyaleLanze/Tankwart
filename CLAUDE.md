@@ -59,6 +59,18 @@ Muster, die wir bewusst nutzen (im Gespräch erklärbar):
 - Styling nur über das Theme (Tokens aus `docs/design/tokens.json`), keine fest verdrahteten Farben. Touch-Ziele ≥ 48 dp, Kontrast ≥ 4,5:1, Farbe nie als einziger Bedeutungsträger.
 - Secrets nie im App-Code oder in Git. Der Tankerkönig-Key liegt nur als Supabase-Secret. Der Anon-Key ist öffentlich und darf in `.env`/`app.config`.
 
+## Emulator: entwickeln und testen
+
+Änderungen an der App werden auf dem Emulator geprüft, nicht nur per Lint und Jest. Das gilt für Menschen und Agents.
+
+- AVDs: `tankwart` (Entwicklung) und `tankwart-e2e` (sauberes Gerät für Maestro bzw. zweiten Testnutzer), beide Pixel 8, Android 36
+- Starten: `~/Android/Sdk/emulator/emulator -avd tankwart &`, Boot abwarten: `adb wait-for-device shell 'while [ -z "$(getprop sys.boot_completed)" ]; do sleep 2; done'`
+- App bauen und installieren: `npm run android` (lokaler Gradle-Build, **kein EAS**). Danach reicht `npm start` und in der App neu laden.
+- Prüfen: Screenshot mit `adb exec-out screencap -p > /tmp/screen.png` ansehen. UI-Elemente mit `adb shell uiautomator dump` finden, Eingaben mit `adb shell input tap|text|keyevent`. Dazu der Android-CLI-Skill.
+- Supabase lokal ist vom Emulator unter `10.0.2.2:54321` erreichbar.
+- Fehlerzustände gezielt auf dem Emulator auslösen: Netz aus (`adb shell svc wifi disable && adb shell svc data disable`), Standort setzen (`adb emu geo fix <lon> <lat>`), Berechtigungen zurücksetzen (`adb shell pm reset-permissions de.dhbw.tankwart`).
+- Eine UI-Aufgabe ist erst fertig, wenn sie auf dem Emulator lief und ein Screenshot geprüft wurde.
+
 ## Tests
 
 - **Jest:** jede Funktion in `logic/` (Verbrauch nach Volltank-Methode, Validierung, Statistik, Ersparnis) mit Randfällen.
