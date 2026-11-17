@@ -1,4 +1,4 @@
-// Stellt ein globales, persistentes localStorage bereit (ADR 0010).
+// Provides a global, persistent localStorage (ADR 0010).
 import "expo-sqlite/localStorage/install";
 
 import { createClient } from "@supabase/supabase-js";
@@ -8,9 +8,7 @@ const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 if (!supabaseUrl || !supabasePublishableKey) {
-  throw new Error(
-    "Supabase-Konfiguration fehlt: .env aus .env.example anlegen und App neu starten.",
-  );
+  throw new Error("Missing Supabase config: create .env from .env.example and restart the app.");
 }
 
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
@@ -18,12 +16,12 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
     storage: localStorage,
     autoRefreshToken: true,
     persistSession: true,
-    // Auf Android gibt es keine URL, aus der eine Session gelesen werden könnte.
+    // There is no URL on Android to read a session from.
     detectSessionInUrl: false,
   },
 });
 
-// Token nur im Vordergrund erneuern, laut Supabase-Doku für mobile Apps empfohlen.
+// Refresh tokens only while in the foreground, as recommended by Supabase for mobile apps.
 AppState.addEventListener("change", (state) => {
   if (state === "active") {
     supabase.auth.startAutoRefresh();
