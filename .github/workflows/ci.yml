@@ -6,7 +6,7 @@ on:
   push:
     branches: [main]
 
-# Laufende Läufe derselben PR abbrechen, wenn neue Commits kommen
+# Cancel running jobs of the same PR when new commits arrive
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
