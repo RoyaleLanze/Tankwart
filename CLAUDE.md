@@ -5,7 +5,7 @@ Android-App zum Erfassen von Betankungen (Verbrauch und Kosten pro Monat) und zu
 - **Stack:** React Native + Expo (Expo Router, TypeScript strict), react-native-paper (Material Design 3), Supabase (EU) mit Auth, Postgres + RLS, Storage und Edge Functions, Spritpreise über die Tankerkönig-API (nur über die Edge Function).
 - **Anforderungen:** `docs/requirements.md` (M1–M15 sind verbindlich).
 - **Entscheidungen:** `docs/adr/`
-- **Design:** `docs/design/` (Tokens, Mockup-Link)
+- **Design:** `docs/design/` (Mockup-Link, `design-system.md` mit Komponentenregeln, `tokens.json`)
 - **Abgabe:** 20.12.2026. Übergabegespräch davor.
 
 ## Wer entscheidet

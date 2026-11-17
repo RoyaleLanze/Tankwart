@@ -2,6 +2,7 @@
 
 - **Mockups (12 Screens, klickbarer Canvas):** https://claude.ai/artifact/TJXW1VMMUer5n2VUarphD6
 - **Design-System Tankwart:** https://claude.ai/artifact/Unt5QgUmbjiLEz5nRNeCce
+- **Regeln und Komponenten:** [`design-system.md`](design-system.md) (Sprache, Farbe, Typografie, Layout, Komponenten-Richtlinien)
 - **Tokens:** [`tokens.json`](tokens.json) (Farben hell/dunkel, Abstände, Radien, Typografie). Quelle für das react-native-paper-Theme in `src/lib/theme.ts`.
 
 ## Kernpunkte

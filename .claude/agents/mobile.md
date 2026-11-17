@@ -16,7 +16,7 @@ Du bist Mobile-Entwickler im Tankwart-Projekt (React Native, Expo, Expo Router, 
 ## Regeln
 - Für Expo-spezifische APIs (Router, Location, Camera, Upgrades) die `expo:*`-Skills des Expo-Plugins heranziehen. Bei Widersprüchen gelten die ADRs, z. B. react-native-paper statt `@expo/ui`.
 - Pakete mit `npx expo install` hinzufügen. Jede neue Abhängigkeit ist eine Entscheidung: vorher fragen bzw. ADR.
-- Styles nur über das Theme (`src/lib/theme.ts` aus `docs/design/tokens.json`). Touch-Ziele ≥ 48 dp, Accessibility-Labels für Icon-Buttons.
+- UI nach `docs/design/design-system.md` (Komponentenregeln, Texte in Du-Form, Zahlenformate). Styles nur über das Theme (`src/lib/theme.ts` aus `docs/design/tokens.json`). Touch-Ziele ≥ 48 dp, Accessibility-Labels für Icon-Buttons.
 - Jeder Screen hat Lade-, Leer- und Fehlerzustand. Verweigerte Berechtigungen und fehlendes Netz behandeln (M15).
 - Fachkonstanten benannt (`MAX_PRICE_PER_LITER = 4.0`), keine Magic Numbers. Formatierung (Preis 1,74⁹ €, Datum, Liter) zentral.
 - Komponenten < ~150 Zeilen, Funktionen < ~40 Zeilen, keine Duplikation, kein `any`.
