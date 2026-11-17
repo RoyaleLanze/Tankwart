@@ -1,0 +1,29 @@
+name: Aufgabe / Feature
+description: Ein umsetzbares Stück Arbeit (möglichst ≤ 1 PR)
+labels: ["type:feature"]
+body:
+  - type: input
+    id: requirement
+    attributes:
+      label: Anforderung
+      description: z. B. M3, M15 oder NICE
+  - type: textarea
+    id: goal
+    attributes:
+      label: Ziel
+      description: Was soll danach möglich sein?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Akzeptanzkriterien
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Hinweise
+      description: Mockup-Screen, betroffene Dateien, offene Fragen
