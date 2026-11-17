@@ -10,11 +10,53 @@ Android-App zum Erfassen von Betankungen, mit Verbrauch und Kosten pro Monat und
 
 ## Setup
 
-_Folgt mit dem Projekt-Grundgerüst: App starten, Supabase lokal (Migrationen, Seeds, Edge Function im Mock-Modus), Tests ausführen._
+### Voraussetzungen
+
+- Node.js 24, Docker (für die lokale Supabase-Instanz)
+- Android Studio mit Emulator bzw. ein Android-Gerät mit USB-Debugging
+
+### App
+
+```bash
+npm install
+cp .env.example .env      # Werte eintragen, siehe unten
+npm run android           # lokaler Build und Start auf dem Emulator
+```
+
+Danach reicht für die tägliche Arbeit `npm start`.
+
+### Supabase lokal
+
+Die Supabase CLI ist als devDependency installiert und wird über `npx supabase` aufgerufen.
+
+```bash
+npx supabase start        # startet Postgres, Auth, Storage usw. in Docker, wendet Migrationen und Seeds an
+npx supabase status       # zeigt URLs und Keys
+npx supabase stop         # beendet die Instanz
+```
+
+In `.env` den `PUBLISHABLE_KEY` aus `npx supabase status` eintragen. Der Android-Emulator erreicht den Rechner unter `10.0.2.2` (bereits in `.env.example` gesetzt). Studio (Datenbank-UI) läuft unter http://127.0.0.1:54323.
+
+### Supabase Cloud
+
+Einmalig, im **eigenen Terminal** (interaktiv, nicht über Claude Code):
+
+```bash
+npx supabase login
+npx supabase link --project-ref <project-ref>   # Dashboard → Project Settings → General → Project ID
+```
+
+Migrationen in die Cloud spielen: `npx supabase db push`. Für die App gegen die Cloud stehen in `.env` die Projekt-URL und der Publishable Key aus dem Dashboard (Project Settings → API Keys).
 
 ## Tests
 
-_Folgt._
+```bash
+npm run lint
+npm run typecheck
+npm test
+```
+
+Die Datenbank-Tests (`npx supabase test db`) und die E2E-Tests (Maestro) folgen mit den jeweiligen Features.
 
 ## KI-Reflexion
 
