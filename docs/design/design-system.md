@@ -115,7 +115,7 @@ Filter-Chips für Kraftstoff, Radius und Sortierung; 32 dp hoch, Touch-Fläche 4
 
 - Ausgewählt: `primary-container` + Häkchen-Icon. Nicht ausgewählt: Kontur `outline-strong`.
 - Chip-Reihen dürfen nicht abgeschnitten werden: umbrechen oder horizontal scrollbar mit sichtbarem Anschnitt am rechten Rand (Mockup 7.4 schneidet „Diesel“ ab, 7.8 den Radius).
-- Kraftstoffliste immer vollständig: Super E5, Super E10, Super Plus, Diesel, LPG, CNG.
+- Kraftstoffliste immer vollständig: Super E5, Super E10, Diesel (nur die Sorten von Tankerkönig, Entscheidung vom 17.11.2026).
 
 ## Badge
 Kleine Pill-Labels für Zustände; Farbe trägt nie allein die Bedeutung.

@@ -77,9 +77,11 @@ Ungefähr in dieser Reihenfolge:
 
 Bewusst nicht geplant: Preisalarm, weil Tankerkönig Abfragen nur auf Nutzeraktion erlaubt.
 
-## Offene Punkte aus dem Mockup-Abgleich
+## Entscheidungen aus dem Mockup-Abgleich (17.11.2026)
 
-- **Onboarding:** Das Mockup zeigt „Tankvolumen (optional)“, laut M1 ist die Tankgröße aber Pflicht (wird für M4 und M10 gebraucht). Vorschlag: Pflichtfeld.
-- **Onboarding** zeigt „Schritt 1 von 2“. Der zweite Schritt ist nicht als Mockup vorhanden. Klären, was er enthält (z. B. Standortfreigabe erklären), oder den Schritt streichen.
-- **Tankstellen:** Im Mockup ist 10 km gewählt, laut M9 ist der Standard 5 km. Umsetzung nach M9.
-- **Kraftstoffe:** Das Design-System (Chip) nennt Super E5, Super E10, Super Plus, Diesel, LPG und CNG. M1 und Tankerkönig kennen nur E5, E10 und Diesel. Umsetzung nach M1.
+Bei Widerspruch zum Mockup gilt diese Liste.
+
+- **Onboarding, Tankgröße:** Pflichtfeld (M1). Wird für M4 und M10 gebraucht. Das Mockup zeigt „optional“, das ist überholt.
+- **Onboarding, Schritte:** nur ein Schritt (erstes Fahrzeug), die Anzeige „Schritt 1 von 2“ entfällt. Berechtigungen werden im Kontext abgefragt (Standort beim ersten Öffnen der Tankstellen bzw. beim Erfassen, Kamera beim Belegfoto) und nicht vorab im Onboarding.
+- **Kraftstoffe:** nur Super E5, Super E10 und Diesel, die Sorten von Tankerkönig.
+- **Tankstellen, Umkreis:** Standard 5 km nach M9 (im Mockup ist 10 km gewählt).
