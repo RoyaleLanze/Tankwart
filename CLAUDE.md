@@ -2,7 +2,7 @@
 
 Android-App zum Erfassen von Betankungen (Verbrauch und Kosten pro Monat) und zum Finden der günstigsten Tankstelle in der Nähe. DHBW-Studienprojekt für ein Zweierteam.
 
-- **Stack:** React Native + Expo (Expo Router, TypeScript strict), react-native-paper (Material Design 3), Supabase (EU) mit Auth, Postgres + RLS, Storage und Edge Functions, Spritpreise über die Tankerkönig-API (nur über die Edge Function).
+- **Stack:** React Native + Expo SDK 58 (Expo Router, TypeScript strict), react-native-paper (Material Design 3), Supabase (EU) mit Auth, Postgres + RLS, Storage und Edge Functions, Spritpreise über die Tankerkönig-API (nur über die Edge Function).
 - **Anforderungen:** `docs/requirements.md` (M1–M15 sind verbindlich).
 - **Entscheidungen:** `docs/adr/`
 - **Design:** `docs/design/` (Mockup-Link, `design-system.md` mit Komponentenregeln, `tokens.json`)
@@ -30,7 +30,7 @@ Beide Teammitglieder müssen im Übergabegespräch die Architektur und ihren Cod
 Schichten mit klarer Abhängigkeitsrichtung: **UI → Hooks → API/Repository → Supabase**. Die Domänenlogik ist rein und hängt von nichts ab.
 
 ```
-app/                    Expo Router: nur Screens und Layouts, keine Datenzugriffe
+src/app/                Expo Router: nur Routen (Screens, Layouts), keine Datenzugriffe
 src/components/         wiederverwendbare, präsentationale UI-Komponenten
 src/features/<bereich>/ vehicles | refuelings | stations | stats | auth
   logic/                reine TypeScript-Funktionen (Berechnung, Validierung), ohne React und ohne IO
@@ -88,6 +88,8 @@ Muster, die wir bewusst nutzen (im Gespräch erklärbar):
 ## Expo-Plugin
 
 Das offizielle Expo-Plugin (`expo@claude-plugins-official`) wird über `.claude/settings.json` (`enabledPlugins`) für beide aktiviert (Skills `expo:*`, z. B. `expo-router`, `expo-data-fetching`, `expo-upgrade`). Nutzt es für aktuelle API-Details, Setup und SDK-Fragen. **Bei Widersprüchen gelten unsere ADRs.** Ein Beispiel: Das Plugin empfiehlt `@expo/ui` oder NativeTabs, wir nutzen react-native-paper (ADR 0004). Eine Abweichung davon wäre eine neue ADR.
+
+Expo ändert sich mit jedem SDK. Doku immer versioniert lesen (`https://docs.expo.dev/versions/v58.0.0/`) statt aus dem Gedächtnis, Pakete immer mit `npx expo install`.
 
 **Keine EAS-Dienste und nichts Kostenpflichtiges.** Kein EAS Build, Submit, Update, Workflows, Hosting, Observe, Cloud-Simulator oder Sandbox, auch nicht die entsprechenden `eas-*`-Skills und Plugin-Tools. Erlaubt sind nur die kostenlosen Teile: Dokumentation (`read_documentation`, `search_documentation`), die `expo-*`-Wissens-Skills und die lokale Expo CLI (`npx expo start`, `npx expo run:android`, `npx expo install`). Gebaut und getestet wird lokal auf Emulator bzw. Gerät.
 
