@@ -1,6 +1,6 @@
 # 0010 – Lokale Speicherung (Session, Entwurf)
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Datum:** 2026-11-17
 - **Entscheider:** @SealJonny, @RoyaleLanze
 
@@ -20,4 +20,4 @@ Option 1 für Session, Entwurf und Preis-Cache: ein Mechanismus, kein Developmen
 
 ## Entscheidung
 
-_offen_
+Option 1: **@react-native-async-storage/async-storage** für Supabase-Session, Betankungsentwurf und Preis-Cache.

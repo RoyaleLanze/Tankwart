@@ -1,6 +1,6 @@
 # 0011 – Diagramm für die Statistik
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Datum:** 2026-11-17
 - **Entscheider:** @SealJonny, @RoyaleLanze
 
@@ -20,4 +20,10 @@ Option 3, falls nur ein einziges Diagramm geplant bleibt: Ein Balkendiagramm ist
 
 ## Entscheidung
 
-_offen_
+Option 1: **react-native-gifted-charts** (Abhängigkeiten: `react-native-svg`, `expo-linear-gradient`). Begründung: Weitere Diagramme sind als NICE-TO-HAVE denkbar, eine Bibliothek verhindert dann eigenen Diagramm-Code an mehreren Stellen. Die Bibliothek ist aktiv gepflegt und kommt ohne Skia aus. Die Empfehlung „eigene Balken“ wurde bewusst verworfen.
+
+## Konsequenzen
+
+- Mit `npx expo install` installieren, damit die Versionen zu SDK 58 passen. Beim Einbau (M12) auf dem Emulator prüfen, ob alles mit der New Architecture läuft.
+- Barrierefreiheit gezielt prüfen: Die Werte des ausgewählten Monats stehen zusätzlich als Text unter dem Diagramm (wie im Mockup), damit Screenreader sie lesen können.
+- victory-native verworfen: Skia und Reanimated sind für ein Balkendiagramm zu schwer.
