@@ -1,6 +1,0 @@
-# Changes to these paths need an approving review from the other decider (see CLAUDE.md, Merge-Regeln).
-/docs/adr/            @SealJonny @RoyaleLanze
-/docs/requirements.md @SealJonny @RoyaleLanze
-/CLAUDE.md            @SealJonny @RoyaleLanze
-/.claude/             @SealJonny @RoyaleLanze
-/.github/             @SealJonny @RoyaleLanze
