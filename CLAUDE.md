@@ -64,13 +64,18 @@ Muster, die wir bewusst nutzen (im Gespräch erklärbar):
 Änderungen an der App werden auf dem Emulator geprüft, nicht nur per Lint und Jest. Das gilt für Menschen und Agents.
 
 - AVDs: `tankwart` (Entwicklung) und `tankwart-e2e` (sauberes Gerät für Maestro bzw. zweiten Testnutzer), beide Pixel 8, Android 36
-- Starten: `android emulator start tankwart` (kehrt erst zurück, wenn das Gerät gebootet ist). Liste: `android emulator list`, stoppen: `android emulator stop tankwart`. Ohne `android`-Binary: `~/Android/Sdk/emulator/emulator -avd tankwart &` und Boot abwarten mit `adb wait-for-device shell 'while [ -z "$(getprop sys.boot_completed)" ]; do sleep 2; done'`
-- **Mehrere Geräte:** Laufen beide AVDs, braucht jeder Befehl die Serial aus `adb devices` (z. B. `emulator-5556`). `android …` nimmt `--device=<serial>`, `adb` nimmt `-s <serial>` (z. B. `adb -s emulator-5556 shell input tap 540 1200`).
+- Starten: `android emulator start tankwart` (kehrt erst zurück, wenn das Gerät gebootet ist). Liste: `android emulator list`, stoppen: `android emulator stop tankwart` (AVD-Name, keine Serial).
+- **Serial immer zuerst ermitteln** mit `adb devices` (z. B. `emulator-5554`) und bei **jedem** Gerätebefehl angeben, auch wenn gerade nur ein Gerät läuft: `adb -s <serial> …`, `android layout --device=<serial>`, `android screen capture --device=<serial>`. Unten steht `<serial>` für diesen Wert.
 - App bauen und installieren: `npm run android` (lokaler Gradle-Build, **kein EAS**). Danach reicht `npm start` und in der App neu laden.
-- Prüfen: zuerst `android layout -p` (UI-Baum als JSON mit `text`, `content-desc`, `center`, `interactions`), dann `android screen capture -o /tmp/screen-<serial>.png` und den Screenshot ansehen (Dateiname mit Serial, damit parallele Agents sich nicht überschreiben). Findet `layout` ein Element nicht: `android screen capture --annotate -o …` und `android screen resolve`. Eingaben mit `adb shell input tap|text|swipe|keyevent` auf die `center`-Koordinaten.
-- Barrierefreiheit prüfen: `android layout --full -p`, denn ohne `--full` fehlen Elemente ohne Text, Label und Interaktion, also genau die unbeschrifteten Icons. `bounds` sind Pixel: dp = px ÷ (Dichte ÷ 160), Dichte mit `adb shell wm density`. Pixel 8 (420 dpi): Faktor 2,625, ein 48-dp-Touch-Ziel ist mindestens 126 px groß.
+- Prüfen (nur lesend):
+  - `android layout --device=<serial> -p` liefert den UI-Baum als JSON mit `text`, `content-desc`, `center` und `interactions`.
+  - `android screen capture --device=<serial> -o /tmp/screen-<serial>.png` macht einen Screenshot, den man dann ansieht. Die Serial im Dateinamen verhindert, dass sich parallele Agents überschreiben.
+  - Findet `layout` ein Element nicht: `android screen capture --device=<serial> --annotate -o /tmp/annotated-<serial>.png`, dann `android screen resolve --screenshot /tmp/annotated-<serial>.png --string "#3"`.
+  - Eingaben: `adb -s <serial> shell input tap|text|swipe|keyevent` auf die `center`-Koordinaten.
+- Barrierefreiheit prüfen: `android layout --device=<serial> --full -p`, denn ohne `--full` fehlen Elemente ohne Text, Label und Interaktion, also genau die unbeschrifteten Icons. `bounds` sind Pixel: dp = px ÷ (Dichte ÷ 160). Die Dichte liefert `adb -s <serial> shell wm density`; gibt es eine „Override density“, gilt die, sonst „Physical density“. Pixel 8 (420 dpi): Faktor 2,625, ein 48-dp-Touch-Ziel ist mindestens 126 px groß. `bounds` enthalten kein `hitSlop`, ein zu kleiner Wert bei Paper-`IconButton` ist deshalb im Code gegenzuprüfen.
+- Ohne `android`-Binary (Fallback): Starten mit `~/Android/Sdk/emulator/emulator -avd tankwart &` und `adb -s <serial> wait-for-device shell 'while [ -z "$(getprop sys.boot_completed)" ]; do sleep 2; done'`, Screenshot mit `adb -s <serial> exec-out screencap -p > /tmp/screen-<serial>.png`, UI-Baum mit `adb -s <serial> shell uiautomator dump /sdcard/ui.xml && adb -s <serial> pull /sdcard/ui.xml /tmp/ui-<serial>.xml`.
 - Supabase lokal ist vom Emulator unter `10.0.2.2:54321` erreichbar.
-- Fehlerzustände gezielt auf dem Emulator auslösen: Netz aus (`adb shell svc wifi disable && adb shell svc data disable`), Standort setzen (`adb emu geo fix <lon> <lat>`), Berechtigungen zurücksetzen (`adb shell pm reset-permissions de.dhbw.tankwart`).
+- Fehlerzustände gezielt auslösen (ändert das Gerät, nur `qa-tester` und Menschen): Netz aus mit `adb -s <serial> shell svc wifi disable && adb -s <serial> shell svc data disable` (danach wieder `enable`), Standort setzen mit `adb -s <serial> emu geo fix <lon> <lat>`, Berechtigungen zurücksetzen mit `adb -s <serial> shell pm reset-permissions de.dhbw.tankwart`.
 - Eine UI-Aufgabe ist erst fertig, wenn sie auf dem Emulator lief und ein Screenshot geprüft wurde.
 
 ## Tests
@@ -117,7 +122,7 @@ Das offizielle Plugin `android-cli@android-cli-plugin` (Google) ist wie das Expo
 3. Claude Code im Repo starten und die Abfrage zur Installation des Marketplaces bzw. Plugins bestätigen. Falls keine kommt: `/plugin marketplace add android/android-cli-plugin` und `/plugin install android-cli@android-cli-plugin`.
 
 **Nutzen:** `emulator`, `layout`, `screen`, `docs` (offizielle Android-Doku zu Berechtigungen, Standort, Kamera usw.) und `info`.
-**Nicht nutzen:** `create`, `build`, `run`, `install` und `preview` (die zielen auf native Gradle- bzw. Compose-Projekte; bei uns baut `npm run android`). Ebenso `signals`, `auth`, `device remote` und `profiler` (Google-Konto bzw. Cloud, siehe keine kostenpflichtigen Dienste). `init`, `update`, `emulator create|remove`, `sdk install|update|remove`, `skills add` und die Installation des Binarys (`curl … | bash`) ändern die Umgebung und macht nur ein Mensch. Agents fragen stattdessen nach, auch wenn der Skill etwas anderes vorschlägt. Journey-Tests des Plugins ersetzen nicht die Maestro-Flows (ADR 0007).
+**Nicht nutzen:** `create`, `build`, `run`, `install` und `preview` (die zielen auf native Gradle- bzw. Compose-Projekte; bei uns baut `npm run android`). Ebenso `signals`, `auth`, `device remote` und `profiler` (Google-Konto bzw. Cloud, siehe keine kostenpflichtigen Dienste). `init`, `update`, `emulator create|remove`, `sdk install|update|remove`, `skills add` und die Installation des Binarys (`curl … | bash`) ändern die Umgebung, deshalb führt sie nur ein Mensch aus. Agents fragen stattdessen nach, auch wenn der Skill etwas anderes vorschlägt. Journey-Tests des Plugins ersetzen nicht die Maestro-Flows (ADR 0007).
 
 ## Lernmaterial des Dozenten
 

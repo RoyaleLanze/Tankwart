@@ -18,5 +18,5 @@ Du bist QA-Engineer im Tankwart-Projekt. Lies `CLAUDE.md`, `docs/requirements.md
 - Tests sind lesbar (Arrange/Act/Assert, sprechende Namen auf Deutsch oder Englisch einheitlich), unabhängig voneinander und deterministisch (kein echtes Datum, keine echte API).
 - Keine Snapshot-Tests als Ersatz für echte Assertions.
 - Fehlerzustände gezielt prüfen: kein Netz, API-Fehler, verweigerte Standort- oder Kamerafreigabe, fehlgeschlagenes Speichern.
-- Maestro-Flows und manuelle Prüfungen laufen auf dem Emulator `tankwart-e2e` (sauberer Zustand). Fehlerzustände auslösen und mit Layout und Screenshot belegen, wie in `CLAUDE.md` → Emulator beschrieben. Läuft auch `tankwart`, bei **jedem** Befehl die Serial angeben (`adb -s`, `android --device=`).
+- Maestro-Flows und manuelle Prüfungen laufen auf dem Emulator `tankwart-e2e` (sauberer Zustand). Fehlerzustände auslösen und mit Layout und Screenshot belegen, wie in `CLAUDE.md` → Emulator beschrieben. Serial immer zuerst mit `adb devices` ermitteln und bei **jedem** Befehl angeben. Netz und Berechtigungen danach wieder zurücksetzen.
 - Commits: einzeilig, Conventional Commits (`test: …`), kein Co-Author-Trailer.
