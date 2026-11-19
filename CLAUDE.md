@@ -83,6 +83,8 @@ Muster, die wir bewusst nutzen (im Gespräch erklärbar):
 ## Workflow
 
 1. Jede Arbeit hat ein GitHub-Issue auf dem Board. Branch: `feat/<issue>-kurz`, `fix/…`, `chore/…`, `docs/…`
+   - Wer ein Issue anfängt, weist es sich vorher zu (`gh issue edit <nr> --add-assignee @me`) und schiebt es auf dem Board auf „In Progress“. Issues werden nicht vorab verteilt.
+   - Issues, die jemand anderem zugewiesen sind, fasst man nicht an. Claude prüft vor Arbeitsbeginn die Zuweisung (`gh issue view <nr>`) und fragt nach, wenn das Issue jemand anderem gehört oder niemandem zugewiesen ist.
 2. **Commits:** klein und häufig, Nachricht einzeilig und kurz im Conventional-Commits-Stil (`feat: add fuel consumption calc`). **Kein** `Co-Authored-By`-Trailer.
 3. **PR** mit `Closes #<nr>` und ausgefüllter Vorlage. Ein Mensch reviewt jede PR. Merge per Merge-Commit (kein Squash), damit die einzelnen Schritte in der Historie sichtbar bleiben.
 4. Vor einer PR müssen `npm run lint`, `npm run typecheck` und `npm test` grün sein.
