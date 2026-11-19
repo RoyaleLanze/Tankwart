@@ -2,19 +2,37 @@
 
 Closes #
 
-## Wie getestet
+## Merge-Kriterien
 
-- [ ] `npm run lint`, `npm run typecheck` und `npm test` sind grün
+Siehe `CLAUDE.md` → Merge-Regeln. Nicht zutreffende Punkte mit „entfällt“ markieren.
+
+- [ ] Issue ist dem Menschen der aktuellen Sitzung zugewiesen
+- [ ] CI grün (lint, typecheck, Jest)
+- [ ] `supabase/` geändert: `npx supabase test db` und Deno-Tests lokal grün (Ausgabe unten)
+- [ ] UI geändert: auf dem Emulator geprüft (Screenshot unten)
 - [ ] Neue Logik hat Tests (Jest / pgTAP / Deno / Maestro)
-- [ ] Auf Emulator oder Gerät ausprobiert (Screenshot bei UI-Änderungen)
+- [ ] Neue Abhängigkeit oder Datenmodell-Änderung: `Accepted`-ADR verlinkt
+- [ ] Diff ≤ ~300 Zeilen ohne Lockfiles und generierte Dateien
+- [ ] ADR, Anforderungen, Regeln oder Agent-Setup geändert: Go eines Menschen (Chat oder GitHub)
+
+### Testbelege
+
+Ausgabe von pgTAP/Deno, Screenshot vom Emulator.
+
+### Review-Befunde
+
+| Agent | Befund | behoben / abgelehnt weil … |
+|---|---|---|
+| `code-reviewer` | | |
+
+## Für das Übergabegespräch
+
+Warum so, welche Alternative, welches Muster, was man erklären können muss.
 
 ## Checkliste
 
-- [ ] Ich kann jede geänderte Zeile im Übergabegespräch erklären
 - [ ] Lade-, Leer- und Fehlerzustände sind behandelt (falls UI)
 - [ ] Keine Secrets, keine Magic Numbers, keine Duplikation
-- [ ] Neue Abhängigkeit oder Architekturentscheidung? → ADR verlinkt
-- [ ] Diff ist überschaubar (≈ < 300 Zeilen ohne Lockfiles)
 
 ## KI-Notiz (optional)
 
