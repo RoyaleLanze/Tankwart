@@ -64,9 +64,10 @@ Muster, die wir bewusst nutzen (im Gespräch erklärbar):
 Änderungen an der App werden auf dem Emulator geprüft, nicht nur per Lint und Jest. Das gilt für Menschen und Agents.
 
 - AVDs: `tankwart` (Entwicklung) und `tankwart-e2e` (sauberes Gerät für Maestro bzw. zweiten Testnutzer), beide Pixel 8, Android 36
-- Starten: `~/Android/Sdk/emulator/emulator -avd tankwart &`, Boot abwarten: `adb wait-for-device shell 'while [ -z "$(getprop sys.boot_completed)" ]; do sleep 2; done'`
+- Starten: `android emulator start tankwart` (kehrt erst zurück, wenn das Gerät gebootet ist). Liste: `android emulator list`, stoppen: `android emulator stop tankwart`
 - App bauen und installieren: `npm run android` (lokaler Gradle-Build, **kein EAS**). Danach reicht `npm start` und in der App neu laden.
-- Prüfen: Screenshot mit `adb exec-out screencap -p > /tmp/screen.png` ansehen. UI-Elemente mit `adb shell uiautomator dump` finden, Eingaben mit `adb shell input tap|text|keyevent`. Dazu der Android-CLI-Skill.
+- Prüfen: zuerst `android layout -p` (UI-Baum als JSON mit `text`, `content-desc`, `center`, `interactions`), dann `android screen capture -o /tmp/screen.png` und den Screenshot ansehen. Findet `layout` ein Element nicht: `android screen capture --annotate -o …` und `android screen resolve`. Eingaben mit `adb shell input tap|text|swipe|keyevent` auf die `center`-Koordinaten. Laufen beide AVDs, immer `--device=<serial>` angeben (`adb devices`).
+- Barrierefreiheit prüfen: `android layout` zeigt fehlende `content-desc` an Icon-Buttons und die `bounds` (Touch-Ziel ≥ 48 dp).
 - Supabase lokal ist vom Emulator unter `10.0.2.2:54321` erreichbar.
 - Fehlerzustände gezielt auf dem Emulator auslösen: Netz aus (`adb shell svc wifi disable && adb shell svc data disable`), Standort setzen (`adb emu geo fix <lon> <lat>`), Berechtigungen zurücksetzen (`adb shell pm reset-permissions de.dhbw.tankwart`).
 - Eine UI-Aufgabe ist erst fertig, wenn sie auf dem Emulator lief und ein Screenshot geprüft wurde.
@@ -104,6 +105,18 @@ Das offizielle Expo-Plugin (`expo@claude-plugins-official`) wird über `.claude/
 Expo ändert sich mit jedem SDK. Doku immer versioniert lesen (`https://docs.expo.dev/versions/v58.0.0/`) statt aus dem Gedächtnis, Pakete immer mit `npx expo install`.
 
 **Keine EAS-Dienste und nichts Kostenpflichtiges.** Kein EAS Build, Submit, Update, Workflows, Hosting, Observe, Cloud-Simulator oder Sandbox, auch nicht die entsprechenden `eas-*`-Skills und Plugin-Tools. Erlaubt sind nur die kostenlosen Teile: Dokumentation (`read_documentation`, `search_documentation`), die `expo-*`-Wissens-Skills und die lokale Expo CLI (`npx expo start`, `npx expo run:android`, `npx expo install`). Gebaut und getestet wird lokal auf Emulator bzw. Gerät.
+
+## Android-CLI-Plugin
+
+Das offizielle Plugin `android-cli@android-cli-plugin` (Google) ist wie das Expo-Plugin in `.claude/settings.json` eingetragen (Marketplace unter `extraKnownMarketplaces`, aktiviert unter `enabledPlugins`). Es bringt den Skill `android-cli` mit, der Claude und den Subagents `mobile`, `ux` und `qa-tester` die Befehle aus dem Abschnitt Emulator beibringt.
+
+**Einrichten (einmal pro Rechner):**
+1. Das `android`-Binary installieren. Das Plugin enthält nur den Skill, nicht das Tool. Linux x86-64: `curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash`, andere Plattformen siehe https://developer.android.com/tools/agents/android-cli
+2. Prüfen: `android info` muss das SDK unter `~/Android/Sdk` finden, `android emulator list` muss `tankwart` und `tankwart-e2e` zeigen.
+3. Claude Code im Repo starten und die Abfrage zur Installation des Marketplaces bzw. Plugins bestätigen. Falls keine kommt: `/plugin marketplace add android/android-cli-plugin` und `/plugin install android-cli@android-cli-plugin`.
+
+**Nutzen:** `emulator`, `layout`, `screen`, `docs` (offizielle Android-Doku zu Berechtigungen, Standort, Kamera usw.) und `info`.
+**Nicht nutzen:** `create`, `build`, `run`, `install` und `preview` (die zielen auf native Gradle- bzw. Compose-Projekte; bei uns baut `npm run android`). Ebenso `signals`, `auth`, `device remote` und `profiler` (Google-Konto bzw. Cloud, siehe keine kostenpflichtigen Dienste). `emulator create|remove`, `sdk install|update|remove` und `skills add` ändern die gemeinsame Umgebung und werden vorher abgesprochen. Journey-Tests des Plugins ersetzen nicht die Maestro-Flows (ADR 0007).
 
 ## Lernmaterial des Dozenten
 

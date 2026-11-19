@@ -1,5 +1,14 @@
 {
+  "extraKnownMarketplaces": {
+    "android-cli-plugin": {
+      "source": {
+        "source": "github",
+        "repo": "android/android-cli-plugin"
+      }
+    }
+  },
   "enabledPlugins": {
-    "expo@claude-plugins-official": true
+    "expo@claude-plugins-official": true,
+    "android-cli@android-cli-plugin": true
   }
 }
