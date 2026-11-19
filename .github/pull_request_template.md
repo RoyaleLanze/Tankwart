@@ -13,8 +13,7 @@ Siehe `CLAUDE.md` → Merge-Regeln. Nicht zutreffende Punkte mit „entfällt“
 - [ ] Neue Logik hat Tests (Jest / pgTAP / Deno / Maestro)
 - [ ] Neue Abhängigkeit oder Datenmodell-Änderung: `Accepted`-ADR verlinkt
 - [ ] Diff ≤ ~300 Zeilen ohne Lockfiles und generierte Dateien
-- [ ] Regeln/Agent-Setup geändert: Go eines Menschen (Chat oder GitHub)
-- [ ] ADR/Anforderungen geändert: Freigabe durch den anderen Entscheider auf GitHub
+- [ ] ADR, Anforderungen, Regeln oder Agent-Setup geändert: Go eines Menschen (Chat oder GitHub)
 
 ### Testbelege
 

@@ -107,9 +107,9 @@ Der Orchestrator (Claude in der Hauptsitzung) merged eine PR selbst und ohne men
 5. **Größe:** Diff ≤ ~300 Zeilen ohne Lockfiles und generierte Dateien. Ist er größer, fragt der Orchestrator den Owner, statt automatisch zu mergen.
 6. **Dokumentiert:** Die Abschnitte „Merge-Kriterien“ und „Für das Übergabegespräch“ der PR-Vorlage sind ausgefüllt. Beide lesen die gemergten PRs wöchentlich nach, damit sie den Code im Gespräch erklären können.
 
-**Ausnahmen, die zusätzlich ein ausdrückliches Go brauchen:**
-- **Regeln und Agent-Setup** (`CLAUDE.md`, `.claude/`, `.github/`): Go eines Menschen, auch des Menschen der Sitzung selbst, im Chat oder als Freigabe auf GitHub.
-- **Entscheidungen** (`docs/adr/`, `docs/requirements.md`): Zustimmung beider Entscheider. Der Mensch der Sitzung hat gewählt, der andere gibt die PR auf GitHub frei. Der Orchestrator prüft das mit `gh pr view <nr> --json reviews`.
+**Ausnahmen, die zusätzlich ein ausdrückliches Go eines Menschen brauchen** (einer von beiden reicht, auch der Mensch der Sitzung selbst, im Chat oder als Freigabe auf GitHub):
+- Entscheidungen: `docs/adr/` und `docs/requirements.md`
+- Regeln und Agent-Setup: `CLAUDE.md`, `.claude/`, `.github/`
 
 Erst danach merged der Orchestrator, sofern die übrigen Kriterien erfüllt sind. Kommt nach dem Go noch ein Commit auf einen dieser Pfade, braucht es ein neues Go.
 
