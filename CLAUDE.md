@@ -10,9 +10,9 @@ Android-App zum Erfassen von Betankungen (Verbrauch und Kosten pro Monat) und zu
 
 ## Wer entscheidet
 
-Es gibt genau zwei Entscheider: **@SealJonny** und **@RoyaleLanze**. Claude und die Subagents schlagen vor, sie entscheiden nicht. Einzige Ausnahme: Der Orchestrator merged PRs, wenn die Merge-Regeln (unten) erfüllt sind.
+Es gibt genau zwei Entscheider: **@SealJonny** und **@RoyaleLanze**. Für jede Entscheidung reicht einer von beiden, es müssen nie beide zustimmen. Claude und die Subagents schlagen vor, sie entscheiden nicht. Einzige Ausnahme: Der Orchestrator merged PRs, wenn die Merge-Regeln (unten) erfüllt sind.
 
-- Architektur, neue Abhängigkeiten, Datenmodell, Scope-Änderungen: als ADR anlegen (`docs/adr/`, Vorlage `0000-template.md`) und die Optionen mit Empfehlung darlegen. Hat der Mensch der Sitzung gewählt, wird die ADR mit Status `Accepted` und der gewählten Option als PR eingereicht. Die Freigabe durch den anderen Entscheider ist seine Zustimmung. Lehnt er ab, wird die ADR überarbeitet oder auf `Rejected` gesetzt. Code, der von der ADR abhängt, wird erst nach ihr gemergt.
+- Architektur, neue Abhängigkeiten, Datenmodell, Scope-Änderungen: als ADR anlegen (`docs/adr/`, Vorlage `0000-template.md`) und die Optionen mit Empfehlung darlegen. Hat der Mensch der Sitzung gewählt, wird die ADR mit Status `Accepted` und der gewählten Option eingereicht. Code, der von der ADR abhängt, wird erst mit oder nach ihr gemergt.
 - Unklar, ob etwas eine wichtige Entscheidung ist? Dann ist es eine. Nachfragen.
 
 ## Oberste Regel: Code bleibt überschaubar
