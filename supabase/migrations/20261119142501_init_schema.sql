@@ -32,7 +32,7 @@ create table public.refuelings (
   -- 0.50–4.00 €/L (M4), stored in tenths of a cent: 1.749 € = 1749.
   price_per_liter_tenth_cents integer not null
     check (price_per_liter_tenth_cents between 500 and 4000),
-  total_cents integer not null check (total_cents >= 0),
+  total_cents integer not null check (total_cents > 0),
   odometer_km integer not null check (odometer_km >= 0),
   -- Tankerkönig station UUID; null when entered as free text (M5).
   station_id uuid,
@@ -64,6 +64,10 @@ revoke execute on function public.handle_new_user() from public, anon, authentic
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Anonymous users never need these tables; truncate etc. would bypass RLS.
+revoke all on public.vehicles, public.profiles, public.refuelings from anon;
+revoke truncate, references, trigger on public.vehicles, public.profiles, public.refuelings from authenticated;
 
 -- Row Level Security: every user sees and changes only their own rows (M14).
 alter table public.vehicles enable row level security;
