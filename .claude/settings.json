@@ -1,4 +1,7 @@
 {
+  "attribution": {
+    "commit": ""
+  },
   "extraKnownMarketplaces": {
     "android-cli-plugin": {
       "source": {
