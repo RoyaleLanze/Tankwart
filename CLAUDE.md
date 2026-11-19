@@ -10,9 +10,9 @@ Android-App zum Erfassen von Betankungen (Verbrauch und Kosten pro Monat) und zu
 
 ## Wer entscheidet
 
-Es gibt genau zwei Entscheider: **@SealJonny** und **@RoyaleLanze**. Claude und die Subagents schlagen vor, sie entscheiden nicht.
+Es gibt genau zwei Entscheider: **@SealJonny** und **@RoyaleLanze**. Claude und die Subagents schlagen vor, sie entscheiden nicht. Einzige Ausnahme: Der Orchestrator merged PRs, wenn die Merge-Regeln (unten) erfüllt sind.
 
-- Architektur, neue Abhängigkeiten, Datenmodell, Scope-Änderungen: als ADR mit Status `Proposed` anlegen (`docs/adr/`, Vorlage `0000-template.md`) und die Optionen mit Empfehlung darlegen. Erst nach Zustimmung umsetzen und den Status auf `Accepted` setzen.
+- Architektur, neue Abhängigkeiten, Datenmodell, Scope-Änderungen: als ADR anlegen (`docs/adr/`, Vorlage `0000-template.md`) und die Optionen mit Empfehlung darlegen. Hat der Mensch der Sitzung gewählt, wird die ADR mit Status `Accepted` und der gewählten Option als PR eingereicht. Die Freigabe durch den anderen Entscheider ist seine Zustimmung. Lehnt er ab, wird die ADR überarbeitet oder auf `Rejected` gesetzt. Code, der von der ADR abhängt, wird erst nach ihr gemergt.
 - Unklar, ob etwas eine wichtige Entscheidung ist? Dann ist es eine. Nachfragen.
 
 ## Oberste Regel: Code bleibt überschaubar
@@ -21,7 +21,7 @@ Beide Teammitglieder müssen im Übergabegespräch die Architektur und ihren Cod
 
 - **Klein bleiben.** Zielgröße für die ganze App: wenige tausend Zeilen. Eine PR ≈ ein Issue, möglichst < 300 Zeilen Diff ohne Lockfiles und generierte Dateien.
 - **Nur bauen, was ein Issue verlangt.** Keine Abstraktion auf Vorrat, keine Features „für später“, keine NICE-TO-HAVEs vor den MUST-HAVEs.
-- **Bibliothek vor Eigenbau**, aber jede neue Abhängigkeit ist eine Entscheidung (ADR oder Absprache). Vorher auf https://reactnative.directory/ prüfen (gepflegt, Expo-kompatibel). Entwicklerwerkzeuge, die nicht in die App eingehen (Claude-Plugins, CLI-Tools für den Emulator), brauchen keine ADR. Sie werden über den Review der Regel-PR abgesprochen.
+- **Bibliothek vor Eigenbau**, aber jede neue Abhängigkeit ist eine Entscheidung (ADR oder Absprache). Vorher auf https://reactnative.directory/ prüfen (gepflegt, Expo-kompatibel). Entwicklerwerkzeuge, die nicht in die App eingehen (Claude-Plugins, CLI-Tools für den Emulator), brauchen keine ADR. Abgesprochen werden sie über den menschlichen Review der PR, die sie in `CLAUDE.md` bzw. `.claude/` einträgt.
 - **Erklären statt nur liefern.** Nach jeder Umsetzung kurz erklären: warum so, welche Alternative, was man im Gespräch wissen muss. Bei lehrreichen Stellen anbieten, dass ein Mensch sie selbst schreibt.
 - Keine großen generierten Codeblöcke ohne Erklärung, kein auskommentierter Code, keine TODO-Friedhöfe.
 
@@ -84,7 +84,7 @@ Muster, die wir bewusst nutzen (im Gespräch erklärbar):
 
 1. Jede Arbeit hat ein GitHub-Issue auf dem Board. Branch: `feat/<issue>-kurz`, `fix/…`, `chore/…`, `docs/…`
    - Wer ein Issue anfängt, weist es sich vorher zu (`gh issue edit <nr> --add-assignee @me`) und schiebt es auf dem Board auf „In Progress“. Issues werden nicht vorab verteilt.
-   - Issues, die jemand anderem zugewiesen sind, fasst man nicht an. Claude prüft vor Arbeitsbeginn die Zuweisung (`gh issue view <nr>`) und fragt nach, wenn das Issue jemand anderem gehört oder niemandem zugewiesen ist.
+   - Claude prüft vor Arbeitsbeginn die Zuweisung (`gh issue view <nr>`). Ist das Issue frei, fragt Claude einmal („#50 ist frei, soll ich es dir zuweisen?“) und weist es nach Bestätigung zu. Ist es jemand anderem zugewiesen, fasst Claude es nicht an.
 2. **Commits:** klein und häufig, Nachricht einzeilig und kurz im Conventional-Commits-Stil (`feat: add fuel consumption calc`). **Kein** `Co-Authored-By`-Trailer.
 3. **PR** mit `Closes #<nr>` und ausgefüllter Vorlage. Gemergt wird nach den Merge-Regeln (unten), per Merge-Commit (kein Squash), damit die einzelnen Schritte in der Historie sichtbar bleiben.
 4. Vor einer PR müssen `npm run lint`, `npm run typecheck` und `npm test` grün sein.
@@ -95,22 +95,23 @@ Muster, die wir bewusst nutzen (im Gespräch erklärbar):
 Der Orchestrator (Claude in der Hauptsitzung) merged eine PR selbst und ohne menschlichen Review, wenn **alle** Punkte erfüllt sind:
 
 1. **Eigenes Issue:** Die PR schließt ein Issue, das dem Menschen der aktuellen Sitzung zugewiesen ist.
-2. **Checks grün:** CI (lint, typecheck, Jest). Bei Änderungen in `supabase/` zusätzlich `npx supabase test db` und die Deno-Tests lokal, mit Ausgabe in der PR. Bei UI-Änderungen auf dem Emulator geprüft, mit Screenshot in der PR.
-3. **Reviews durch Subagents** (frischer Kontext, parallel):
+2. **Checks grün:** CI (lint, typecheck, Jest). Neue Logik hat Tests in derselben PR. Bei Änderungen in `supabase/` zusätzlich `npx supabase test db` und die Deno-Tests lokal, mit Ausgabe in der PR. Bei UI-Änderungen auf dem Emulator geprüft, mit Screenshot in der PR.
+3. **Entscheidungen gedeckt:** Eine neue Abhängigkeit oder eine Änderung am Datenmodell braucht eine `Accepted`-ADR, die in der PR verlinkt ist. Sonst kein Auto-Merge.
+4. **Reviews durch Subagents** (frischer Kontext, parallel, alle nur lesend). Fehlende Tests schreibt `qa-tester` vorher als eigenen Schritt, im Review meldet er nur Befunde.
    - `code-reviewer` bei jeder PR
    - `security-reviewer` bei Migrationen, RLS, Storage, Edge Function, Auth, Secrets und Konfiguration
    - `ux` bei Screens und Komponenten
    - `qa-tester` bei neuer Logik in `logic/` und neuen pgTAP-Tests
 
    Jeder Befund wird behoben oder in der PR mit Begründung abgelehnt. Sicherheitsbefunde werden nie abgelehnt, nur behoben oder an den Owner eskaliert.
-4. **Größe:** Diff ≤ ~300 Zeilen ohne Lockfiles und generierte Dateien. Ist er größer, fragt der Orchestrator den Owner, statt automatisch zu mergen.
-5. **Dokumentiert:** Die Abschnitte „Merge-Kriterien“ und „Für das Übergabegespräch“ der PR-Vorlage sind ausgefüllt. Beide lesen die gemergten PRs wöchentlich nach, damit sie den Code im Gespräch erklären können.
+5. **Größe:** Diff ≤ ~300 Zeilen ohne Lockfiles und generierte Dateien. Ist er größer, fragt der Orchestrator den Owner, statt automatisch zu mergen.
+6. **Dokumentiert:** Die Abschnitte „Merge-Kriterien“ und „Für das Übergabegespräch“ der PR-Vorlage sind ausgefüllt. Beide lesen die gemergten PRs wöchentlich nach, damit sie den Code im Gespräch erklären können.
 
 **Ausnahmen mit menschlichem Review auf GitHub** (per `.github/CODEOWNERS` und Branch-Schutz erzwungen):
 - Entscheidungen: `docs/adr/` und `docs/requirements.md`
 - Regeln und Agent-Setup: `CLAUDE.md`, `.claude/`, `.github/`
 
-Freigeben muss der jeweils andere Entscheider. Danach merged der Orchestrator, sofern die übrigen Kriterien erfüllt sind. Bei ADRs setzt er vorher den Status auf `Accepted`.
+Freigeben muss der jeweils andere Entscheider. Danach merged der Orchestrator, sofern die übrigen Kriterien erfüllt sind. Kommt nach der Freigabe noch ein Commit auf einen dieser Pfade, braucht es eine neue Freigabe. Bis der Code-Owner-Review in #31 bestätigt ist, prüft der Orchestrator die Freigabe selbst (`gh pr view <nr> --json reviews`).
 
 ## Subagents (`.claude/agents/`)
 

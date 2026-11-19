@@ -2,8 +2,8 @@
 
 Kurze, nummerierte Entscheidungen im Format von [MADR](https://adr.github.io/madr/), Vorlage: `0000-template.md`.
 
-- Neue Entscheidung: nächste freie Nummer, Status `Proposed`, als PR einreichen.
-- Beide Entscheider (@SealJonny, @RoyaleLanze) stimmen zu → `Accepted`.
+- Neue Entscheidung: nächste freie Nummer, Optionen mit Empfehlung. Während der Abstimmung in der Sitzung steht der Status auf `Proposed`.
+- Hat der Mensch der Sitzung gewählt, wird die ADR mit `Accepted` als PR eingereicht. Die Freigabe durch den anderen Entscheider ist seine Zustimmung (siehe `CLAUDE.md` → Merge-Regeln).
 - Entscheidungen werden nicht gelöscht, sondern durch eine neue ADR ersetzt (`Superseded by NNNN`).
 
 | Nr. | Titel | Status |

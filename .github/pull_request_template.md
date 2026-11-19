@@ -11,8 +11,13 @@ Siehe `CLAUDE.md` → Merge-Regeln. Nicht zutreffende Punkte mit „entfällt“
 - [ ] `supabase/` geändert: `npx supabase test db` und Deno-Tests lokal grün (Ausgabe unten)
 - [ ] UI geändert: auf dem Emulator geprüft (Screenshot unten)
 - [ ] Neue Logik hat Tests (Jest / pgTAP / Deno / Maestro)
+- [ ] Neue Abhängigkeit oder Datenmodell-Änderung: `Accepted`-ADR verlinkt
 - [ ] Diff ≤ ~300 Zeilen ohne Lockfiles und generierte Dateien
 - [ ] Ausnahme (ADR, Regeln, Agent-Setup)? → Freigabe durch den anderen Entscheider auf GitHub
+
+### Testbelege
+
+Ausgabe von pgTAP/Deno, Screenshot vom Emulator.
 
 ### Review-Befunde
 
@@ -28,7 +33,6 @@ Warum so, welche Alternative, welches Muster, was man erklären können muss.
 
 - [ ] Lade-, Leer- und Fehlerzustände sind behandelt (falls UI)
 - [ ] Keine Secrets, keine Magic Numbers, keine Duplikation
-- [ ] Neue Abhängigkeit oder Architekturentscheidung? → ADR verlinkt
 
 ## KI-Notiz (optional)
 
