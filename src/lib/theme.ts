@@ -96,6 +96,18 @@ function buildTheme(mode: Mode) {
       onSurface: c("on-surface"),
       surfaceVariant: c("surface-variant"),
       onSurfaceVariant: c("on-surface-variant"),
+      // Replace Paper's purple baseline tints (navigation bar, menus, snackbars) with token colors.
+      elevation: {
+        level0: "transparent",
+        level1: c("surface"),
+        level2: c("surface"),
+        level3: c("surface"),
+        level4: c("surface"),
+        level5: c("surface"),
+      },
+      inverseSurface: c("on-surface"),
+      inverseOnSurface: c("surface"),
+      inversePrimary: c("primary-container"),
       outline: c("outline-strong"),
       outlineVariant: c("outline"),
       error: c("error"),
