@@ -1,5 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import { Button, HelperText } from "react-native-paper";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { PlaceholderScreen } from "@/components/PlaceholderScreen";
 import { useSignOut } from "@/features/auth/hooks/useSignOut";
@@ -12,7 +13,8 @@ export default function SettingsScreen() {
     <View style={styles.screen}>
       <PlaceholderScreen />
       {/* Temporary until the settings screen issue adds the account section. */}
-      <View style={styles.account}>
+      {/* The app is drawn edge to edge, so keep the button above the system navigation. */}
+      <SafeAreaView edges={["bottom"]} style={styles.account}>
         {error && (
           <HelperText type="error" accessibilityLiveRegion="assertive">
             {error}
@@ -28,7 +30,7 @@ export default function SettingsScreen() {
         >
           Abmelden
         </Button>
-      </View>
+      </SafeAreaView>
     </View>
   );
 }
