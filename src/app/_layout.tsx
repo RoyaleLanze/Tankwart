@@ -42,6 +42,10 @@ export default function RootLayout() {
     if (!isLoading) SplashScreen.hide();
   }, [isLoading]);
 
+  // Without this, the guard would show the login screen for a moment on every cold start and then
+  // switch to the tabs while they are still mounting.
+  if (isLoading) return null;
+
   return (
     <PaperProvider theme={isDark ? darkTheme : lightTheme}>
       <ThemeProvider value={isDark ? navigationThemes.dark : navigationThemes.light}>
