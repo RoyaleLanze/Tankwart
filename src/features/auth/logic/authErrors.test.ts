@@ -20,6 +20,12 @@ describe("authErrorMessage", () => {
     expect(authErrorMessage(authError("weak_password"))).toContain("mindestens 8 Zeichen");
   });
 
+  it("asks to confirm the email when the project still requires it", () => {
+    expect(authErrorMessage(authError("email_not_confirmed"))).toBe(
+      "Bestätige zuerst deine E-Mail-Adresse über den Link in der Mail.",
+    );
+  });
+
   it("explains rate limiting", () => {
     expect(authErrorMessage(authError("over_request_rate_limit"))).toContain("Zu viele Versuche");
   });

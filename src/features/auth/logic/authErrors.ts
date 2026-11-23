@@ -17,6 +17,7 @@ const MESSAGES_BY_CODE = new Map<string, string>([
     `Das Passwort ist zu schwach. Nutze mindestens ${MIN_PASSWORD_LENGTH} Zeichen.`,
   ],
   ["over_request_rate_limit", "Zu viele Versuche. Warte kurz und versuche es dann erneut."],
+  ["email_not_confirmed", "Bestätige zuerst deine E-Mail-Adresse über den Link in der Mail."],
 ]);
 
 // supabase-js reports "no network" and 5xx answers as AuthRetryableFetchError.
