@@ -14,10 +14,11 @@ const submitByMode: Record<AuthMode, (credentials: Credentials) => Promise<void>
 
 /** Form state for the login screen. Both tabs share the fields, only the rules differ. */
 export function useAuthForm(mode: AuthMode) {
-  const { control, handleSubmit, setError, clearErrors, formState } = useForm<Credentials>({
-    resolver: zodResolver(authSchemas[mode]),
-    defaultValues: { email: "", password: "" },
-  });
+  const { control, handleSubmit, setError, clearErrors, setFocus, formState } =
+    useForm<Credentials>({
+      resolver: zodResolver(authSchemas[mode]),
+      defaultValues: { email: "", password: "" },
+    });
 
   // A hint from the other tab (e.g. "mindestens 8 Zeichen") would be wrong after switching.
   useEffect(() => clearErrors(), [mode, clearErrors]);
@@ -33,6 +34,7 @@ export function useAuthForm(mode: AuthMode) {
 
   return {
     control,
+    setFocus,
     // Called without the press event: react-hook-form only needs it for web forms.
     submit: () => submitValidForm(),
     isSubmitting: formState.isSubmitting,
