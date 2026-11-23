@@ -21,3 +21,7 @@ Option 1, wobei die kontextabhängigen Regeln (km-Stand, Tankgröße) als reine 
 ## Entscheidung
 
 Option 1: **react-hook-form + zod**. Die zod-Schemas liegen in `src/features/<bereich>/logic/` und sind dort per Jest getestet. Kontextabhängige Regeln (km-Stand, Tankgröße) sind reine Funktionen, die das Schema verwendet.
+
+## Nachtrag
+
+- 21.11.2026 (#7): Für die Verbindung von react-hook-form und zod kommt der offizielle Adapter `@hookform/resolvers` (`zodResolver`) dazu. Abgesprochen mit @RoyaleLanze, eingeführt mit #7.
