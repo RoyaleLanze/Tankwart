@@ -61,6 +61,8 @@ export function NavigationBar({
         descriptors[route.key].options.tabBarIcon?.({ focused, color, size: 24 }) ?? null
       }
       getLabelText={({ route }) => descriptors[route.key].options.title}
+      // Without an explicit label, Android merges the icon glyph into what TalkBack reads.
+      getAccessibilityLabel={({ route }) => descriptors[route.key].options.title}
     />
   );
 }
