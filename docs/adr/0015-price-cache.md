@@ -24,4 +24,5 @@ Wir nehmen Option 1, weil sie ADR 0005 umsetzt, Tankerkönig entlastet und mit e
 - Zeilen werden je Schlüssel überschrieben (Upsert). Bei jedem Schreiben löscht die Function außerdem alle Einträge, die älter als die TTL sind, damit die Tabelle nicht wächst.
 - Umkreissuchen sind nur innerhalb Deutschlands erlaubt (`GERMANY_BOUNDS`, Breite 47,2–55,1, Länge 5,8–15,1), weil Tankerkönig nur Deutschland abdeckt. Andere Positionen lehnt die Function mit `outsideGermany` ab. Das begrenzt auch die Zahl möglicher Cache-Schlüssel.
 - TTL 5 Minuten (`CACHE_TTL_MS`). Koordinaten werden auf 3 Nachkommastellen gerundet (etwa 100 m), damit nahe Anfragen sich einen Eintrag teilen. Der Aufruf an Tankerkönig bricht nach 8 s ab.
+- Tankerkönig misst die Entfernungen vom gerundeten Punkt aus, sie können also um bis zu etwa 70 m abweichen. Das nehmen wir für den Cache in Kauf. Braucht die 2-km-Regel (M5) es genauer, kann die App die Entfernung aus der echten Position neu berechnen.
 - Im Übergabegespräch erklären können: warum RLS ohne Policy die Tabelle sperrt (nur die Service Role umgeht RLS) und warum gerundet wird (mehr Cache-Treffer, weniger Abfragen).
