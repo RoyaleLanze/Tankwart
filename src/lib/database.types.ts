@@ -42,6 +42,25 @@ export type Database = {
         };
         Relationships: [];
       };
+      price_rate_limit: {
+        Row: {
+          count: number;
+          user_id: string;
+          window_start: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          count: number;
+          user_id: string;
+          window_start: string;
+        };
+        Update: {
+          count?: number;
+          user_id?: string;
+          window_start?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           active_vehicle_id: string | null;
@@ -174,7 +193,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      hit_price_rate_limit: {
+        Args: { p_user_id: string; p_window_start: string };
+        Returns: number;
+      };
     };
     Enums: {
       fuel_type: "e5" | "e10" | "diesel";

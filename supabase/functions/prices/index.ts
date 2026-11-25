@@ -3,6 +3,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { createPostgresCache } from "./cache.ts";
 import { createHandler } from "./handler.ts";
+import { createPostgresRateLimiter } from "./rate_limit.ts";
 
 const admin = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -11,17 +12,18 @@ const admin = createClient(
 );
 
 // Only signed-in users; an anon key has no user and is rejected here.
-async function isAuthenticated(req: Request): Promise<boolean> {
-  const token = req.headers.get("Authorization")?.replace(/^Bearer /, "");
-  if (!token) return false;
+async function getUserId(req: Request): Promise<string | null> {
+  const token = req.headers.get("Authorization")?.replace(/^Bearer /i, "");
+  if (!token) return null;
   const { data, error } = await admin.auth.getUser(token);
-  return !error && data.user !== null;
+  return error ? null : (data.user?.id ?? null);
 }
 
 Deno.serve(
   createHandler({
-    isAuthenticated,
+    getUserId,
     cache: createPostgresCache(admin),
+    rateLimiter: createPostgresRateLimiter(admin),
     fetch,
     apiKey: Deno.env.get("TANKERKOENIG_API_KEY"),
     mock: Deno.env.get("PRICES_MOCK") === "true",

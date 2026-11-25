@@ -1,4 +1,4 @@
-// Request handling for the prices function: auth, input validation, mock mode, cache, errors.
+// Request handling for the prices function: auth, input validation, mock mode, cache, rate limit, errors.
 // All IO is injected, so the Deno tests run without network, database or API key.
 import { mockDetail, mockList } from "./mock.ts";
 import {
@@ -15,6 +15,9 @@ export const CACHE_TTL_MS = 5 * 60 * 1000;
 const COORDINATE_DECIMALS = 3;
 // Tankerkönig only covers Germany; this bounding box keeps the cache key space small.
 export const GERMANY_BOUNDS = { minLat: 47.2, maxLat: 55.1, minLng: 5.8, maxLng: 15.1 };
+// Protects the shared API key: real Tankerkönig calls per user and fixed minute (ADR 0015).
+export const RATE_LIMIT_PER_MINUTE = 10;
+const MINUTE_MS = 60 * 1000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type PricesRequest =
@@ -30,6 +33,7 @@ export type PricesErrorCode =
   | "stationNotFound"
   | "missingApiKey"
   | "upstreamUnavailable"
+  | "rateLimited"
   | "internalError";
 
 export type CacheEntry = { payload: Record<string, unknown>; fetchedAt: Date };
@@ -40,9 +44,22 @@ export interface PriceCache {
   deleteOlderThan(cutoff: Date): Promise<void>;
 }
 
+export interface RateLimiter {
+  // Counts one call for the user in the given window and returns the new count.
+  hit(userId: string, windowStart: Date): Promise<number>;
+}
+
+class RateLimitedError extends Error {
+  constructor(readonly retryAfterSeconds: number) {
+    super("Rate limit exceeded");
+  }
+}
+
 export type Deps = {
-  isAuthenticated: (req: Request) => Promise<boolean>;
+  // The signed-in user's id, or null without a valid user token.
+  getUserId: (req: Request) => Promise<string | null>;
   cache: PriceCache;
+  rateLimiter: RateLimiter;
   fetch: Fetch;
   apiKey: string | undefined;
   mock: boolean;
@@ -52,7 +69,8 @@ export type Deps = {
 export function createHandler(deps: Deps): (req: Request) => Promise<Response> {
   return async (req) => {
     if (req.method !== "POST") return errorResponse(405, "methodNotAllowed");
-    if (!(await deps.isAuthenticated(req))) return errorResponse(401, "unauthorized");
+    const userId = await deps.getUserId(req);
+    if (!userId) return errorResponse(401, "unauthorized");
     const input = parseRequest(await req.json().catch(() => null));
     if (!input) return errorResponse(400, "invalidInput");
     if (input.action === "list" && !isInGermany(input.lat, input.lng)) {
@@ -61,10 +79,14 @@ export function createHandler(deps: Deps): (req: Request) => Promise<Response> {
     if (deps.mock) return mockResponse(input, deps.now());
     if (!deps.apiKey) return errorResponse(500, "missingApiKey");
     try {
-      const { payload, fetchedAt } = await loadWithCache(deps, deps.apiKey, input);
+      const { payload, fetchedAt } = await loadWithCache(deps, deps.apiKey, userId, input);
       return jsonResponse(200, { ...payload, fetchedAt: fetchedAt.toISOString() });
     } catch (error) {
       if (error instanceof StationNotFoundError) return errorResponse(404, "stationNotFound");
+      if (error instanceof RateLimitedError) {
+        const headers = { "Retry-After": String(error.retryAfterSeconds) };
+        return errorResponse(429, "rateLimited", headers);
+      }
       console.error(errorMessage(error));
       if (error instanceof UpstreamError) return errorResponse(502, "upstreamUnavailable");
       return errorResponse(500, "internalError");
@@ -104,12 +126,17 @@ function mockResponse(input: PricesRequest, now: Date): Response {
   return jsonResponse(200, { ...payload, fetchedAt: now.toISOString() });
 }
 
-async function loadWithCache(deps: Deps, apiKey: string, input: PricesRequest) {
+async function loadWithCache(deps: Deps, apiKey: string, userId: string, input: PricesRequest) {
   const { key, endpoint, params } = toUpstreamRequest(input);
   const now = deps.now();
   // The cache only saves upstream calls; if it fails, prices are still served.
   const cached = await bestEffort("cache read", () => deps.cache.read(key));
   if (cached && now.getTime() - cached.fetchedAt.getTime() < CACHE_TTL_MS) return cached;
+  if (await isRateLimited(deps, userId, now)) {
+    // Over the limit, an expired entry is still better than no prices (ADR 0015).
+    if (cached) return cached;
+    throw new RateLimitedError(secondsUntilNextWindow(now));
+  }
   const entry = {
     payload: await callTankerkoenig(deps.fetch, apiKey, endpoint, params),
     fetchedAt: now,
@@ -119,6 +146,20 @@ async function loadWithCache(deps: Deps, apiKey: string, input: PricesRequest) {
   const cutoff = new Date(now.getTime() - CACHE_TTL_MS);
   await bestEffort("cache cleanup", () => deps.cache.deleteOlderThan(cutoff));
   return entry;
+}
+
+// Only cache misses get here, so cache hits never count against the limit.
+async function isRateLimited(deps: Deps, userId: string, now: Date): Promise<boolean> {
+  const windowStart = new Date(Math.floor(now.getTime() / MINUTE_MS) * MINUTE_MS);
+  // Fail-open like the cache: a broken counter must not block prices (ADR 0015).
+  const count = await bestEffort("rate limit", () => deps.rateLimiter.hit(userId, windowStart));
+  return count !== null && count > RATE_LIMIT_PER_MINUTE;
+}
+
+// Value of the Retry-After header: whole seconds until the next window, at least 1.
+function secondsUntilNextWindow(now: Date): number {
+  const msLeft = MINUTE_MS - (now.getTime() % MINUTE_MS);
+  return Math.max(1, Math.ceil(msLeft / 1000));
 }
 
 async function bestEffort<T>(step: string, run: () => Promise<T>): Promise<T | null> {
@@ -147,13 +188,21 @@ function toUpstreamRequest(input: PricesRequest) {
   return { key: `list:${lat}:${lng}:${rad}`, endpoint: "list" as const, params };
 }
 
-function jsonResponse(status: number, body: unknown): Response {
+function jsonResponse(
+  status: number,
+  body: unknown,
+  headers: Record<string, string> = {},
+): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 }
 
-function errorResponse(status: number, error: PricesErrorCode): Response {
-  return jsonResponse(status, { error });
+function errorResponse(
+  status: number,
+  error: PricesErrorCode,
+  headers?: Record<string, string>,
+): Response {
+  return jsonResponse(status, { error }, headers);
 }
