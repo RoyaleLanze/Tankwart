@@ -1,6 +1,8 @@
 // Validation schema for a refueling (M4), ADR 0009. Messages are shown at the field, so they are German.
 import { z } from "zod";
 
+import { formatEuro, TENTH_CENTS_PER_CENT } from "@/lib/format";
+
 import {
   distanceWarning,
   MAX_DB_INTEGER,
@@ -11,8 +13,9 @@ import {
   type RefuelingContext,
 } from "./rules";
 
-// The limits are not in the messages yet; they follow with central formatting (#38).
-const PRICE_RANGE_MESSAGE = "Literpreis liegt außerhalb des gültigen Bereichs.";
+const PRICE_RANGE_MESSAGE = `Literpreis muss zwischen ${formatEuro(
+  MIN_PRICE_PER_LITER_TENTH_CENTS / TENTH_CENTS_PER_CENT,
+)} und ${formatEuro(MAX_PRICE_PER_LITER_TENTH_CENTS / TENTH_CENTS_PER_CENT)} liegen.`;
 const TOO_LARGE_MESSAGE = "Wert ist zu groß.";
 
 /** Whole number field with a German message for empty, non-numeric and fractional input. */

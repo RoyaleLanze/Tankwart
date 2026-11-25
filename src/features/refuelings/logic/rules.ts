@@ -1,3 +1,5 @@
+import { formatKm } from "@/lib/format";
+
 // Business limits for refuelings (M4). Units match the database: ml, tenths of a cent, cents, km.
 
 /** 0.50 €/L, stored as tenths of a cent. */
@@ -64,6 +66,6 @@ export function distanceWarning(odometerKm: number, context: RefuelingContext): 
     .filter((km) => km < odometerKm);
   if (lower.length === 0) return null;
   return odometerKm - Math.max(...lower) > DISTANCE_WARNING_KM
-    ? "Ungewöhnlich weit seit der letzten Betankung. Fehlt eine Betankung?"
+    ? `Mehr als ${formatKm(DISTANCE_WARNING_KM)} seit der letzten Betankung. Fehlt eine Betankung?`
     : null;
 }
