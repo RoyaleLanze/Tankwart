@@ -1,6 +1,6 @@
 -- Unique (vehicle_id, refueled_on, odometer_km) on refuelings (ADR 0012, #61).
 begin;
-select plan(4);
+select plan(5);
 
 insert into auth.users (id, email) values ('cccccccc-0000-0000-0000-000000000000', 'c@test.local');
 insert into public.vehicles (id, user_id, name, fuel_type, initial_odometer_km, tank_capacity_ml) values
@@ -34,6 +34,11 @@ select lives_ok(
       (vehicle_id, refueled_on, volume_ml, price_per_liter_tenth_cents, total_cents, odometer_km, station_name)
     values ('cccccccc-0000-0000-0000-0000000000cd', '2026-11-01', 30000, 1749, 5247, 1000, 'Aral')$$,
   'same day and odometer on another vehicle is allowed');
+
+select throws_ok(
+  $$update public.refuelings set odometer_km = 1000
+    where vehicle_id = 'cccccccc-0000-0000-0000-00000000000c' and refueled_on = '2026-11-01' and odometer_km = 1100$$,
+  '23505', null, 'editing a refueling onto the same day and odometer is rejected');
 
 select * from finish();
 rollback;
