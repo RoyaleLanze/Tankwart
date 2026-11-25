@@ -120,9 +120,10 @@ const fonts = {
 
 // Opacity of primary over surface per elevation level, as in Material 3's tonal elevation
 // (https://m3.material.io/styles/elevation/applying-elevation). Paper reads levels 1–5
-// for menus, dialogs, the navigation bar etc.
+// for menus, dialogs, the navigation bar etc. Level 1 is not tinted: Paper's default Card and
+// Surface use it, the design wants cards on plain surface, and on-surface-variant text would
+// drop below 4.5:1 contrast on a tinted card.
 const ELEVATION_TINT_OPACITY = {
-  level1: 0.05,
   level2: 0.08,
   level3: 0.11,
   level4: 0.12,
@@ -160,7 +161,7 @@ function buildTheme(mode: Mode) {
       // Tonal elevation tinted from our primary instead of Paper's purple baseline (ADR 0013).
       elevation: {
         level0: "transparent",
-        level1: tint(ELEVATION_TINT_OPACITY.level1),
+        level1: c("surface"),
         level2: tint(ELEVATION_TINT_OPACITY.level2),
         level3: tint(ELEVATION_TINT_OPACITY.level3),
         level4: tint(ELEVATION_TINT_OPACITY.level4),
