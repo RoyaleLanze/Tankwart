@@ -43,7 +43,7 @@ Datenbank neu aufsetzen (löscht alle lokalen Daten, spielt Migrationen und `sup
 npx supabase db reset
 ```
 
-Der Seed legt zwei Testnutzer mit je rund 12 Monaten Betankungen an. Die Zugangsdaten gelten **nur lokal**, der Seed wird nie in die Cloud gespielt (`db push` überträgt nur Migrationen).
+Der Seed legt zwei Testnutzer mit je rund 12 Monaten Betankungen an. Die Zugangsdaten gelten **nur lokal**, der Seed wird nie in die Cloud gespielt (`db push` überträgt nur Migrationen). Deshalb gegen die Cloud **nie** `db reset --linked` oder `db push --include-seed` ausführen, sonst gäbe es dort zwei Konten mit öffentlich bekanntem Passwort.
 
 | E-Mail | Passwort | Fahrzeuge |
 |---|---|---|
