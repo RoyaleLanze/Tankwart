@@ -3,6 +3,8 @@ const BASE_URL = "https://creativecommons.tankerkoenig.de/json";
 const TIMEOUT_MS = 8000;
 
 export class UpstreamError extends Error {}
+// detail.php answers an unknown station id with ok:false or without a station.
+export class StationNotFoundError extends Error {}
 
 export type Fetch = typeof fetch;
 
@@ -24,8 +26,18 @@ export async function callTankerkoenig(
     throw new UpstreamError(`Tankerkoenig not reachable: ${(cause as Error).name}`);
   }
   if (!response.ok) throw new UpstreamError(`Tankerkoenig HTTP ${response.status}`);
-  const body = await response.json().catch(() => null);
-  if (body?.ok !== true) throw new UpstreamError(`Tankerkoenig error: ${body?.message}`);
-  const { ok: _ok, ...data } = body;
+  const body: unknown = await response.json().catch(() => null);
+  if (!isRecord(body)) throw new UpstreamError("Tankerkoenig sent no JSON object");
+  const { ok, ...data } = body;
+  if (endpoint === "detail" && (ok !== true || data.station == null)) {
+    throw new StationNotFoundError(`Station ${params.id} not found`);
+  }
+  if (ok !== true) throw new UpstreamError(`Tankerkoenig error: ${String(data.message)}`);
+  const valid = endpoint === "list" ? Array.isArray(data.stations) : isRecord(data.station);
+  if (!valid) throw new UpstreamError(`Tankerkoenig ${endpoint} response is malformed`);
   return data;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

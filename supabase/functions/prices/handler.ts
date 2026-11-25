@@ -1,7 +1,12 @@
 // Request handling for the prices function: auth, input validation, mock mode, cache, errors.
 // All IO is injected, so the Deno tests run without network, database or API key.
 import { mockDetail, mockList } from "./mock.ts";
-import { callTankerkoenig, type Fetch, UpstreamError } from "./tankerkoenig.ts";
+import {
+  callTankerkoenig,
+  type Fetch,
+  StationNotFoundError,
+  UpstreamError,
+} from "./tankerkoenig.ts";
 
 export const RADIUS_OPTIONS_KM = [2, 5, 10, 25];
 // Tankerkönig asks clients not to request the same data more often than every 5 minutes.
@@ -59,7 +64,8 @@ export function createHandler(deps: Deps): (req: Request) => Promise<Response> {
       const { payload, fetchedAt } = await loadWithCache(deps, deps.apiKey, input);
       return jsonResponse(200, { ...payload, fetchedAt: fetchedAt.toISOString() });
     } catch (error) {
-      console.error(error instanceof Error ? error.message : error);
+      if (error instanceof StationNotFoundError) return errorResponse(404, "stationNotFound");
+      console.error(errorMessage(error));
       if (error instanceof UpstreamError) return errorResponse(502, "upstreamUnavailable");
       return errorResponse(500, "internalError");
     }
@@ -101,16 +107,31 @@ function mockResponse(input: PricesRequest, now: Date): Response {
 async function loadWithCache(deps: Deps, apiKey: string, input: PricesRequest) {
   const { key, endpoint, params } = toUpstreamRequest(input);
   const now = deps.now();
-  const cached = await deps.cache.read(key);
+  // The cache only saves upstream calls; if it fails, prices are still served.
+  const cached = await bestEffort("cache read", () => deps.cache.read(key));
   if (cached && now.getTime() - cached.fetchedAt.getTime() < CACHE_TTL_MS) return cached;
   const entry = {
     payload: await callTankerkoenig(deps.fetch, apiKey, endpoint, params),
     fetchedAt: now,
   };
-  await deps.cache.write(key, entry);
+  await bestEffort("cache write", () => deps.cache.write(key, entry));
   // Housekeeping: expired entries of other keys are never read again.
-  await deps.cache.deleteOlderThan(new Date(now.getTime() - CACHE_TTL_MS));
+  const cutoff = new Date(now.getTime() - CACHE_TTL_MS);
+  await bestEffort("cache cleanup", () => deps.cache.deleteOlderThan(cutoff));
   return entry;
+}
+
+async function bestEffort<T>(step: string, run: () => Promise<T>): Promise<T | null> {
+  try {
+    return await run();
+  } catch (error) {
+    console.error(`Price ${step} skipped: ${errorMessage(error)}`);
+    return null;
+  }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function toUpstreamRequest(input: PricesRequest) {
