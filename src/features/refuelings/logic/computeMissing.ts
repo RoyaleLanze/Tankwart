@@ -1,6 +1,8 @@
 // "Two of three" (M3): from any two of volume, price per liter and total, compute the third.
 // Units as in the database: ml, tenths of a cent per liter, cents.
 
+import { ML_TENTH_CENTS_PER_CENT } from "@/lib/units";
+
 export type Amounts = {
   volumeMl: number;
   pricePerLiterTenthCents: number;
@@ -9,12 +11,6 @@ export type Amounts = {
 
 /** The one field that was empty and the value computed for it. */
 export type ComputedAmount = { field: keyof Amounts; value: number };
-
-/** Tenths of a cent per cent, e.g. for amounts per km (mirrors the constant in lib/format). */
-export const TENTH_CENTS_PER_CENT = 10;
-
-/** ml × (1/10 ct per L) = 1/10000 ct, so this factor converts between the three units. */
-export const ML_TENTH_CENTS_PER_CENT = 10_000;
 
 /**
  * Computes the empty field if exactly one of the three is undefined and the other two are

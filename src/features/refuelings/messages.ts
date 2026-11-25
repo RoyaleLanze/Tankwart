@@ -1,6 +1,7 @@
 // German texts for the refueling validation codes (ADR 0014). The logic only knows codes;
 // wording and number formatting live here, on the presentation side.
-import { formatEuro, formatKm, TENTH_CENTS_PER_CENT } from "@/lib/format";
+import { formatEuro, formatKm } from "@/lib/format";
+import { TENTH_CENTS_PER_CENT } from "@/lib/units";
 
 import {
   DISTANCE_WARNING_KM,
