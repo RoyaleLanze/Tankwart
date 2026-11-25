@@ -132,6 +132,20 @@ describe("cheapestStation", () => {
     });
   });
 
+  it("lets the id decide when distance and price are equal", () => {
+    const stations = [
+      station("refB", 300, 1799),
+      station("refA", 300, 1799),
+      station("cheap", 2000, 1749),
+    ];
+    expect(cheapestStation(stations, "e5", TANK_ML)).toMatchObject({
+      cheapestId: "cheap",
+      nearestId: "refA",
+      savingsCents: 200,
+    });
+    expect(cheapestStation([...stations].reverse(), "e5", TANK_ML)?.nearestId).toBe("refA");
+  });
+
   it("does not depend on the order of the input", () => {
     const stations = [station("b", 500, 1749), station("a", 500, 1749), station("c", 100, 1799)];
     const reversed = [...stations].reverse();
