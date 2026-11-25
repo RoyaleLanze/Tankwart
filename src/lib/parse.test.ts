@@ -30,4 +30,13 @@ describe("parseDecimal", () => {
   it.each(["", ",5", "5,", "1,2,3", "1.000,5", "-5", "5 L", "abc"])("rejects %j", (text) => {
     expect(parseDecimal(text)).toBeNaN();
   });
+
+  it("reads a dot as decimal separator, never as thousands separator", () => {
+    expect(parseDecimal("1.000")).toBe(1);
+  });
+});
+
+it("returns Infinity for more digits than a number holds", () => {
+  const digits = "9".repeat(400);
+  expect([parseWholeNumber(digits), parseDecimal(digits)]).toEqual([Infinity, Infinity]);
 });

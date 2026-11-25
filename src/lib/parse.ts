@@ -1,5 +1,6 @@
 // Central parsing of number input from text fields, the counterpart to format.ts.
-// Invalid input becomes NaN, which the zod schemas report as an error at the field.
+// Text that is not a number becomes NaN, and more digits than a number holds become Infinity.
+// The zod schemas report both as an error at the field.
 
 const WHOLE_NUMBER = /^\d+$/;
 // Comma and dot are both decimal separators (design-system.md → TextField).

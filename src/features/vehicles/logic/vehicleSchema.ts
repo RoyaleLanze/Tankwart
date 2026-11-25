@@ -1,5 +1,6 @@
-// Validation schema for the vehicle form (M1), ADR 0009. Each field takes the text of its input
-// and returns the value in the database unit (ADR 0012), so the output can be saved as it is.
+// Validation schema for the vehicle form (M1), ADR 0009. The form holds the text of each input
+// in the unit the user types (km, L, L/100 km). The schema parses it and returns a VehicleInput
+// in the database units (ADR 0012), so the output can be saved as it is.
 // Errors are codes, not text (ADR 0014): messages.ts turns them into German text.
 import { z } from "zod";
 
@@ -25,54 +26,67 @@ export type VehicleErrorCode =
 /** Typed shorthand, so a misspelled code is a type error. */
 const code = (value: VehicleErrorCode) => value;
 
-/** Optional free text; empty becomes null, like a column that was never set. */
+/** Required text; empty, only spaces or no value at all (undefined, null) is `missing`. */
+function requiredText(missing: VehicleErrorCode) {
+  return z.string(code(missing)).trim().min(1, code(missing));
+}
+
+/** Optional text; empty or no value becomes null, like a column that was never set. */
 const optionalText = z
   .string()
   .trim()
+  .nullish()
   .transform((text) => text || null);
 
-/** Whole kilometers as typed, e.g. "84000". */
-const odometerKm = z
-  .string()
-  .trim()
-  .min(1, code("odometerMissing"))
-  .transform(parseWholeNumber)
-  .pipe(z.number(code("odometerInvalid")).max(MAX_DB_INTEGER, code("valueTooLarge")));
-
 /**
- * Parsed liters → whole ml. The value is checked after rounding, so "0,0004" (0 ml) is
- * rejected like 0. NaN from the parser fails z.number() and also reports `invalid`.
+ * A number from the parser: NaN is text it cannot read (`invalid`), Infinity has more digits
+ * than a number holds and is reported like any other value that is too large.
  */
-function litersAsMl(invalid: VehicleErrorCode) {
-  return z
-    .number(code(invalid))
-    .transform((liters) => Math.round(liters * ML_PER_LITER))
-    .pipe(z.number().positive(code(invalid)).max(MAX_DB_INTEGER, code("valueTooLarge")));
+function parsedNumber(invalid: VehicleErrorCode) {
+  return z.number({
+    error: (issue) => (issue.input === Infinity ? code("valueTooLarge") : code(invalid)),
+  });
 }
 
-const tankCapacityMl = z
-  .string()
-  .trim()
-  .min(1, code("tankCapacityMissing"))
+/** Whole kilometers as typed, e.g. "84000". */
+const odometerKm = requiredText("odometerMissing")
+  .transform(parseWholeNumber)
+  .pipe(parsedNumber("odometerInvalid").max(MAX_DB_INTEGER, code("valueTooLarge")));
+
+/** Parsed liters → whole ml, checked after rounding, so "0,0004" (0 ml) is rejected like 0. */
+function litersAsMl(invalid: VehicleErrorCode) {
+  return parsedNumber(invalid)
+    .transform((liters) => Math.round(liters * ML_PER_LITER))
+    .pipe(parsedNumber(invalid).positive(code(invalid)).max(MAX_DB_INTEGER, code("valueTooLarge")));
+}
+
+const tankCapacityMl = requiredText("tankCapacityMissing")
   .transform(parseDecimal)
   .pipe(litersAsMl("tankCapacityInvalid"));
 
-/** Optional: empty becomes null, anything else must be a valid number of liters. */
-const consumptionMlPer100Km = z
-  .string()
-  .trim()
-  .transform((text) => (text === "" ? null : parseDecimal(text)))
+const consumptionMlPer100Km = optionalText
+  .transform((text) => (text === null ? null : parseDecimal(text)))
   .pipe(litersAsMl("consumptionInvalid").nullable());
 
-export const vehicleSchema = z.object({
-  name: z.string().trim().min(1, code("nameMissing")),
-  fuelType: z.enum(FUEL_TYPES, code("fuelTypeMissing")),
-  initialOdometerKm: odometerKm,
-  tankCapacityMl,
-  makeModel: optionalText,
-  licensePlate: optionalText,
-  manufacturerConsumptionMlPer100Km: consumptionMlPer100Km,
-}) satisfies z.ZodType<VehicleInput>;
+export const vehicleSchema = z
+  .object({
+    name: requiredText("nameMissing"),
+    fuelType: z.enum(FUEL_TYPES, code("fuelTypeMissing")),
+    initialOdometerKm: odometerKm,
+    tankCapacityLiters: tankCapacityMl,
+    makeModel: optionalText,
+    licensePlate: optionalText,
+    consumptionLitersPer100Km: consumptionMlPer100Km,
+  })
+  // The form fields are named after what the user types. Their values are already in ml,
+  // so only the keys change to the names of the database units.
+  .transform(
+    ({
+      tankCapacityLiters: tankCapacityMl,
+      consumptionLitersPer100Km: manufacturerConsumptionMlPer100Km,
+      ...rest
+    }): VehicleInput => ({ ...rest, tankCapacityMl, manufacturerConsumptionMlPer100Km }),
+  ) satisfies z.ZodType<VehicleInput>;
 
 /** The form's values: the text of each input, before parsing. */
 export type VehicleFormValues = z.input<typeof vehicleSchema>;
