@@ -13,7 +13,7 @@ const admin = createClient(
 
 // Only signed-in users; an anon key has no user and is rejected here.
 async function getUserId(req: Request): Promise<string | null> {
-  const token = req.headers.get("Authorization")?.replace(/^Bearer /, "");
+  const token = req.headers.get("Authorization")?.replace(/^Bearer /i, "");
   if (!token) return null;
   const { data, error } = await admin.auth.getUser(token);
   return error ? null : (data.user?.id ?? null);
