@@ -48,7 +48,8 @@ export function FormChipGroup<T extends FieldValues, TTransformed = T>({
             >
               {label}
             </Text>
-            <View style={styles.chips} accessibilityLabel={label}>
+            {/* No label on this row: the visible label above is read right before the chips. */}
+            <View style={styles.chips}>
               {options.map((option) => {
                 const selected = field.value === option.value;
                 return (
@@ -57,12 +58,16 @@ export function FormChipGroup<T extends FieldValues, TTransformed = T>({
                     mode="outlined"
                     selected={selected}
                     showSelectedCheck
-                    // Paper keeps a selected outlined chip unfilled; M3 filter chips are filled.
-                    style={selected && { backgroundColor: colors.secondaryContainer }}
+                    // M3 filter chips: unselected ones are unfilled, the selected one is filled.
+                    // Paper fills both with surface, so the colors are set here.
+                    style={{
+                      backgroundColor: selected ? colors.secondaryContainer : colors.background,
+                    }}
                     selectedColor={selected ? colors.onSecondaryContainer : undefined}
                     onPress={() => field.onChange(option.value)}
                     hitSlop={CHIP_HIT_SLOP}
-                    accessibilityHint={shownError}
+                    // Exactly one choice: TalkBack reads "Optionsfeld" and the selected state.
+                    accessibilityRole="radio"
                   >
                     {option.label}
                   </Chip>
@@ -70,7 +75,7 @@ export function FormChipGroup<T extends FieldValues, TTransformed = T>({
               })}
             </View>
             {shownError && (
-              <HelperText type="error" accessibilityLiveRegion="polite">
+              <HelperText type="error" padding="none" accessibilityLiveRegion="polite">
                 {shownError}
               </HelperText>
             )}

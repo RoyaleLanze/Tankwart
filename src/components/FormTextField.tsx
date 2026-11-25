@@ -64,7 +64,12 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
                 {shownError}
               </HelperText>
             ) : (
-              helperText && <HelperText type="info">{helperText}</HelperText>
+              helperText && (
+                // Already read as the field's hint, so the screen reader skips it here.
+                <HelperText type="info" importantForAccessibility="no">
+                  {helperText}
+                </HelperText>
+              )
             )}
           </View>
         );
