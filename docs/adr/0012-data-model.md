@@ -34,3 +34,13 @@ Alle Empfehlungen aus der Tabelle, gewählt von @SealJonny am 19.11.2026.
 - RLS: `profiles` und `vehicles` über `user_id = auth.uid()` (bei `profiles` ist das die `id`). `refuelings` hat keine eigene `user_id`, die Policy prüft, ob das Fahrzeug dem Nutzer gehört. Dieselbe Prüfung gilt für das aktive Fahrzeug im Profil. Wird ein Fahrzeug gelöscht, werden seine Betankungen mitgelöscht (M1).
 - Die App muss die Ganzzahlen beim Anzeigen und Eingeben umrechnen. Das passiert an genau einer Stelle (#38).
 - Im Übergabegespräch erklären können: warum Ganzzahlen statt Float, warum die km-Regeln in der App und nicht per Trigger liegen, wie die RLS-Policy für `refuelings` über das Fahrzeug funktioniert.
+
+## Ergänzung 25.11.2026: Eindeutiger km-Stand pro Tag (#61)
+
+**Kontext:** Am selben Tag ergibt sich die Reihenfolge der Betankungen aus dem km-Stand. Haben zwei Betankungen eines Fahrzeugs denselben Tag und denselben km-Stand, ist die Reihenfolge nicht eindeutig. Die Verbrauchsberechnung (#21) ordnet dann die Liter einer Teilbetankung womöglich dem falschen Intervall zu. Bisher lehnt nur die App so einen Eintrag ab (`odometerDuplicateSameDay`).
+
+**Optionen:** Unique-Constraint `(vehicle_id, refueled_on, odometer_km)` · nur App-Validierung.
+
+**Entscheidung:** Unique-Constraint, gewählt von @SealJonny am 25.11.2026. Er ersetzt den Index `(vehicle_id, refueled_on)`, weil der Unique-Index mit denselben Spalten beginnt.
+
+**Konsequenzen:** Auch Seeds und andere Clients können keine mehrdeutige Reihenfolge mehr anlegen. Der Fehler `23505` (Constraint `refuelings_vehicle_day_odometer_key`) wird im API-Modul der Betankungen (#12) auf den vorhandenen Code `odometerDuplicateSameDay` abgebildet, damit der Nutzer denselben Text sieht wie bei der App-Prüfung. Die Migration scheitert bewusst, falls eine Datenbank schon solche Duplikate enthält. Vor `db push` in die Cloud deshalb prüfen: `select vehicle_id, refueled_on, odometer_km from refuelings group by 1, 2, 3 having count(*) > 1;` muss leer sein.
