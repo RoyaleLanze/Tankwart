@@ -8,8 +8,8 @@ describe("mixColors", () => {
 
   it("blends each channel and rounds to the nearest value", () => {
     expect(mixColors("#000000", "#FFFFFF", 0.5)).toBe("#808080");
-    // Light theme level1: primary at 5 % over surface.
-    expect(mixColors("#FFFFFF", "#4338CA", 0.05)).toBe("#F6F5FC");
+    // Light theme level2: primary at 8 % over surface.
+    expect(mixColors("#FFFFFF", "#4338CA", 0.08)).toBe("#F0EFFB");
   });
 
   it("accepts lowercase hex and always returns uppercase", () => {
@@ -21,6 +21,7 @@ describe("mixColors", () => {
     ["#FFFFFF", "indigo", 0.5],
     ["#FFFFFF", "#4338CA", -0.1],
     ["#FFFFFF", "#4338CA", 1.1],
+    ["#FFFFFF", "#4338CA", Number.NaN],
   ])("rejects %s over %s at %s", (base, overlay, opacity) => {
     expect(() => mixColors(base, overlay, opacity)).toThrow();
   });
