@@ -103,14 +103,16 @@ describe("createRefuelingSchema", () => {
   });
 
   describe("empty or non-numeric fields", () => {
-    it.each(["volumeMl", "pricePerLiterTenthCents", "totalCents", "odometerKm"] as const)(
-      "%s reports a German message",
-      (field) => {
-        const [issue] = issues({ [field]: undefined }, newestOnly);
-        expect(issue.path).toEqual([field]);
-        expect(issue.message).toMatch(/^Bitte .* angeben\.$/);
-      },
-    );
+    it.each([
+      ["volumeMl", "volumeMissing"],
+      ["pricePerLiterTenthCents", "priceMissing"],
+      ["totalCents", "totalMissing"],
+      ["odometerKm", "odometerMissing"],
+    ] as const)("%s reports %s", (field, code) => {
+      const [issue] = issues({ [field]: undefined }, newestOnly);
+      expect(issue.path).toEqual([field]);
+      expect(issue.message).toBe(code);
+    });
   });
 
   it("rejects values above the database integer limit", () => {
@@ -137,18 +139,18 @@ describe("createRefuelingSchema", () => {
     });
 
     it.each([
-      ["below the initial reading", { odometerKm: 79_999 }, /Anfangsstand/],
-      ["not above the previous refueling", { odometerKm: 84_000 }, /vorherigen Betankung/],
-      ["not below the next refueling", { odometerKm: 85_000 }, /nächsten Betankung/],
+      ["below the initial reading", { odometerKm: 79_999 }, "odometerBelowInitial"],
+      ["not above the previous refueling", { odometerKm: 84_000 }, "odometerNotAbovePrevious"],
+      ["not below the next refueling", { odometerKm: 85_000 }, "odometerNotBelowNext"],
       [
         "same reading on the same day",
         { refueledOn: "2026-11-10", odometerKm: 84_000 },
-        /selben Tag/,
+        "odometerDuplicateSameDay",
       ],
-    ])("explains the violated rule: %s", (_, input, message) => {
+    ])("reports the violated rule: %s", (_, input, code) => {
       const [issue] = issues(input);
       expect(issue.path).toEqual(["odometerKm"]);
-      expect(issue.message).toMatch(message);
+      expect(issue.message).toBe(code);
     });
 
     it("reports the initial reading first, even if the history is inconsistent", () => {
@@ -158,7 +160,7 @@ describe("createRefuelingSchema", () => {
         otherRefuelings: [{ refueledOn: "2026-11-01", odometerKm: 70_000 }],
       };
       const [issue] = issues({ odometerKm: 69_000 }, inconsistent);
-      expect(issue.message).toMatch(/Anfangsstand/);
+      expect(issue.message).toBe("odometerBelowInitial");
     });
 
     it("finds the neighbours from the entered date", () => {
@@ -216,22 +218,19 @@ describe("createRefuelingSchema", () => {
     ]);
   });
 
-  it("names the price limits in the message", () => {
+  it("reports codes, not text", () => {
     const [issue] = issues({ pricePerLiterTenthCents: MAX_PRICE_PER_LITER_TENTH_CENTS + 1 });
-    expect(issue.message.replace(/\u00A0/g, " ")).toBe(
-      "Literpreis muss zwischen 0,50 € und 4,00 € liegen.",
-    );
+    expect(issue.message).toBe("priceOutOfRange");
   });
 });
 
 describe("getRefuelingWarnings", () => {
   const previous = 84_000;
 
-  it("names the distance limit in the message", () => {
-    const { odometerKm } = getRefuelingWarnings({ odometerKm: 90_000 }, newestOnly);
-    expect(odometerKm?.replace(/\u00A0/g, " ")).toBe(
-      "Mehr als 2.000 km seit der letzten Betankung. Fehlt eine Betankung?",
-    );
+  it("reports a warning code", () => {
+    expect(getRefuelingWarnings({ odometerKm: 90_000 }, newestOnly)).toEqual({
+      odometerKm: "distanceUnusuallyLarge",
+    });
   });
 
   it.each([

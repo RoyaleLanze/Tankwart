@@ -1,7 +1,6 @@
-// Validation schema for a refueling (M4), ADR 0009. Messages are shown at the field, so they are German.
+// Validation schema for a refueling (M4), ADR 0009. Errors are codes, not text (ADR 0014):
+// each issue's `message` is a RefuelingErrorCode that messages.ts turns into German text.
 import { z } from "zod";
-
-import { formatEuro, TENTH_CENTS_PER_CENT } from "@/lib/format";
 
 import {
   distanceWarning,
@@ -11,16 +10,16 @@ import {
   MIN_PRICE_PER_LITER_TENTH_CENTS,
   odometerError,
   type RefuelingContext,
+  type RefuelingErrorCode,
+  type RefuelingWarningCode,
 } from "./rules";
 
-const PRICE_RANGE_MESSAGE = `Literpreis muss zwischen ${formatEuro(
-  MIN_PRICE_PER_LITER_TENTH_CENTS / TENTH_CENTS_PER_CENT,
-)} und ${formatEuro(MAX_PRICE_PER_LITER_TENTH_CENTS / TENTH_CENTS_PER_CENT)} liegen.`;
-const TOO_LARGE_MESSAGE = "Wert ist zu groß.";
+/** Typed shorthand, so a misspelled code is a type error. */
+const code = (value: RefuelingErrorCode) => value;
 
-/** Whole number field with a German message for empty, non-numeric and fractional input. */
-function wholeNumber(missingMessage: string) {
-  return z.int({ error: missingMessage }).max(MAX_DB_INTEGER, TOO_LARGE_MESSAGE);
+/** Whole number field; `missing` covers empty, non-numeric and fractional input. */
+function wholeNumber(missing: RefuelingErrorCode) {
+  return z.int({ error: missing }).max(MAX_DB_INTEGER, code("valueTooLarge"));
 }
 
 /** Builds the schema for one vehicle; the context rules close over it. */
@@ -29,26 +28,24 @@ export function createRefuelingSchema(context: RefuelingContext) {
     .object({
       refueledOn: z.iso
         // abort: an invalid date must not also be reported as lying in the future.
-        .date({ error: "Bitte ein gültiges Datum angeben.", abort: true })
+        .date({ error: code("dateInvalid"), abort: true })
         // ISO dates compare correctly as strings; today() is read at validation time.
-        .refine((date) => date <= context.today(), "Datum darf nicht in der Zukunft liegen."),
-      volumeMl: wholeNumber("Bitte die Liter angeben.")
-        .positive("Liter müssen größer als 0 sein.")
-        .max(maxVolumeMl(context.tankCapacityMl), "Mehr Liter als in den Tank passen."),
-      pricePerLiterTenthCents: wholeNumber("Bitte den Literpreis angeben.")
-        .min(MIN_PRICE_PER_LITER_TENTH_CENTS, PRICE_RANGE_MESSAGE)
-        .max(MAX_PRICE_PER_LITER_TENTH_CENTS, PRICE_RANGE_MESSAGE),
-      totalCents: wholeNumber("Bitte den Gesamtbetrag angeben.").positive(
-        "Gesamtbetrag muss größer als 0 sein.",
-      ),
-      odometerKm: wholeNumber("Bitte den Kilometerstand angeben."),
+        .refine((date) => date <= context.today(), code("dateInFuture")),
+      volumeMl: wholeNumber("volumeMissing")
+        .positive(code("volumeNotPositive"))
+        .max(maxVolumeMl(context.tankCapacityMl), code("volumeAboveTank")),
+      pricePerLiterTenthCents: wholeNumber("priceMissing")
+        .min(MIN_PRICE_PER_LITER_TENTH_CENTS, code("priceOutOfRange"))
+        .max(MAX_PRICE_PER_LITER_TENTH_CENTS, code("priceOutOfRange")),
+      totalCents: wholeNumber("totalMissing").positive(code("totalNotPositive")),
+      odometerKm: wholeNumber("odometerMissing"),
     })
     // Needs date and odometer together, so it runs on the object and reports at the odometer.
     // `when` lets it run even if other fields are invalid, as long as these two are valid.
     .superRefine(
       ({ odometerKm, refueledOn }, ctx) => {
-        const message = odometerError(odometerKm, refueledOn, context);
-        if (message) ctx.addIssue({ code: "custom", message, path: ["odometerKm"] });
+        const error = odometerError(odometerKm, refueledOn, context);
+        if (error) ctx.addIssue({ code: "custom", message: error, path: ["odometerKm"] });
       },
       { when: (payload) => !payload.issues.some((issue) => ODOMETER_INPUTS.has(issue.path?.[0])) },
     );
@@ -62,7 +59,7 @@ export type RefuelingInput = z.infer<ReturnType<typeof createRefuelingSchema>>;
 export function getRefuelingWarnings(
   input: Pick<RefuelingInput, "odometerKm">,
   context: RefuelingContext,
-): { odometerKm?: string } {
+): { odometerKm?: RefuelingWarningCode } {
   const warning = distanceWarning(input.odometerKm, context);
   return warning ? { odometerKm: warning } : {};
 }
