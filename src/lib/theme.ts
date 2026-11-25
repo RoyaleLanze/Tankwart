@@ -19,24 +19,35 @@ function color(name: string, mode: Mode): string {
 }
 
 function px(value: string): number {
-  return Number.parseFloat(value);
+  const number = Number.parseFloat(value);
+  if (Number.isNaN(number)) throw new Error(`Token value is not a number: ${value}`);
+  return number;
 }
 
 // JSON imports type token names as plain strings, so the names are listed here to make
-// typos a type error. The values still come only from tokens.json.
+// typos a type error. The values still come only from tokens.json, and both lists must
+// match exactly, so a token added to the JSON fails at startup until it is listed here.
 function scale<const Name extends string>(
   group: { tokens: { name: string; value: string }[] },
   names: readonly Name[],
-): Record<Name, number> {
-  const entries = names.map((name) => {
-    const token = group.tokens.find((t) => t.name === name);
-    if (!token) throw new Error(`Unknown scale token: ${name}`);
-    return [name, px(token.value)] as const;
-  });
-  return Object.fromEntries(entries) as Record<Name, number>;
+): (name: Name) => number {
+  const listed: readonly string[] = names;
+  const jsonNames = group.tokens.map((t) => t.name);
+  const mismatch = [
+    ...jsonNames.filter((n) => !listed.includes(n)),
+    ...listed.filter((n) => !jsonNames.includes(n)),
+  ];
+  if (mismatch.length > 0) throw new Error(`Scale tokens out of sync: ${mismatch.join(", ")}`);
+
+  const values = new Map(group.tokens.map((t) => [t.name, px(t.value)]));
+  return (name) => {
+    const value = values.get(name);
+    if (value === undefined) throw new Error(`Unknown scale token: ${name}`);
+    return value;
+  };
 }
 
-/** Spacing, radii and component sizes in dp, e.g. `spacing["space-4"]` = 16. */
+/** Spacing, radii and component sizes in dp, e.g. `spacing("space-4")` = 16. */
 export const spacing = scale(tokens.spacing, [
   "space-1",
   "space-2",
