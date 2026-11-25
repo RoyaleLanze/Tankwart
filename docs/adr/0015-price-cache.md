@@ -41,11 +41,11 @@ Alle Nutzer teilen sich einen Tankerkönig-Key. Jede neue Koordinate oder Statio
 
 ### Entscheidung
 
-Wir nehmen Option 1 mit **10 echten Abrufen pro Nutzer und Minute** (`RATE_LIMIT_PER_MINUTE`), gewählt von @SealJonny. Wer darüber liegt, bekommt HTTP 429 mit dem Fehlercode `rateLimited` (ADR 0014).
+Wir nehmen Option 1 mit **10 echten Abrufen pro Nutzer und Minute** (`RATE_LIMIT_PER_MINUTE`), gewählt von @SealJonny. Wer darüber liegt, bekommt HTTP 429 mit dem Fehlercode `rateLimited` (ADR 0014) und dem Header `Retry-After` (Sekunden bis zum nächsten Fenster). Liegt für die Anfrage ein abgelaufener Cache-Eintrag vor, liefert die Function stattdessen diesen mit seinem `fetchedAt`, weil alte Preise besser sind als keine.
 
 ### Konsequenzen
 
-- Tabelle `price_rate_limit (user_id, window_start, count)` mit Fremdschlüssel auf `auth.users` (`on delete cascade`). Geschützt wie `price_cache`: RLS ohne Policy, `revoke all` für `anon` und `authenticated`. Die Funktion `hit_price_rate_limit` zählt atomar (`insert … on conflict do update`) und darf nur von der Service Role ausgeführt werden. Beim Zählen löscht sie Zeilen älterer Fenster, damit die Tabelle klein bleibt. pgTAP-Tests weisen das nach.
+- Tabelle `price_rate_limit (user_id, window_start, count)` mit Fremdschlüssel auf `auth.users` (`on delete cascade`). Geschützt wie `price_cache`: RLS ohne Policy, `revoke all` für `anon` und `authenticated`. Die Funktion `hit_price_rate_limit` zählt atomar (`insert … on conflict do update`) und darf nur von der Service Role ausgeführt werden. Beim Zählen löscht sie die älteren Fenster des aufrufenden Nutzers, damit die Tabelle klein bleibt. Fremde Zeilen fasst sie nicht an. pgTAP-Tests weisen das nach.
 - Gezählt wird nur direkt vor einem echten Abruf bei Tankerkönig. Cache-Treffer und der Mock-Modus zählen nicht, normales Suchen und Wechseln der Sorte stößt also kaum an das Limit.
 - Fail-open: Fällt der Zähler aus (Datenbankfehler), loggt die Function den Fehler und ruft Tankerkönig trotzdem ab, wie beim Cache. In dieser Zeit ist der Key nicht geschützt. Wir nehmen das in Kauf, weil ein Ausfall des Zählers sonst alle Preise sperren würde.
 - Im Übergabegespräch erklären können: warum nur Cache-Fehltreffer zählen, warum das Hochzählen in einer SQL-Anweisung atomar ist (parallele Aufrufe verlieren keine Zählung) und warum fail-open.
