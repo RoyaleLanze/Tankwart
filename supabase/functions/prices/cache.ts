@@ -22,5 +22,12 @@ export function createPostgresCache(client: SupabaseClient): PriceCache {
       });
       if (error) throw new Error(`Price cache write failed: ${error.message}`);
     },
+    async deleteOlderThan(cutoff) {
+      const { error } = await client
+        .from("price_cache")
+        .delete()
+        .lt("fetched_at", cutoff.toISOString());
+      if (error) throw new Error(`Price cache cleanup failed: ${error.message}`);
+    },
   };
 }

@@ -17,6 +17,10 @@ function setup(
     cache: {
       read: (key) => Promise.resolve(store.get(key) ?? null),
       write: (key, entry) => Promise.resolve(void store.set(key, entry)),
+      deleteOlderThan: (cutoff) => {
+        for (const [key, entry] of store) if (entry.fetchedAt < cutoff) store.delete(key);
+        return Promise.resolve();
+      },
     },
     fetch: (url) => {
       calls.push(String(url));
@@ -60,6 +64,19 @@ Deno.test("rejects invalid input", async () => {
     const res = await handle(post(body));
     equal(res.status, 400, JSON.stringify(body));
     deepStrictEqual(await res.json(), { error: "invalidInput" });
+  }
+  equal(calls.length, 0);
+});
+
+Deno.test("rejects positions outside Germany, also in mock mode", async () => {
+  const { handle, calls } = setup({ mock: true });
+  for (const position of [
+    { lat: 48.85, lng: 2.35 },
+    { lat: 55.2, lng: 9.18 },
+  ]) {
+    const res = await handle(post({ ...LIST, ...position }));
+    equal(res.status, 400);
+    deepStrictEqual(await res.json(), { error: "outsideGermany" });
   }
   equal(calls.length, 0);
 });
@@ -137,4 +154,14 @@ Deno.test("upstream failures become 502 and are not cached", async () => {
     deepStrictEqual(await res.json(), { error: "upstreamUnavailable" });
     equal(store.size, 0);
   }
+});
+
+Deno.test("writing a new entry deletes expired entries of other keys", async () => {
+  const { handle, store } = setup();
+  const expired = new Date(NOW.getTime() - CACHE_TTL_MS - 1);
+  const fresh = new Date(NOW.getTime() - 1000);
+  store.set("list:50.000:8.000:5", { payload: {}, fetchedAt: expired });
+  store.set("list:51.000:7.000:5", { payload: {}, fetchedAt: fresh });
+  await handle(post(LIST));
+  deepStrictEqual([...store.keys()].sort(), ["list:48.783:9.181:5", "list:51.000:7.000:5"]);
 });

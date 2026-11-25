@@ -8,6 +8,8 @@ export const RADIUS_OPTIONS_KM = [2, 5, 10, 25];
 export const CACHE_TTL_MS = 5 * 60 * 1000;
 // About 100 m; nearby requests share one cache entry.
 const COORDINATE_DECIMALS = 3;
+// Tankerkönig only covers Germany; this bounding box keeps the cache key space small.
+export const GERMANY_BOUNDS = { minLat: 47.2, maxLat: 55.1, minLng: 5.8, maxLng: 15.1 };
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type PricesRequest =
@@ -19,6 +21,7 @@ export type PricesErrorCode =
   | "methodNotAllowed"
   | "unauthorized"
   | "invalidInput"
+  | "outsideGermany"
   | "stationNotFound"
   | "missingApiKey"
   | "upstreamUnavailable"
@@ -29,6 +32,7 @@ export type CacheEntry = { payload: Record<string, unknown>; fetchedAt: Date };
 export interface PriceCache {
   read(key: string): Promise<CacheEntry | null>;
   write(key: string, entry: CacheEntry): Promise<void>;
+  deleteOlderThan(cutoff: Date): Promise<void>;
 }
 
 export type Deps = {
@@ -46,6 +50,9 @@ export function createHandler(deps: Deps): (req: Request) => Promise<Response> {
     if (!(await deps.isAuthenticated(req))) return errorResponse(401, "unauthorized");
     const input = parseRequest(await req.json().catch(() => null));
     if (!input) return errorResponse(400, "invalidInput");
+    if (input.action === "list" && !isInGermany(input.lat, input.lng)) {
+      return errorResponse(400, "outsideGermany");
+    }
     if (deps.mock) return mockResponse(input, deps.now());
     if (!deps.apiKey) return errorResponse(500, "missingApiKey");
     try {
@@ -77,6 +84,11 @@ function isNumberInRange(value: unknown, min: number, max: number): value is num
   return typeof value === "number" && value >= min && value <= max;
 }
 
+function isInGermany(lat: number, lng: number): boolean {
+  const { minLat, maxLat, minLng, maxLng } = GERMANY_BOUNDS;
+  return isNumberInRange(lat, minLat, maxLat) && isNumberInRange(lng, minLng, maxLng);
+}
+
 function mockResponse(input: PricesRequest, now: Date): Response {
   const payload =
     input.action === "list"
@@ -96,6 +108,8 @@ async function loadWithCache(deps: Deps, apiKey: string, input: PricesRequest) {
     fetchedAt: now,
   };
   await deps.cache.write(key, entry);
+  // Housekeeping: expired entries of other keys are never read again.
+  await deps.cache.deleteOlderThan(new Date(now.getTime() - CACHE_TTL_MS));
   return entry;
 }
 
