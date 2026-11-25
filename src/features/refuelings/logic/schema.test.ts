@@ -1,3 +1,4 @@
+import { computeMissing } from "./computeMissing";
 import { createRefuelingSchema, getRefuelingWarnings, type RefuelingInput } from "./schema";
 import {
   DISTANCE_WARNING_KM,
@@ -67,6 +68,13 @@ describe("createRefuelingSchema", () => {
     it("rejects fractional ml", () => {
       expect(errorFields({ volumeMl: 40_000.5 })).toEqual(["volumeMl"]);
     });
+
+    it("rounds the tolerance down for a capacity not divisible by 10", () => {
+      // 45,455 ml × 1.1 = 50,000.5 ml → at most 50,000 ml
+      const oddTank = { ...context, tankCapacityMl: 45_455 };
+      expect(errorFields({ volumeMl: 50_000 }, oddTank)).toEqual([]);
+      expect(errorFields({ volumeMl: 50_001 }, oddTank)).toEqual(["volumeMl"]);
+    });
   });
 
   describe("price per liter (0.50–4.00 €)", () => {
@@ -75,8 +83,11 @@ describe("createRefuelingSchema", () => {
       [MIN_PRICE_PER_LITER_TENTH_CENTS, true],
       [MAX_PRICE_PER_LITER_TENTH_CENTS, true],
       [MAX_PRICE_PER_LITER_TENTH_CENTS + 1, false],
-    ])("%i tenth cents valid: %s", (pricePerLiterTenthCents, ok) => {
-      expect(errorFields({ pricePerLiterTenthCents })).toEqual(ok ? [] : ["pricePerLiterTenthCents"]);
+      [1749.5, false],
+    ])("%d tenth cents valid: %s", (pricePerLiterTenthCents, ok) => {
+      expect(errorFields({ pricePerLiterTenthCents })).toEqual(
+        ok ? [] : ["pricePerLiterTenthCents"],
+      );
     });
   });
 
@@ -84,7 +95,9 @@ describe("createRefuelingSchema", () => {
     it.each([
       [1, true],
       [0, false],
-    ])("%i cents valid: %s", (totalCents, ok) => {
+      [-1, false],
+      [6996.5, false],
+    ])("%d cents valid: %s", (totalCents, ok) => {
       expect(errorFields({ totalCents })).toEqual(ok ? [] : ["totalCents"]);
     });
   });
@@ -123,8 +136,29 @@ describe("createRefuelingSchema", () => {
       expect(errorFields({ odometerKm: 999_999 }, newestOnly)).toEqual([]);
     });
 
-    it("explains which neighbour is violated", () => {
-      expect(issues({ odometerKm: 85_000 })[0].message).toMatch(/nächsten Betankung/);
+    it.each([
+      ["below the initial reading", { odometerKm: 79_999 }, /Anfangsstand/],
+      ["not above the previous refueling", { odometerKm: 84_000 }, /vorherigen Betankung/],
+      ["not below the next refueling", { odometerKm: 85_000 }, /nächsten Betankung/],
+      [
+        "same reading on the same day",
+        { refueledOn: "2026-11-10", odometerKm: 84_000 },
+        /selben Tag/,
+      ],
+    ])("explains the violated rule: %s", (_, input, message) => {
+      const [issue] = issues(input);
+      expect(issue.path).toEqual(["odometerKm"]);
+      expect(issue.message).toMatch(message);
+    });
+
+    it("reports the initial reading first, even if the history is inconsistent", () => {
+      // An older refueling below the initial reading; 69,000 km violates both rules.
+      const inconsistent = {
+        ...context,
+        otherRefuelings: [{ refueledOn: "2026-11-01", odometerKm: 70_000 }],
+      };
+      const [issue] = issues({ odometerKm: 69_000 }, inconsistent);
+      expect(issue.message).toMatch(/Anfangsstand/);
     });
 
     it("finds the neighbours from the entered date", () => {
@@ -148,8 +182,20 @@ describe("createRefuelingSchema", () => {
       ["2025-01-01", true],
       ["25.11.2026", false],
       ["2026-02-30", false],
+      ["2026-11-20T10:00:00Z", false],
     ])("%s valid: %s", (refueledOn, ok) => {
       expect(errorFields({ refueledOn }, firstRefueling)).toEqual(ok ? [] : ["refueledOn"]);
+    });
+
+    it.each([
+      ["leap day", "2028-03-01", "2028-02-29", true],
+      ["no leap day in 2027", "2027-03-01", "2027-02-29", false],
+      ["last day of the old year", "2027-01-01", "2026-12-31", true],
+      ["tomorrow in the new year", "2026-12-31", "2027-01-01", false],
+    ])("%s: today %s, %s valid: %s", (_, today, refueledOn, ok) => {
+      expect(errorFields({ refueledOn }, { ...firstRefueling, today: () => today })).toEqual(
+        ok ? [] : ["refueledOn"],
+      );
     });
 
     it("reads today at validation time, not when the schema is built", () => {
@@ -181,11 +227,63 @@ describe("getRefuelingWarnings", () => {
     expect("odometerKm" in getRefuelingWarnings({ odometerKm }, newestOnly)).toBe(warns);
   });
 
+  it.each([previous, previous - 1000])(
+    "does not warn at or below the previous: %i km",
+    (odometerKm) => {
+      expect(getRefuelingWarnings({ odometerKm }, newestOnly)).toEqual({});
+    },
+  );
+
+  it("measures from the nearest lower reading when a later refueling exists", () => {
+    // Previous 84,000 km, next 90,000 km: the gap to the next one is irrelevant.
+    const wideGap = {
+      ...context,
+      otherRefuelings: [
+        { refueledOn: "2026-11-10", odometerKm: previous },
+        { refueledOn: "2026-12-01", odometerKm: 90_000 },
+      ],
+    };
+    expect(getRefuelingWarnings({ odometerKm: previous + DISTANCE_WARNING_KM }, wideGap)).toEqual(
+      {},
+    );
+    expect(
+      getRefuelingWarnings({ odometerKm: previous + DISTANCE_WARNING_KM + 1 }, wideGap),
+    ).toHaveProperty("odometerKm");
+  });
+
   it("does not warn for the first refueling", () => {
     expect(getRefuelingWarnings({ odometerKm: 99_000 }, firstRefueling)).toEqual({});
   });
 
   it("is not an error: the schema still accepts the value", () => {
     expect(errorFields({ odometerKm: previous + DISTANCE_WARNING_KM + 1 }, newestOnly)).toEqual([]);
+  });
+});
+
+describe("computed amounts are still validated (M3 + M4)", () => {
+  /** Fills the missing field like the form does, then validates the result. */
+  function validateComputed(amounts: Partial<RefuelingInput>): string[] {
+    const computed = computeMissing(amounts);
+    if (!computed) throw new Error("expected a computed amount");
+    return errorFields({ ...amounts, [computed.field]: computed.value });
+  }
+
+  it.each([
+    // 100 € for 1 L → 100.00 €/L
+    [
+      "price 100,000 from 100 € / 1 L",
+      { totalCents: 10_000, volumeMl: 1000 },
+      ["pricePerLiterTenthCents"],
+    ],
+    // 96.20 € at 1.749 €/L → 55,003 ml > 55,000 ml
+    [
+      "volume 55,003 ml for a 50 L tank",
+      { totalCents: 9620, pricePerLiterTenthCents: 1749 },
+      ["volumeMl"],
+    ],
+    // 96.17 € at 1.749 €/L → 54,986 ml
+    ["volume 54,986 ml for a 50 L tank", { totalCents: 9617, pricePerLiterTenthCents: 1749 }, []],
+  ])("%s", (_, amounts, expected) => {
+    expect(validateComputed(amounts)).toEqual(expected);
   });
 });

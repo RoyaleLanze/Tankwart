@@ -32,6 +32,15 @@ describe("computeMissing", () => {
     expect(computeMissing({ totalCents: 5000, pricePerLiterTenthCents: 1749 })?.value).toBe(28_588);
   });
 
+  it.each([
+    ["price rounded from 175 ct per 1 L", { totalCents: 175, volumeMl: 1000 }, 1750],
+    ["price rounded down from 69.97 € per 40 L", { totalCents: 6997, volumeMl: 40_000 }, 1749],
+    // 1 ct at 4.00 €/L = 2.5 ml, rounded half up
+    ["tiny volume from 1 ct at 4.00 €/L", { totalCents: 1, pricePerLiterTenthCents: 4000 }, 3],
+  ])("rounds the %s", (_, amounts, expected) => {
+    expect(computeMissing(amounts)?.value).toBe(expected);
+  });
+
   it("computes nothing when all three are given, even if they do not match", () => {
     expect(
       computeMissing({ volumeMl: 40_000, pricePerLiterTenthCents: 1749, totalCents: 7000 }),
