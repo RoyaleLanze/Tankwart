@@ -139,7 +139,8 @@ returns void language sql as $$
 $$;
 
 select lives_ok('select pg_temp.add_refueling(price => 500)', 'price of 0.500 €/L is allowed');
-select lives_ok('select pg_temp.add_refueling(price => 4000)', 'price of 4.000 €/L is allowed');
+-- Own odometer, because day and km of a vehicle are unique (#61).
+select lives_ok('select pg_temp.add_refueling(price => 4000, km => 2700)', 'price of 4.000 €/L is allowed');
 select throws_ok('select pg_temp.add_refueling(price => 499)', '23514',
   'new row for relation "refuelings" violates check constraint "refuelings_price_per_liter_tenth_cents_check"',
   'price below 0.50 €/L is rejected');
