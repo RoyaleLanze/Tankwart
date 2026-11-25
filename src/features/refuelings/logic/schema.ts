@@ -17,41 +17,56 @@ import {
 /** Typed shorthand, so a misspelled code is a type error. */
 const code = (value: RefuelingErrorCode) => value;
 
-/** Whole number field; `missing` covers empty, non-numeric and fractional input. */
+/**
+ * Whole number field; `missing` covers empty, non-numeric and fractional input. z.int also
+ * rejects values beyond the safe integer range itself, which must not read as "missing".
+ */
 function wholeNumber(missing: RefuelingErrorCode) {
-  return z.int({ error: missing }).max(MAX_DB_INTEGER, code("valueTooLarge"));
+  return z
+    .int({
+      error: (issue) =>
+        issue.code === "too_big" || issue.code === "too_small" ? code("valueTooLarge") : missing,
+    })
+    .max(MAX_DB_INTEGER, code("valueTooLarge"));
 }
 
 /** Builds the schema for one vehicle; the context rules close over it. */
 export function createRefuelingSchema(context: RefuelingContext) {
-  return z
-    .object({
-      refueledOn: z.iso
-        // abort: an invalid date must not also be reported as lying in the future.
-        .date({ error: code("dateInvalid"), abort: true })
-        // ISO dates compare correctly as strings; today() is read at validation time.
-        .refine((date) => date <= context.today(), code("dateInFuture")),
-      volumeMl: wholeNumber("volumeMissing")
-        .positive(code("volumeNotPositive"))
-        .max(maxVolumeMl(context.tankCapacityMl), code("volumeAboveTank")),
-      pricePerLiterTenthCents: wholeNumber("priceMissing")
-        .min(MIN_PRICE_PER_LITER_TENTH_CENTS, code("priceOutOfRange"))
-        .max(MAX_PRICE_PER_LITER_TENTH_CENTS, code("priceOutOfRange")),
-      totalCents: wholeNumber("totalMissing").positive(code("totalNotPositive")),
-      odometerKm: wholeNumber("odometerMissing"),
-    })
-    // Needs date and odometer together, so it runs on the object and reports at the odometer.
-    // `when` lets it run even if other fields are invalid, as long as these two are valid.
-    .superRefine(
-      ({ odometerKm, refueledOn }, ctx) => {
-        const error = odometerError(odometerKm, refueledOn, context);
-        if (error) ctx.addIssue({ code: "custom", message: error, path: ["odometerKm"] });
-      },
-      { when: (payload) => !payload.issues.some((issue) => ODOMETER_INPUTS.has(issue.path?.[0])) },
-    );
+  return (
+    z
+      .object({
+        refueledOn: z.iso
+          // abort: an invalid date must not also be reported as lying in the future.
+          .date({ error: code("dateInvalid"), abort: true })
+          // ISO dates compare correctly as strings; today() is read at validation time.
+          .refine((date) => date <= context.today(), code("dateInFuture")),
+        volumeMl: wholeNumber("volumeMissing")
+          .positive(code("volumeNotPositive"))
+          .max(maxVolumeMl(context.tankCapacityMl), code("volumeAboveTank")),
+        pricePerLiterTenthCents: wholeNumber("priceMissing")
+          .min(MIN_PRICE_PER_LITER_TENTH_CENTS, code("priceOutOfRange"))
+          .max(MAX_PRICE_PER_LITER_TENTH_CENTS, code("priceOutOfRange")),
+        totalCents: wholeNumber("totalMissing").positive(code("totalNotPositive")),
+        odometerKm: wholeNumber("odometerMissing"),
+      })
+      // Needs date and odometer together, so it runs on the object and reports at the odometer.
+      // `when` lets it run even if other fields are invalid, as long as these two are valid.
+      .superRefine(
+        ({ odometerKm, refueledOn }, ctx) => {
+          const error = odometerError(odometerKm, refueledOn, context);
+          if (error) ctx.addIssue({ code: "custom", message: error, path: ["odometerKm"] });
+        },
+        { when: (payload) => !payload.issues.some(blocksOdometerCheck) },
+      )
+  );
 }
 
 const ODOMETER_INPUTS = new Set<PropertyKey | undefined>(["odometerKm", "refueledOn"]);
+
+/** An issue on the whole input (empty path, e.g. null) or on date/odometer skips the check. */
+function blocksOdometerCheck(issue: { path?: PropertyKey[] }): boolean {
+  return !issue.path?.length || ODOMETER_INPUTS.has(issue.path[0]);
+}
 
 export type RefuelingInput = z.infer<ReturnType<typeof createRefuelingSchema>>;
 

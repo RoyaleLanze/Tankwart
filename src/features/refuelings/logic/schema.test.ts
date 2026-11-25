@@ -115,6 +115,19 @@ describe("createRefuelingSchema", () => {
     });
   });
 
+  it.each(["volumeMl", "pricePerLiterTenthCents", "totalCents", "odometerKm"] as const)(
+    "reports a huge %s as too large, not as missing",
+    (field) => {
+      const fieldIssues = issues({ [field]: 1e20 }, newestOnly).filter((i) => i.path[0] === field);
+      expect(fieldIssues.map((i) => i.message)).toContain("valueTooLarge");
+      expect(fieldIssues.some((i) => i.message.endsWith("Missing"))).toBe(false);
+    },
+  );
+
+  it.each([null, undefined, 42, "text"])("rejects %p as input without crashing", (input) => {
+    expect(createRefuelingSchema(context).safeParse(input).success).toBe(false);
+  });
+
   it("rejects values above the database integer limit", () => {
     expect(errorFields({ odometerKm: MAX_DB_INTEGER + 1 }, newestOnly)).toEqual(["odometerKm"]);
   });
