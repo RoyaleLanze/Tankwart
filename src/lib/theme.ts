@@ -22,14 +22,38 @@ function px(value: string): number {
   return Number.parseFloat(value);
 }
 
-function scale(group: { tokens: { name: string; value: string }[] }): Record<string, number> {
-  return Object.fromEntries(group.tokens.map((t) => [t.name, px(t.value)]));
+// JSON imports type token names as plain strings, so the names are listed here to make
+// typos a type error. The values still come only from tokens.json.
+function scale<const Name extends string>(
+  group: { tokens: { name: string; value: string }[] },
+  names: readonly Name[],
+): Record<Name, number> {
+  const entries = names.map((name) => {
+    const token = group.tokens.find((t) => t.name === name);
+    if (!token) throw new Error(`Unknown scale token: ${name}`);
+    return [name, px(token.value)] as const;
+  });
+  return Object.fromEntries(entries) as Record<Name, number>;
 }
 
 /** Spacing, radii and component sizes in dp, e.g. `spacing["space-4"]` = 16. */
-export const spacing = scale(tokens.spacing);
-export const radius = scale(tokens.radius);
-export const sizes = scale(tokens.size);
+export const spacing = scale(tokens.spacing, [
+  "space-1",
+  "space-2",
+  "space-3",
+  "space-4",
+  "space-6",
+  "space-8",
+]);
+export const radius = scale(tokens.radius, [
+  "radius-xs",
+  "radius-sm",
+  "radius-md",
+  "radius-lg",
+  "radius-xl",
+  "radius-full",
+]);
+export const sizes = scale(tokens.size, ["touch-min", "top-app-bar", "navigation-bar", "fab"]);
 
 /** Material 3 standard icon size in dp. */
 export const ICON_SIZE = 24;
