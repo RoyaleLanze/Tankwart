@@ -1,4 +1,4 @@
-// Facts about the database units (ADR 0012), shared by formatting, parsing and validation.
+// Facts about the database units (ADR 0012), shared by calculation, formatting, parsing and validation.
 
 export const ML_PER_LITER = 1000;
 /** Tenths of a cent per cent (prices per liter are stored in tenths of a cent). */
