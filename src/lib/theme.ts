@@ -31,21 +31,30 @@ export const spacing = scale(tokens.spacing);
 export const radius = scale(tokens.radius);
 export const sizes = scale(tokens.size);
 
-// Family names as embedded by the expo-font plugin in app.json.
-const FONT_FAMILIES = { display: "Manrope", sans: "Inter" } as const;
+/** Material 3 standard icon size in dp. */
+export const ICON_SIZE = 24;
+
+// Family names and weights as embedded by the expo-font plugin in app.json.
+const FONT_FAMILIES: Record<string, string> = { display: "Manrope", sans: "Inter" };
 const FONT_WEIGHTS: Record<number, FontStyle["fontWeight"]> = {
   400: "400",
   600: "600",
   700: "700",
 };
 
+function lookup<T>(table: Record<string | number, T>, key: string | number, kind: string): T {
+  const value = table[key];
+  if (value === undefined) throw new Error(`Unsupported ${kind}: ${key}`);
+  return value;
+}
+
 function typeStyle(name: string): FontStyle {
   for (const group of tokens.type.groups) {
     const style = group.styles.find((s) => s.name === name);
     if (style) {
       return {
-        fontFamily: FONT_FAMILIES[group.family as keyof typeof FONT_FAMILIES],
-        fontWeight: FONT_WEIGHTS[style.fontWeight],
+        fontFamily: lookup(FONT_FAMILIES, group.family, "font family"),
+        fontWeight: lookup(FONT_WEIGHTS, style.fontWeight, "font weight"),
         fontSize: px(style.fontSize),
         lineHeight: px(style.lineHeight),
         letterSpacing: style.letterSpacing ? px(style.letterSpacing) : 0,
@@ -56,6 +65,7 @@ function typeStyle(name: string): FontStyle {
 }
 
 // Inter for every Paper variant, then the variants the design defines explicitly.
+// Every variant Paper renders with weight 500 is mapped too, because only 400, 600 and 700 are embedded.
 const baseFonts = configureFonts({ config: { fontFamily: FONT_FAMILIES.sans } });
 const fonts = {
   ...baseFonts,
@@ -63,9 +73,11 @@ const fonts = {
   headlineMedium: typeStyle("headline-md"),
   titleLarge: typeStyle("title-lg"),
   titleMedium: typeStyle("title-md"),
+  titleSmall: typeStyle("label-lg"),
   bodyLarge: typeStyle("body-lg"),
   bodyMedium: typeStyle("body-md"),
   labelLarge: typeStyle("label-lg"),
+  labelMedium: typeStyle("label-sm"),
   labelSmall: typeStyle("label-sm"),
 };
 
