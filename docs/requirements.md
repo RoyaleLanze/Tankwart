@@ -74,6 +74,7 @@ Ungefähr in dieser Reihenfolge:
 6. Texterkennung auf dem Belegfoto
 7. Passwort zurücksetzen/ändern, Konto löschen
 8. Offline-Erfassung, CSV-Export (Download-Icon im Monatsvergleich), iOS, Dunkelmodus (Tokens vorhanden)
+9. Englische Oberfläche nach Gerätesprache (Deutsch bleibt Standard), siehe #59
 
 Bewusst nicht geplant: Preisalarm, weil Tankerkönig Abfragen nur auf Nutzeraktion erlaubt.
 
