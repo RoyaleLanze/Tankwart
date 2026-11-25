@@ -218,7 +218,7 @@ describe("createRefuelingSchema", () => {
 
   it("names the price limits in the message", () => {
     const [issue] = issues({ pricePerLiterTenthCents: MAX_PRICE_PER_LITER_TENTH_CENTS + 1 });
-    expect(issue.message.replace(/ /g, " ")).toBe(
+    expect(issue.message.replace(/\u00A0/g, " ")).toBe(
       "Literpreis muss zwischen 0,50 € und 4,00 € liegen.",
     );
   });
@@ -229,7 +229,9 @@ describe("getRefuelingWarnings", () => {
 
   it("names the distance limit in the message", () => {
     const { odometerKm } = getRefuelingWarnings({ odometerKm: 90_000 }, newestOnly);
-    expect(odometerKm?.replace(/ /g, " ")).toMatch(/^Mehr als 2.000 km seit/);
+    expect(odometerKm?.replace(/\u00A0/g, " ")).toBe(
+      "Mehr als 2.000 km seit der letzten Betankung. Fehlt eine Betankung?",
+    );
   });
 
   it.each([
