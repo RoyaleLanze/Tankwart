@@ -18,10 +18,18 @@ describe("homeOverview", () => {
     const history = [
       refueling({ refueledOn: "2026-10-10", odometerKm: 10_000, totalCents: 6_000 }),
       refueling({ refueledOn: "2026-11-10", odometerKm: 10_600, totalCents: 7_500 }),
-      refueling({ refueledOn: "2026-11-24", odometerKm: 11_100, totalCents: 4_000 }),
+      refueling({
+        refueledOn: "2026-11-24",
+        odometerKm: 11_100,
+        volumeMl: 20_000,
+        pricePerLiterTenthCents: 2_000,
+        totalCents: 4_000,
+      }),
     ];
     const overview = homeOverview(history, INITIAL_KM, TODAY);
     expect(overview.current).toMatchObject({ refuelingCount: 2, totalCents: 11_500 });
+    // 40 L at 1,750 and 20 L at 2,000: (70,000 + 40,000) / 60 = 1,833.3 tenths of a cent.
+    expect(overview.current).toMatchObject({ volumeMl: 60_000, avgPricePerLiterTenthCents: 1_833 });
     // km since the October refueling count for November.
     expect(overview.current.distanceKm).toBe(1_100);
     expect(overview.previous.totalCents).toBe(6_000);
