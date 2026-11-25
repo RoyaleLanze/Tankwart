@@ -23,6 +23,25 @@ export type Database = {
   };
   public: {
     Tables: {
+      price_cache: {
+        Row: {
+          cache_key: string;
+          fetched_at: string;
+          payload: NonNullable<Json>;
+        };
+        ComputedFields: never;
+        Insert: {
+          cache_key: string;
+          fetched_at: string;
+          payload: NonNullable<Json>;
+        };
+        Update: {
+          cache_key?: string;
+          fetched_at?: string;
+          payload?: NonNullable<Json>;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           active_vehicle_id: string | null;
