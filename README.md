@@ -58,6 +58,16 @@ npm test
 
 Die Datenbank-Tests (`npx supabase test db`) und die E2E-Tests (Maestro) folgen mit den jeweiligen Features.
 
+### Edge Function `prices`
+
+Deno muss nicht installiert sein, es läuft über `npx deno@2`. Die Befehle im Funktionsordner ausführen, damit Deno dessen `deno.json` nutzt:
+
+```bash
+cd supabase/functions/prices && npx deno@2 test
+```
+
+Lokal im Mock-Modus (feste Beispielpreise, kein Tankerkönig-Key nötig): `cp supabase/functions/.env.example supabase/functions/.env` und darin `PRICES_MOCK=true` lassen, danach `npx supabase start` bzw. `npx supabase functions serve`. Für echte Preise `PRICES_MOCK=false` und `TANKERKOENIG_API_KEY` setzen, in der Cloud nur als Secret: `npx supabase secrets set TANKERKOENIG_API_KEY=…`.
+
 ## KI-Reflexion
 
 _Folgt zur Abgabe: eingesetzte Tools, typische Einsatzbereiche und pro Person mindestens ein Beispiel mit Commit, bei dem KI-Code korrigiert oder verworfen wurde._
