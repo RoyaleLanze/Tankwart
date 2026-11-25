@@ -23,9 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
-      - uses: supabase/setup-cli@v3
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3
         with:
           # Same version as the devDependency in package-lock.json
           version: 3.2.0
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       # Skip cleanly while no Edge Function tests exist yet (#15).
       - id: find
@@ -52,11 +52,14 @@ jobs:
           fi
 
       - if: steps.find.outputs.has_tests == 'true'
-        uses: denoland/setup-deno@v2
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2
         with:
-          # Deno version of the local edge runtime (supabase/edge-runtime)
-          deno-version: 2.1.4
+          # Same version as `npx deno@2.9.6 test` in the README; deno.lock format v5 needs Deno >= 2.3.
+          deno-version: 2.9.6
 
+      # Each function has its own deno.json and deno.lock; --frozen enforces the lockfile hashes.
       - if: steps.find.outputs.has_tests == 'true'
-        working-directory: supabase/functions
-        run: deno test --allow-env --allow-net --allow-read
+        run: |
+          for dir in $(find supabase/functions -name deno.json -exec dirname {} \;); do
+            (cd "$dir" && deno test --frozen --allow-env --allow-net --allow-read)
+          done
