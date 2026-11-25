@@ -1,7 +1,7 @@
 -- RLS tests with two users (M14): user A must neither read nor write user B's data.
 -- Silent RLS effects (0 rows updated/deleted) are verified afterwards as postgres.
 begin;
-select plan(40);
+select plan(41);
 
 -- Fixtures, created as postgres (bypasses RLS).
 insert into auth.users (id, email) values
@@ -86,6 +86,11 @@ select throws_ok(
   $$insert into public.refuelings (vehicle_id, refueled_on, volume_ml, price_per_liter_tenth_cents, total_cents, odometer_km, station_name)
     values ('bbbbbbbb-0000-0000-0000-00000000000b', '2026-11-03', 10000, 1700, 1700, 2600, 'Esso')$$,
   '42501', null, 'A cannot add a refueling to B''s vehicle');
+-- Same key as B's refueling: RLS must answer before the unique index, so 23505 never reveals B's data (#61).
+select throws_ok(
+  $$insert into public.refuelings (vehicle_id, refueled_on, volume_ml, price_per_liter_tenth_cents, total_cents, odometer_km, station_name)
+    values ('bbbbbbbb-0000-0000-0000-00000000000b', '2026-11-02', 10000, 1700, 1700, 2500, 'Esso')$$,
+  '42501', null, 'A colliding with B''s refueling gets 42501, not 23505');
 select throws_ok(
   $$update public.refuelings set vehicle_id = 'bbbbbbbb-0000-0000-0000-00000000000b'
     where id = 'aaaaaaaa-0000-0000-0000-0000000000f1'$$,
@@ -139,7 +144,8 @@ returns void language sql as $$
 $$;
 
 select lives_ok('select pg_temp.add_refueling(price => 500)', 'price of 0.500 €/L is allowed');
-select lives_ok('select pg_temp.add_refueling(price => 4000)', 'price of 4.000 €/L is allowed');
+-- Own odometer, because day and km of a vehicle are unique (#61).
+select lives_ok('select pg_temp.add_refueling(price => 4000, km => 2700)', 'price of 4.000 €/L is allowed');
 select throws_ok('select pg_temp.add_refueling(price => 499)', '23514',
   'new row for relation "refuelings" violates check constraint "refuelings_price_per_liter_tenth_cents_check"',
   'price below 0.50 €/L is rejected');
