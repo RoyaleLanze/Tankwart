@@ -1,5 +1,5 @@
 import { homeOverview } from "./overview";
-import { refueling } from "./statsFixture";
+import { refueling } from "../__fixtures__/statsFixture";
 
 const INITIAL_KM = 9_000;
 const TODAY = "2026-11-25";
