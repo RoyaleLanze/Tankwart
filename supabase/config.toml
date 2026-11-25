@@ -184,7 +184,9 @@ enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
-minimum_password_length = 6
+# Tankwart: 8, decided by @RoyaleLanze on 21.11.2026 (#7). Keep in sync with MIN_PASSWORD_LENGTH
+# in src/features/auth/logic/authSchema.ts and with the cloud dashboard.
+minimum_password_length = 8
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = ""
@@ -229,12 +231,15 @@ enabled = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
+# Tankwart: off, decided by @RoyaleLanze on 21.11.2026 (#7). Set the same in the cloud dashboard.
+# Accepted risk: sign-up then answers user_already_exists, so registered emails can be probed
+# (limited by rate_limit.sign_in_sign_ups).
 enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # If enabled, users will need to provide their current password to change their password, unless
 # they signed in with a one-time password, magic link, or recovery link.
-# require_current_password = true
+require_current_password = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "1s"
 # Number of characters used in the email OTP.
