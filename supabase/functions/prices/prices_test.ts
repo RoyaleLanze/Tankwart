@@ -224,16 +224,85 @@ Deno.test("writing a new entry deletes expired entries of other keys", async () 
   deepStrictEqual([...store.keys()].sort(), ["list:48.783:9.181:5", "list:51.000:7.000:5"]);
 });
 
-Deno.test("allows the limit of real calls per minute and rejects the next one", async () => {
-  const { handle, calls, hits } = setup();
+// Uses up the limit with distinct positions, so every call is a real Tankerkoenig call.
+async function useUpLimit(handle: (req: Request) => Promise<Response>) {
   for (let i = 0; i < RATE_LIMIT_PER_MINUTE; i++) {
     equal((await handle(post(listAt(i)))).status, 200);
   }
+}
+
+Deno.test("allows the limit of real calls per minute and rejects the next one", async () => {
+  const { handle, calls, hits } = setup();
+  await useUpLimit(handle);
   const res = await handle(post(listAt(RATE_LIMIT_PER_MINUTE)));
   equal(res.status, 429);
+  equal(res.headers.get("Retry-After"), "30");
   deepStrictEqual(await res.json(), { error: "rateLimited" });
   equal(calls.length, RATE_LIMIT_PER_MINUTE);
   deepStrictEqual([...hits.keys()], [`${USER_ID}:2026-11-25T12:00:00.000Z`]);
+});
+
+Deno.test("the limit resets exactly at the next full minute", async () => {
+  let now = new Date("2026-11-25T12:00:00.000Z");
+  const { handle, hits } = setup({ now: () => now });
+  await useUpLimit(handle);
+  now = new Date("2026-11-25T12:00:59.999Z");
+  const limited = await handle(post(listAt(RATE_LIMIT_PER_MINUTE)));
+  equal(limited.status, 429);
+  equal(limited.headers.get("Retry-After"), "1");
+  now = new Date("2026-11-25T12:01:00.000Z");
+  equal((await handle(post(listAt(RATE_LIMIT_PER_MINUTE + 1)))).status, 200);
+  equal(hits.get(`${USER_ID}:2026-11-25T12:01:00.000Z`), 1);
+});
+
+Deno.test("detail cache misses count against the same limit", async () => {
+  const detailAt = (i: number) => ({ action: "detail", stationId: STATION_ID.slice(0, -1) + i });
+  const { handle } = setup({}, () => Response.json({ ok: true, stations: [], station: {} }));
+  for (let i = 0; i < RATE_LIMIT_PER_MINUTE; i++) {
+    equal((await handle(post(i % 2 === 0 ? listAt(i) : detailAt(i)))).status, 200);
+  }
+  equal((await handle(post(detailAt(0)))).status, 429);
+});
+
+Deno.test("over the limit an expired cache entry is served instead of 429", async () => {
+  const fetchedAt = new Date(NOW.getTime() - CACHE_TTL_MS);
+  const { handle, store, calls } = setup();
+  await useUpLimit(handle);
+  store.set("list:48.783:9.181:5", { payload: { stations: ["old"] }, fetchedAt });
+  const res = await handle(post(LIST));
+  equal(res.status, 200);
+  deepStrictEqual(await res.json(), { stations: ["old"], fetchedAt: fetchedAt.toISOString() });
+  equal(calls.length, RATE_LIMIT_PER_MINUTE);
+});
+
+Deno.test("after a 429 a fresh cache entry is still served", async () => {
+  const { handle } = setup();
+  await useUpLimit(handle);
+  equal((await handle(post(listAt(RATE_LIMIT_PER_MINUTE)))).status, 429);
+  equal((await handle(post(listAt(0)))).status, 200);
+});
+
+Deno.test("the limit is per user", async () => {
+  let user = USER_ID;
+  const { handle } = setup({ getUserId: () => Promise.resolve(user) });
+  await useUpLimit(handle);
+  equal((await handle(post(listAt(RATE_LIMIT_PER_MINUTE)))).status, 429);
+  user = "bbbbbbbb-0000-0000-0000-000000000000";
+  equal((await handle(post(listAt(RATE_LIMIT_PER_MINUTE)))).status, 200);
+});
+
+Deno.test("rejected requests do not count against the limit", async () => {
+  const cases: [Partial<Deps>, unknown, number][] = [
+    [{ getUserId: () => Promise.resolve(null) }, LIST, 401],
+    [{}, { ...LIST, radiusKm: 3 }, 400],
+    [{}, { ...LIST, lat: 48.85, lng: 2.35 }, 400],
+    [{ apiKey: undefined }, LIST, 500],
+  ];
+  for (const [overrides, body, status] of cases) {
+    const { handle, hits } = setup(overrides);
+    equal((await handle(post(body))).status, status);
+    equal(hits.size, 0);
+  }
 });
 
 Deno.test("cache hits and mock mode do not count against the limit", async () => {

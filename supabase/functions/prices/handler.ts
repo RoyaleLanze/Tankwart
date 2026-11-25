@@ -49,7 +49,11 @@ export interface RateLimiter {
   hit(userId: string, windowStart: Date): Promise<number>;
 }
 
-class RateLimitedError extends Error {}
+class RateLimitedError extends Error {
+  constructor(readonly retryAfterSeconds: number) {
+    super("Rate limit exceeded");
+  }
+}
 
 export type Deps = {
   // The signed-in user's id, or null without a valid user token.
@@ -79,7 +83,10 @@ export function createHandler(deps: Deps): (req: Request) => Promise<Response> {
       return jsonResponse(200, { ...payload, fetchedAt: fetchedAt.toISOString() });
     } catch (error) {
       if (error instanceof StationNotFoundError) return errorResponse(404, "stationNotFound");
-      if (error instanceof RateLimitedError) return errorResponse(429, "rateLimited");
+      if (error instanceof RateLimitedError) {
+        const headers = { "Retry-After": String(error.retryAfterSeconds) };
+        return errorResponse(429, "rateLimited", headers);
+      }
       console.error(errorMessage(error));
       if (error instanceof UpstreamError) return errorResponse(502, "upstreamUnavailable");
       return errorResponse(500, "internalError");
@@ -125,7 +132,11 @@ async function loadWithCache(deps: Deps, apiKey: string, userId: string, input: 
   // The cache only saves upstream calls; if it fails, prices are still served.
   const cached = await bestEffort("cache read", () => deps.cache.read(key));
   if (cached && now.getTime() - cached.fetchedAt.getTime() < CACHE_TTL_MS) return cached;
-  await checkRateLimit(deps, userId, now);
+  if (await isRateLimited(deps, userId, now)) {
+    // Over the limit, an expired entry is still better than no prices (ADR 0015).
+    if (cached) return cached;
+    throw new RateLimitedError(secondsUntilNextWindow(now));
+  }
   const entry = {
     payload: await callTankerkoenig(deps.fetch, apiKey, endpoint, params),
     fetchedAt: now,
@@ -138,11 +149,17 @@ async function loadWithCache(deps: Deps, apiKey: string, userId: string, input: 
 }
 
 // Only cache misses get here, so cache hits never count against the limit.
-async function checkRateLimit(deps: Deps, userId: string, now: Date): Promise<void> {
+async function isRateLimited(deps: Deps, userId: string, now: Date): Promise<boolean> {
   const windowStart = new Date(Math.floor(now.getTime() / MINUTE_MS) * MINUTE_MS);
   // Fail-open like the cache: a broken counter must not block prices (ADR 0015).
   const count = await bestEffort("rate limit", () => deps.rateLimiter.hit(userId, windowStart));
-  if (count !== null && count > RATE_LIMIT_PER_MINUTE) throw new RateLimitedError();
+  return count !== null && count > RATE_LIMIT_PER_MINUTE;
+}
+
+// Value of the Retry-After header: whole seconds until the next window, at least 1.
+function secondsUntilNextWindow(now: Date): number {
+  const msLeft = MINUTE_MS - (now.getTime() % MINUTE_MS);
+  return Math.max(1, Math.ceil(msLeft / 1000));
 }
 
 async function bestEffort<T>(step: string, run: () => Promise<T>): Promise<T | null> {
@@ -171,13 +188,21 @@ function toUpstreamRequest(input: PricesRequest) {
   return { key: `list:${lat}:${lng}:${rad}`, endpoint: "list" as const, params };
 }
 
-function jsonResponse(status: number, body: unknown): Response {
+function jsonResponse(
+  status: number,
+  body: unknown,
+  headers: Record<string, string> = {},
+): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 }
 
-function errorResponse(status: number, error: PricesErrorCode): Response {
-  return jsonResponse(status, { error });
+function errorResponse(
+  status: number,
+  error: PricesErrorCode,
+  headers?: Record<string, string>,
+): Response {
+  return jsonResponse(status, { error }, headers);
 }
