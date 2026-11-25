@@ -95,6 +95,8 @@ Deno.test("mock detail has opening times, unknown station is 404", async () => {
   const { handle } = setup({ mock: true, apiKey: undefined });
   const detail = await (await handle(post({ action: "detail", stationId: STATION_ID }))).json();
   equal(detail.station.id, STATION_ID);
+  equal(typeof detail.station.lat, "number");
+  equal(typeof detail.station.lng, "number");
   ok(detail.station.openingTimes.length > 0);
   const missing = await handle(post({ action: "detail", stationId: crypto.randomUUID() }));
   equal(missing.status, 404);
@@ -139,21 +141,59 @@ Deno.test("refetches an expired cache entry", async () => {
 });
 
 Deno.test("upstream failures become 502 and are not cached", async () => {
-  const failures = [
-    () => new Response("down", { status: 503 }),
-    () => Response.json({ ok: false, message: "apikey nicht angegeben" }),
-    () => new Response("not json"),
-    () => {
-      throw new TypeError("error sending request for url (https://...&apikey=test-key)");
-    },
+  const detail = { action: "detail", stationId: STATION_ID };
+  const failures: [unknown, () => Response][] = [
+    [detail, () => new Response("down", { status: 503 })],
+    [LIST, () => Response.json({ ok: false, message: "apikey nicht angegeben" })],
+    [detail, () => new Response("not json")],
+    [LIST, () => Response.json({ ok: true, stations: "none" })],
+    [detail, () => Response.json({ ok: true, station: "none" })],
+    [
+      detail,
+      () => {
+        throw new TypeError("error sending request for url (https://...&apikey=test-key)");
+      },
+    ],
   ];
-  for (const upstream of failures) {
+  for (const [body, upstream] of failures) {
     const { handle, store } = setup({}, upstream);
-    const res = await handle(post({ action: "detail", stationId: STATION_ID }));
+    const res = await handle(post(body));
     equal(res.status, 502);
     deepStrictEqual(await res.json(), { error: "upstreamUnavailable" });
     equal(store.size, 0);
   }
+});
+
+Deno.test("unknown station in real mode is 404 and not cached", async () => {
+  const answers = [
+    () => Response.json({ ok: false, message: "parameter error" }),
+    () => Response.json({ ok: true }),
+  ];
+  for (const upstream of answers) {
+    const { handle, store } = setup({}, upstream);
+    const res = await handle(post({ action: "detail", stationId: STATION_ID }));
+    equal(res.status, 404);
+    deepStrictEqual(await res.json(), { error: "stationNotFound" });
+    equal(store.size, 0);
+  }
+});
+
+Deno.test("a failing cache does not block prices", async () => {
+  const fail = () => Promise.reject(new Error("db down"));
+  const cache = { read: fail, write: fail, deleteOlderThan: fail };
+  const { handle, calls } = setup({ cache });
+  const errors: unknown[] = [];
+  const originalError = console.error;
+  console.error = (...args: unknown[]) => void errors.push(args);
+  try {
+    const res = await handle(post(LIST));
+    equal(res.status, 200);
+    deepStrictEqual(await res.json(), { stations: [], fetchedAt: NOW.toISOString() });
+  } finally {
+    console.error = originalError;
+  }
+  equal(calls.length, 1);
+  equal(errors.length, 3);
 });
 
 Deno.test("writing a new entry deletes expired entries of other keys", async () => {
