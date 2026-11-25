@@ -25,18 +25,20 @@ const KM_PER_100_KM = 100;
 
 /**
  * Oldest first; same day ordered by odometer (ADR 0012). Returns a new array.
- * The id only makes the order deterministic for the same day and odometer, which validation
- * rejects (odometerDuplicateSameDay) but the database does not prevent yet (#61).
+ * The id is only a last tie-breaker for input that bypassed the database, which rejects the
+ * same day and odometer (refuelings_vehicle_day_odometer_key, #61).
  */
 export function sortChronologically<T extends ConsumptionInput>(refuelings: readonly T[]): T[] {
   return [...refuelings].sort(
     (a, b) =>
-      compare(a.refueledOn, b.refueledOn) || a.odometerKm - b.odometerKm || compare(a.id, b.id),
+      compareStrings(a.refueledOn, b.refueledOn) ||
+      a.odometerKm - b.odometerKm ||
+      compareStrings(a.id, b.id),
   );
 }
 
 /** Plain code-unit comparison; ISO dates sort correctly this way, independent of the locale. */
-function compare(a: string, b: string): number {
+export function compareStrings(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 

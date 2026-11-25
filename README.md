@@ -37,6 +37,21 @@ npx supabase stop         # beendet die Instanz
 
 In `.env` den `PUBLISHABLE_KEY` aus `npx supabase status` eintragen. Der Android-Emulator erreicht den Rechner unter `10.0.2.2` (bereits in `.env.example` gesetzt). Studio (Datenbank-UI) läuft unter http://127.0.0.1:54323.
 
+Datenbank neu aufsetzen (löscht alle lokalen Daten, spielt Migrationen und `supabase/seed.sql` neu ein):
+
+```bash
+npx supabase db reset
+```
+
+Der Seed legt zwei Testnutzer mit Betankungen über rund 12 Monate an (beim Corsa rund 10). Die Zugangsdaten gelten **nur lokal**, der Seed wird nie in die Cloud gespielt (`db push` überträgt nur Migrationen). Deshalb gegen die Cloud **nie** `db reset --linked` oder `db push --include-seed` ausführen, sonst gäbe es dort zwei Konten mit öffentlich bekanntem Passwort.
+
+| E-Mail | Passwort | Fahrzeuge |
+|---|---|---|
+| `nutzer-a@tankwart.local` | `tankwart-lokal` | Golf (E10, aktiv), Corsa (E5) |
+| `nutzer-b@tankwart.local` | `tankwart-lokal` | Passat (Diesel) |
+
+Die Daten sind relativ zum Tag des Resets erzeugt, die letzte Betankung liegt höchstens zwei Tage davor. Ein erneutes `db reset` holt sie also auf den aktuellen Monat.
+
 ### Supabase Cloud
 
 Einmalig, im **eigenen Terminal** (interaktiv, nicht über Claude Code):
@@ -56,7 +71,25 @@ npm run typecheck
 npm test
 ```
 
-Die Datenbank-Tests (`npx supabase test db`) und die E2E-Tests (Maestro) folgen mit den jeweiligen Features.
+Datenbank-Tests (pgTAP, RLS mit zwei Testnutzern) gegen die laufende lokale Instanz:
+
+```bash
+npx supabase test db      # führt supabase/tests/*.sql aus, jede Datei in einer Transaktion mit Rollback
+```
+
+Die E2E-Tests (Maestro) folgen mit den jeweiligen Features.
+
+### Edge Function `prices`
+
+Deno muss nicht installiert sein, es läuft über `npx deno@2`. Die Befehle im Funktionsordner ausführen, damit Deno dessen `deno.json` nutzt:
+
+```bash
+cd supabase/functions/prices && npx deno@2 test
+```
+
+Lokal im Mock-Modus (feste Beispielpreise, kein Tankerkönig-Key nötig): `cp supabase/functions/.env.example supabase/functions/.env` und darin `PRICES_MOCK=true` lassen, danach `npx supabase start` bzw. `npx supabase functions serve`. Für echte Preise `PRICES_MOCK=false` und `TANKERKOENIG_API_KEY` setzen, in der Cloud nur als Secret: `npx supabase secrets set TANKERKOENIG_API_KEY=…`.
+
+Auch im Mock-Modus lehnt die Function Positionen außerhalb Deutschlands ab (`outsideGermany`). Der Emulator braucht deshalb einen Standort in Deutschland, z. B. Karlsruhe (Reihenfolge Länge, Breite): `adb -s <serial> emu geo fix 8.4037 49.0069`.
 
 ## KI-Reflexion
 
