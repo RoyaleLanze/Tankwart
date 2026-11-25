@@ -8,8 +8,8 @@ export const MAX_PRICE_PER_LITER_TENTH_CENTS = 4000;
 export const MAX_FILL_PERCENT_OF_TANK = 110;
 /** More km since the last refueling than this is suspicious but allowed. */
 export const DISTANCE_WARNING_KM = 2000;
-/** Largest value of a Postgres `integer` column; larger values would fail on insert. */
-export const MAX_DB_INTEGER = 2_147_483_647;
+// Lives in lib because the vehicle schema needs it too; re-exported so imports here stay the same.
+export { MAX_DB_INTEGER } from "@/lib/units";
 
 /** Validation results as codes; the feature's messages.ts turns them into German text (ADR 0014). */
 export type RefuelingErrorCode =
