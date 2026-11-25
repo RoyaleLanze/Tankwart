@@ -2,8 +2,9 @@ import { Controller, type Control, type FieldValues, type Path } from "react-hoo
 import { View } from "react-native";
 import { HelperText, TextInput, type TextInputProps } from "react-native-paper";
 
-export type FormTextFieldProps<T extends FieldValues> = {
-  control: Control<T>;
+// TTransformed: the values after validation, when the schema turns the text into other types.
+export type FormTextFieldProps<T extends FieldValues, TTransformed = T> = {
+  control: Control<T, unknown, TTransformed>;
   name: Path<T>;
   /** Visible label of the field, also read by the screen reader. */
   label: string;
@@ -11,6 +12,8 @@ export type FormTextFieldProps<T extends FieldValues> = {
   icon?: string;
   /** Turns a validation code from the schema into the text shown to the user (ADR 0014). */
   errorText: (message: string) => string;
+  /** Hint below the field while it has no error, e.g. what the value is used for. */
+  helperText?: string;
 } & Omit<
   TextInputProps,
   "mode" | "label" | "value" | "onChangeText" | "onBlur" | "error" | "left" | "ref"
@@ -20,14 +23,15 @@ export type FormTextFieldProps<T extends FieldValues> = {
  * Outlined text field bound to react-hook-form. Shows the field's validation error below it
  * (design-system.md → TextField).
  */
-export function FormTextField<T extends FieldValues>({
+export function FormTextField<T extends FieldValues, TTransformed = T>({
   control,
   name,
   label,
   icon,
   errorText,
+  helperText,
   ...inputProps
-}: FormTextFieldProps<T>) {
+}: FormTextFieldProps<T, TTransformed>) {
   return (
     <Controller
       control={control}
@@ -44,7 +48,7 @@ export function FormTextField<T extends FieldValues>({
               label={label}
               // Paper's label is a separate text view; the native field needs its own name.
               accessibilityLabel={label}
-              accessibilityHint={shownError}
+              accessibilityHint={shownError ?? helperText}
               left={
                 icon ? (
                   <TextInput.Icon icon={icon} importantForAccessibility="no" focusable={false} />
@@ -55,10 +59,12 @@ export function FormTextField<T extends FieldValues>({
               onBlur={field.onBlur}
               error={error !== undefined}
             />
-            {shownError && (
+            {shownError ? (
               <HelperText type="error" accessibilityLiveRegion="polite">
                 {shownError}
               </HelperText>
+            ) : (
+              helperText && <HelperText type="info">{helperText}</HelperText>
             )}
           </View>
         );
