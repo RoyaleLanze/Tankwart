@@ -19,7 +19,12 @@ export function useCreateVehicle() {
   return useMutation({
     mutationFn: createVehicle,
     // The API returns the stored vehicle, so it is added to the cache without a new request.
+    // Only if the list is still cached: after a sign-out during saving the cache is cleared,
+    // and the vehicle must not be shown to the next user.
     onSuccess: (vehicle) =>
-      queryClient.setQueryData<Vehicle[]>(VEHICLES_KEY, (vehicles = []) => [...vehicles, vehicle]),
+      queryClient.setQueryData<Vehicle[]>(
+        VEHICLES_KEY,
+        (vehicles) => vehicles && [...vehicles, vehicle],
+      ),
   });
 }
