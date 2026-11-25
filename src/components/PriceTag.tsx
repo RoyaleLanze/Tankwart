@@ -13,7 +13,10 @@ type Props = {
   pricePerLiterTenthCents: number;
 };
 
-/** Price per liter as "1,74⁹ €", read by screen readers as "1 Euro 74,9 Cent pro Liter". */
+/**
+ * Price per liter as "1,74⁹ €", read by screen readers as "1 Euro 74,9 Cent pro Liter".
+ * Only on `surface` or `background`: on `surface-variant` the price color misses 4.5:1 contrast.
+ */
 export function PriceTag({ pricePerLiterTenthCents }: Props) {
   const { colors } = useAppTheme();
   const price = formatPricePerLiter(pricePerLiterTenthCents);
@@ -37,6 +40,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "flex-start" },
   superscript: {
     fontSize: priceStyle.fontSize * SUPERSCRIPT_SCALE,
-    lineHeight: priceStyle.fontSize * SUPERSCRIPT_SCALE,
+    lineHeight: priceStyle.lineHeight * SUPERSCRIPT_SCALE,
   },
 });
