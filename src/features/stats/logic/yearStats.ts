@@ -74,16 +74,21 @@ export function summarizeMetric(stats: YearStats, metric: YearMetric): MetricSum
   return { sum: total, average, ...extremes };
 }
 
-/** On a tie the earlier month wins; with a single valued month it is both highest and lowest. */
+/**
+ * On a tie the earlier month wins. If highest and lowest are equal (one valued month or all the
+ * same), no month is marked, since a mark would highlight nothing.
+ */
 function extremeMonths(
   valued: readonly { month: MonthKey; value: number }[],
 ): Pick<MetricSummary, "highestMonth" | "lowestMonth"> {
-  if (valued.length === 0) return { highestMonth: null, lowestMonth: null };
+  const unmarked = { highestMonth: null, lowestMonth: null };
+  if (valued.length === 0) return unmarked;
   let highest = valued[0];
   let lowest = valued[0];
   for (const entry of valued) {
     if (entry.value > highest.value) highest = entry;
     if (entry.value < lowest.value) lowest = entry;
   }
+  if (highest.value === lowest.value) return unmarked;
   return { highestMonth: highest.month, lowestMonth: lowest.month };
 }

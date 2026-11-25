@@ -123,7 +123,7 @@ describe("summarizeMetric", () => {
     expect(summarizeMetric(empty, "consumptionMlPer100Km").average).toBeNull();
   });
 
-  it("prefers the earlier month on a tie and marks a single month twice", () => {
+  it("marks no month when all valued months are equal", () => {
     const tie = yearStats(
       [
         refueling({ refueledOn: "2026-03-01", totalCents: 5_000 }),
@@ -133,12 +133,42 @@ describe("summarizeMetric", () => {
       2026,
     );
     expect(summarizeMetric(tie, "totalCents")).toMatchObject({
-      highestMonth: "2026-03",
-      lowestMonth: "2026-03",
+      highestMonth: null,
+      lowestMonth: null,
     });
-    expect(summarizeMetric(tie, "consumptionMlPer100Km")).toMatchObject({
-      highestMonth: "2026-07",
-      lowestMonth: "2026-07",
+  });
+
+  it("marks no month when only one month has a value", () => {
+    const single = yearStats(
+      [
+        refueling({ refueledOn: "2026-03-01" }),
+        refueling({ refueledOn: "2026-07-01", odometerKm: 10_500 }),
+      ],
+      INITIAL_KM,
+      2026,
+    );
+    // Only July closes a consumption interval.
+    expect(summarizeMetric(single, "consumptionMlPer100Km")).toMatchObject({
+      highestMonth: null,
+      lowestMonth: null,
+    });
+  });
+
+  it("prefers the earlier month on a partial tie", () => {
+    const partial = yearStats(
+      [4_000, 8_000, 8_000, 4_000].map((totalCents, index) =>
+        refueling({
+          refueledOn: `2026-0${index + 1}-01`,
+          odometerKm: 10_000 + index * 500,
+          totalCents,
+        }),
+      ),
+      INITIAL_KM,
+      2026,
+    );
+    expect(summarizeMetric(partial, "totalCents")).toMatchObject({
+      highestMonth: "2026-02",
+      lowestMonth: "2026-01",
     });
   });
 });
