@@ -31,12 +31,14 @@ const KM_PER_100_KM = 100;
 export function sortChronologically<T extends ConsumptionInput>(refuelings: readonly T[]): T[] {
   return [...refuelings].sort(
     (a, b) =>
-      compare(a.refueledOn, b.refueledOn) || a.odometerKm - b.odometerKm || compare(a.id, b.id),
+      compareStrings(a.refueledOn, b.refueledOn) ||
+      a.odometerKm - b.odometerKm ||
+      compareStrings(a.id, b.id),
   );
 }
 
 /** Plain code-unit comparison; ISO dates sort correctly this way, independent of the locale. */
-function compare(a: string, b: string): number {
+export function compareStrings(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
