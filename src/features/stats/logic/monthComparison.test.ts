@@ -100,6 +100,16 @@ describe("compareMonths", () => {
     expect(compareMonths(fractional, INITIAL_KM, OCTOBER_TO_NOVEMBER).savingsCents).toBe(198);
   });
 
+  it("never returns -0 when a tiny loss rounds to zero", () => {
+    const tinyLoss = [
+      refueling({ refueledOn: "2026-10-05", volumeMl: 10_000, pricePerLiterTenthCents: 1_700 }),
+      refueling({ refueledOn: "2026-11-05", volumeMl: 1_000, pricePerLiterTenthCents: 1_701 }),
+    ].map((entry, index) => ({ ...entry, odometerKm: 10_000 + index * 500 }));
+    // (1,700 − 1,701) × 1 L = −0.1 cents, which Math.round turns into −0.
+    const { savingsCents } = compareMonths(tinyLoss, INITIAL_KM, OCTOBER_TO_NOVEMBER);
+    expect(Object.is(savingsCents, 0)).toBe(true);
+  });
+
   it("has no rate deltas and no savings when the current month is empty", () => {
     const empty = compareMonths(history, INITIAL_KM, { base: "2026-11", current: "2026-12" });
     expect(empty.current).toMatchObject({ totalCents: 0, costPerKmTenthCents: null });

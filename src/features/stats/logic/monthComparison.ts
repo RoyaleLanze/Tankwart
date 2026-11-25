@@ -99,7 +99,8 @@ function difference(base: number | null, current: number | null): number | null 
 
 /**
  * (Ø price base − Ø price current) × liters of the current month, in cents. Uses the exact,
- * unrounded averages and rounds only the result, so rounding the prices adds no error.
+ * unrounded averages and rounds only the result, so rounding the prices adds no error. A tiny
+ * loss would round to −0, which formats as "−0,00 €"; `|| 0` turns it into 0.
  * Rearranged to Σ(p × V) base × V current / V base − Σ(p × V) current.
  */
 function savings(
@@ -111,7 +112,7 @@ function savings(
   const basePriceTimesVolume = priceTimesVolume(refuelingsIn(entries, base.month));
   const atBasePrice = (basePriceTimesVolume * current.volumeMl) / base.volumeMl;
   const paid = priceTimesVolume(refuelingsIn(entries, current.month));
-  return Math.round((atBasePrice - paid) / ML_TENTH_CENTS_PER_CENT);
+  return Math.round((atBasePrice - paid) / ML_TENTH_CENTS_PER_CENT) || 0;
 }
 
 function refuelingsIn(entries: readonly StatsEntry[], month: MonthKey): StatsInput[] {
