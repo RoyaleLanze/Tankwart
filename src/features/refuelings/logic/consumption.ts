@@ -4,6 +4,8 @@
 // and including this one, divided by the km in between. The first full refueling is only the
 // starting point. An interval with a missed refueling ("previous_missed") is not counted.
 
+import { compareStrings } from "@/lib/compare";
+
 /** The fields of a refueling the calculation needs. */
 export type ConsumptionInput = {
   id: string;
@@ -35,11 +37,6 @@ export function sortChronologically<T extends ConsumptionInput>(refuelings: read
       a.odometerKm - b.odometerKm ||
       compareStrings(a.id, b.id),
   );
-}
-
-/** Plain code-unit comparison; ISO dates sort correctly this way, independent of the locale. */
-export function compareStrings(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 /** Consumption result per refueling id, for all refuelings of one vehicle in any order. */

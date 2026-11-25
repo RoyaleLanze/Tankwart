@@ -2,9 +2,8 @@
 // Units as in the database: tenths of a cent per liter, ml, cents; distances in meters.
 
 import type { Database } from "@/lib/database.types";
-// Units and string ordering are owned by refuelings/logic; logic/ must not import src/lib.
-import { ML_TENTH_CENTS_PER_CENT } from "@/features/refuelings/logic/computeMissing";
-import { compareStrings } from "@/features/refuelings/logic/consumption";
+import { compareStrings } from "@/lib/compare";
+import { ML_TENTH_CENTS_PER_CENT } from "@/lib/units";
 
 export type FuelType = Database["public"]["Enums"]["fuel_type"];
 

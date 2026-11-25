@@ -1,9 +1,6 @@
 // Month comparison and bargains (M13). Attribution and empty months follow period.ts.
 
-import {
-  ML_TENTH_CENTS_PER_CENT,
-  TENTH_CENTS_PER_CENT,
-} from "@/features/refuelings/logic/computeMissing";
+import { ML_TENTH_CENTS_PER_CENT, TENTH_CENTS_PER_CENT } from "@/lib/units";
 
 import {
   addMonths,
