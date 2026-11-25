@@ -1,0 +1,62 @@
+name: Supabase
+
+# Database (pgTAP) and Edge Function (Deno) tests, ADR 0007.
+# Separate workflow with a paths filter so that app-only PRs stay fast.
+on:
+  pull_request:
+    branches: [main]
+    paths: ['supabase/**', '.github/workflows/supabase.yml']
+  push:
+    branches: [main]
+    paths: ['supabase/**', '.github/workflows/supabase.yml']
+
+concurrency:
+  group: supabase-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  db:
+    name: pgTAP (supabase test db)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: supabase/setup-cli@v3
+        with:
+          # Same version as the devDependency in package-lock.json
+          version: 3.2.0
+
+      # Docker is preinstalled on the runner. Services the tests do not need are skipped.
+      # start applies migrations and seed.sql.
+      - run: supabase start -x studio,imgproxy,mailpit,realtime,edge-runtime,logflare,vector,supavisor,postgres-meta
+      - run: supabase test db
+
+  functions:
+    name: Deno (supabase/functions)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      # Skip cleanly while no Edge Function tests exist yet (#15).
+      - id: find
+        run: |
+          if find supabase/functions -name '*test.ts' 2>/dev/null | grep -q .; then
+            echo "has_tests=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No Deno tests in supabase/functions, skipping."
+          fi
+
+      - if: steps.find.outputs.has_tests == 'true'
+        uses: denoland/setup-deno@v2
+        with:
+          # Deno version of the local edge runtime (supabase/edge-runtime)
+          deno-version: 2.1.4
+
+      - if: steps.find.outputs.has_tests == 'true'
+        working-directory: supabase/functions
+        run: deno test --allow-env --allow-net --allow-read
