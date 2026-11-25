@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRef } from "react";
 import { useForm, type DefaultValues } from "react-hook-form";
 
 import { vehicleSchema, type VehicleFormValues } from "../logic/vehicleSchema";
@@ -29,6 +30,10 @@ export function useVehicleForm(
     VehicleInput
   >({ resolver: zodResolver(vehicleSchema), defaultValues });
 
+  // react-hook-form does not block a second submit while the first one runs. The keyboard's
+  // action key can still submit while the button is disabled, which would save twice.
+  const isSaving = useRef(false);
+
   const submitValidForm = handleSubmit(async (input) => {
     try {
       await save(input);
@@ -38,11 +43,21 @@ export function useVehicleForm(
     }
   });
 
+  async function submit() {
+    if (isSaving.current) return;
+    isSaving.current = true;
+    try {
+      // Called without the press event: react-hook-form only needs it for web forms.
+      await submitValidForm();
+    } finally {
+      isSaving.current = false;
+    }
+  }
+
   return {
     control,
     setFocus,
-    // Called without the press event: react-hook-form only needs it for web forms.
-    submit: () => submitValidForm(),
+    submit,
     isSubmitting: formState.isSubmitting,
     /** Error from the server, shown above the button. */
     submitError: formState.errors.root?.message,
