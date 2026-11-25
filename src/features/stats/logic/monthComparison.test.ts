@@ -1,5 +1,5 @@
 import { bargainIds, compareMonths, defaultMonths } from "./monthComparison";
-import { refueling } from "./statsFixture";
+import { refueling } from "../__fixtures__/statsFixture";
 
 const INITIAL_KM = 9_500;
 const OCTOBER_TO_NOVEMBER = { base: "2026-10", current: "2026-11" };
