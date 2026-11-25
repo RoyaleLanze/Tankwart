@@ -10,7 +10,7 @@ import {
 } from "./format";
 
 // Units are joined with a non-breaking space; written as a normal space here for readability.
-const readable = (text: string) => text.replace(/ /g, " ");
+const readable = (text: string) => text.replace(/\u00A0/g, " ");
 
 describe("number formats", () => {
   it.each([
@@ -51,8 +51,8 @@ describe("number formats", () => {
   });
 
   it("keeps value and unit together with a non-breaking space", () => {
-    expect(formatEuro(100)).toBe("1,00 €");
-    expect(formatConsumption(6_400)).toBe("6,4 L/100 km");
+    expect(formatEuro(100)).toBe("1,00\u00A0€");
+    expect(formatConsumption(6_400)).toBe("6,4\u00A0L/100\u00A0km");
   });
 });
 
@@ -61,10 +61,15 @@ describe("formatPricePerLiter", () => {
     [1749, "1,74", "9", "1 Euro 74,9 Cent pro Liter"],
     [1059, "1,05", "9", "1 Euro 5,9 Cent pro Liter"],
     [2000, "2,00", "0", "2 Euro 0,0 Cent pro Liter"],
-    [500, "0,50", "0", "0 Euro 50,0 Cent pro Liter"],
+    [500, "0,50", "0", "50,0 Cent pro Liter"],
+    [999, "0,99", "9", "99,9 Cent pro Liter"],
     [4000, "4,00", "0", "4 Euro 0,0 Cent pro Liter"],
   ])("%i → %s + %s", (tenthCents, euroAndCents, tenthCent, accessibilityLabel) => {
     expect(formatPricePerLiter(tenthCents)).toEqual({ euroAndCents, tenthCent, accessibilityLabel });
+  });
+
+  it.each([-5, 1749.5, Number.NaN])("rejects %d instead of printing broken text", (tenthCents) => {
+    expect(() => formatPricePerLiter(tenthCents)).toThrow("Invalid price");
   });
 });
 
@@ -93,9 +98,12 @@ describe("date formats", () => {
     expect(formatMonth("2026-02-28")).toBe("Februar 2026");
   });
 
-  it("rejects an invalid ISO date instead of printing 'Invalid Date'", () => {
-    expect(() => formatDayShort("18.11.2026")).toThrow("Invalid ISO date");
-  });
+  it.each(["18.11.2026", "2026-02-30", "2026-04-31", "2026-11-18T10:00"])(
+    "rejects %s instead of printing a wrong date",
+    (isoDate) => {
+      expect(() => formatDayShort(isoDate)).toThrow("Invalid ISO date");
+    },
+  );
 
   it.each([
     [new Date(2026, 10, 25, 9, 52), "abgerufen um 09:52"],

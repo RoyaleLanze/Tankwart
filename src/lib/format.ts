@@ -50,16 +50,20 @@ export type PricePerLiterParts = {
   accessibilityLabel: string;
 };
 
+/** Expects a whole number of tenths of a cent ≥ 0, as validated by the refueling schema. */
 export function formatPricePerLiter(tenthCents: number): PricePerLiterParts {
+  if (!Number.isInteger(tenthCents) || tenthCents < 0) {
+    throw new Error(`Invalid price in tenths of a cent: ${tenthCents}`);
+  }
   const euros = Math.floor(tenthCents / TENTH_CENTS_PER_EURO);
   const restTenthCents = tenthCents % TENTH_CENTS_PER_EURO;
   const cents = Math.floor(restTenthCents / TENTH_CENTS_PER_CENT);
-  const tenthCent = String(restTenthCents % TENTH_CENTS_PER_CENT);
-  const spokenCents = oneDecimal.format(restTenthCents / TENTH_CENTS_PER_CENT);
+  const spokenCents = `${oneDecimal.format(restTenthCents / TENTH_CENTS_PER_CENT)} Cent pro Liter`;
   return {
     euroAndCents: `${euros},${String(cents).padStart(2, "0")}`,
-    tenthCent,
-    accessibilityLabel: `${euros} Euro ${spokenCents} Cent pro Liter`,
+    tenthCent: String(restTenthCents % TENTH_CENTS_PER_CENT),
+    // "50,0 Cent pro Liter" instead of "0 Euro 50,0 Cent pro Liter".
+    accessibilityLabel: euros > 0 ? `${euros} Euro ${spokenCents}` : spokenCents,
   };
 }
 
@@ -71,7 +75,10 @@ const timeOfDay = new Intl.DateTimeFormat(LOCALE, { hour: "2-digit", minute: "2-
 
 function parseIsoDate(isoDate: string): Date {
   const date = new Date(`${isoDate}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) throw new Error(`Invalid ISO date: ${isoDate}`);
+  // The round trip also rejects days that do not exist: "2026-02-30" would become 2 March.
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== isoDate) {
+    throw new Error(`Invalid ISO date: ${isoDate}`);
+  }
   return date;
 }
 
