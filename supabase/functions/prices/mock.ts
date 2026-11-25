@@ -1,6 +1,9 @@
 // Fixed sample stations for development, seeds and E2E tests (ADR 0005). No API key needed.
-// Positions are relative to the request, so distances stay the same wherever the device is.
+// List positions are relative to the request, so distances are the same anywhere in Germany
+// (positions outside Germany are rejected before the mock, see GERMANY_BOUNDS).
 const KM_PER_DEGREE_LATITUDE = 111;
+// A detail request has no position; detail coordinates are placed north of Stuttgart centre.
+const MOCK_DETAIL_ORIGIN = { lat: 48.7758, lng: 9.1829 };
 
 const MOCK_STATIONS = [
   {
@@ -69,6 +72,8 @@ export function mockDetail(stationId: string) {
   return {
     station: {
       ...rest,
+      lat: MOCK_DETAIL_ORIGIN.lat + station.dist / KM_PER_DEGREE_LATITUDE,
+      lng: MOCK_DETAIL_ORIGIN.lng,
       openingTimes: MOCK_OPENING_TIMES,
       overrideOpeningTimes: [],
       wholeDay: false,
