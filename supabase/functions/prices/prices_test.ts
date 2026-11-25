@@ -1,8 +1,15 @@
 // Run with: deno test supabase/functions/prices
 import { deepStrictEqual, equal, ok } from "node:assert/strict";
-import { CACHE_TTL_MS, type CacheEntry, createHandler, type Deps } from "./handler.ts";
+import {
+  CACHE_TTL_MS,
+  type CacheEntry,
+  createHandler,
+  type Deps,
+  RATE_LIMIT_PER_MINUTE,
+} from "./handler.ts";
 
-const NOW = new Date("2026-11-25T12:00:00Z");
+const NOW = new Date("2026-11-25T12:00:30Z");
+const USER_ID = "aaaaaaaa-0000-0000-0000-000000000000";
 const STATION_ID = "00000000-0000-4000-8000-000000000001";
 const LIST = { action: "list", lat: 48.78321, lng: 9.18079, radiusKm: 5 };
 
@@ -12,8 +19,16 @@ function setup(
 ) {
   const store = new Map<string, CacheEntry>();
   const calls: string[] = [];
+  const hits = new Map<string, number>();
   const deps: Deps = {
-    isAuthenticated: () => Promise.resolve(true),
+    getUserId: () => Promise.resolve(USER_ID),
+    rateLimiter: {
+      hit: (userId, windowStart) => {
+        const key = `${userId}:${windowStart.toISOString()}`;
+        hits.set(key, (hits.get(key) ?? 0) + 1);
+        return Promise.resolve(hits.get(key) ?? 0);
+      },
+    },
     cache: {
       read: (key) => Promise.resolve(store.get(key) ?? null),
       write: (key, entry) => Promise.resolve(void store.set(key, entry)),
@@ -31,14 +46,17 @@ function setup(
     now: () => NOW,
     ...overrides,
   };
-  return { handle: createHandler(deps), store, calls };
+  return { handle: createHandler(deps), store, calls, hits };
 }
+
+// Distinct positions, so every request is a cache miss.
+const listAt = (i: number) => ({ ...LIST, lat: 48 + i * 0.01 });
 
 const post = (body: unknown) =>
   new Request("http://local/prices", { method: "POST", body: JSON.stringify(body) });
 
 Deno.test("rejects requests without a signed-in user", async () => {
-  const { handle, calls } = setup({ isAuthenticated: () => Promise.resolve(false) });
+  const { handle, calls } = setup({ getUserId: () => Promise.resolve(null) });
   const res = await handle(post(LIST));
   equal(res.status, 401);
   deepStrictEqual(await res.json(), { error: "unauthorized" });
@@ -204,4 +222,45 @@ Deno.test("writing a new entry deletes expired entries of other keys", async () 
   store.set("list:51.000:7.000:5", { payload: {}, fetchedAt: fresh });
   await handle(post(LIST));
   deepStrictEqual([...store.keys()].sort(), ["list:48.783:9.181:5", "list:51.000:7.000:5"]);
+});
+
+Deno.test("allows the limit of real calls per minute and rejects the next one", async () => {
+  const { handle, calls, hits } = setup();
+  for (let i = 0; i < RATE_LIMIT_PER_MINUTE; i++) {
+    equal((await handle(post(listAt(i)))).status, 200);
+  }
+  const res = await handle(post(listAt(RATE_LIMIT_PER_MINUTE)));
+  equal(res.status, 429);
+  deepStrictEqual(await res.json(), { error: "rateLimited" });
+  equal(calls.length, RATE_LIMIT_PER_MINUTE);
+  deepStrictEqual([...hits.keys()], [`${USER_ID}:2026-11-25T12:00:00.000Z`]);
+});
+
+Deno.test("cache hits and mock mode do not count against the limit", async () => {
+  const { handle, hits } = setup();
+  await handle(post(LIST));
+  for (let i = 0; i < RATE_LIMIT_PER_MINUTE + 1; i++) {
+    equal((await handle(post(LIST))).status, 200);
+  }
+  deepStrictEqual([...hits.values()], [1]);
+  const mock = setup({ mock: true });
+  await mock.handle(post(LIST));
+  equal(mock.hits.size, 0);
+});
+
+Deno.test("a failing rate limiter does not block prices", async () => {
+  const rateLimiter = { hit: () => Promise.reject(new Error("db down")) };
+  const { handle, calls } = setup({ rateLimiter });
+  const errors: unknown[] = [];
+  const originalError = console.error;
+  console.error = (...args: unknown[]) => void errors.push(args);
+  try {
+    for (let i = 0; i <= RATE_LIMIT_PER_MINUTE; i++) {
+      equal((await handle(post(listAt(i)))).status, 200);
+    }
+  } finally {
+    console.error = originalError;
+  }
+  equal(calls.length, RATE_LIMIT_PER_MINUTE + 1);
+  equal(errors.length, RATE_LIMIT_PER_MINUTE + 1);
 });
