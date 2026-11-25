@@ -42,24 +42,21 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
-      # Skip cleanly while no Edge Function tests exist yet (#15).
-      - id: find
-        run: |
-          if find supabase/functions -name '*test.ts' 2>/dev/null | grep -q .; then
-            echo "has_tests=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "No Deno tests in supabase/functions, skipping."
-          fi
-
-      - if: steps.find.outputs.has_tests == 'true'
-        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2
         with:
-          # Same version as `npx deno@2.9.6 test` in the README; deno.lock format v5 needs Deno >= 2.3.
+          # Matches the Deno used locally via `npx deno@2` (lockfile v5 needs >= 2.3).
           deno-version: 2.9.6
 
-      # Each function has its own deno.json and deno.lock; --frozen enforces the lockfile hashes.
-      - if: steps.find.outputs.has_tests == 'true'
+      # Every folder with a deno.json is tested on its own. Each function needs a
+      # committed deno.lock, because --frozen fails on a missing or outdated lockfile.
+      # --permit-no-files keeps a function without tests green; no functions yet is green too.
+      - name: deno test per function
         run: |
-          for dir in $(find supabase/functions -name deno.json -exec dirname {} \;); do
-            (cd "$dir" && deno test --frozen --allow-env --allow-net --allow-read)
-          done
+          failed=0
+          while IFS= read -r -d '' config; do
+            dir=$(dirname "$config")
+            echo "::group::$dir"
+            (cd "$dir" && deno test --frozen --permit-no-files --allow-env --allow-net --allow-read) || failed=1
+            echo "::endgroup::"
+          done < <(find supabase/functions -name deno.json -print0 2>/dev/null)
+          exit "$failed"
