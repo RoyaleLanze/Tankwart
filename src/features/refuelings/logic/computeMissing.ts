@@ -10,6 +10,9 @@ export type Amounts = {
 /** The one field that was empty and the value computed for it. */
 export type ComputedAmount = { field: keyof Amounts; value: number };
 
+/** Tenths of a cent per cent, e.g. for amounts per km (mirrors the constant in lib/format). */
+export const TENTH_CENTS_PER_CENT = 10;
+
 /** ml × (1/10 ct per L) = 1/10000 ct, so this factor converts between the three units. */
 export const ML_TENTH_CENTS_PER_CENT = 10_000;
 

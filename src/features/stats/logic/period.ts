@@ -119,20 +119,21 @@ export function monthStats(entries: readonly StatsEntry[], month: MonthKey): Mon
   return { month, ...periodStats(entriesBetween(entries, month, month)) };
 }
 
+type PriceAndVolume = Pick<StatsInput, "pricePerLiterTenthCents" | "volumeMl">;
+
 /**
  * Σ(price × liters) / Σ liters, rounded to tenths of a cent, or null without liters. Weighted by
  * liters, so 5 L at a high price count less than 50 L at a low one.
  */
-export function averagePricePerLiter(
-  refuelings: readonly Pick<StatsInput, "pricePerLiterTenthCents" | "volumeMl">[],
-): number | null {
+export function averagePricePerLiter(refuelings: readonly PriceAndVolume[]): number | null {
   const volumeMl = sum(refuelings, (refueling) => refueling.volumeMl);
   if (volumeMl === 0) return null;
-  const priceTimesVolume = sum(
-    refuelings,
-    (refueling) => refueling.pricePerLiterTenthCents * refueling.volumeMl,
-  );
-  return Math.round(priceTimesVolume / volumeMl);
+  return Math.round(priceTimesVolume(refuelings) / volumeMl);
+}
+
+/** Σ(price × liters) in ml × tenths of a cent per liter; divided by Σ ml it is the exact average. */
+export function priceTimesVolume(refuelings: readonly PriceAndVolume[]): number {
+  return sum(refuelings, (refueling) => refueling.pricePerLiterTenthCents * refueling.volumeMl);
 }
 
 function sum<T>(items: readonly T[], value: (item: T) => number): number {
