@@ -82,18 +82,45 @@ describe("compareMonths", () => {
   });
 
   it("computes savings as price difference times the current month's liters", () => {
-    // (1,757 − 1,653) × 80 L = 8,320 tenths of a cent = 832 cents
+    // (1,757.14 − 1,653.13) × 80 L = 832.1 cents
     expect(comparison.savingsCents).toBe(832);
     const reversed = { base: "2026-11", current: "2026-10" };
-    // (1,653 − 1,757) × 70 L = −728 cents
+    // (1,653.13 − 1,757.14) × 70 L = −728.1 cents
     expect(compareMonths(history, INITIAL_KM, reversed).savingsCents).toBe(-728);
   });
 
-  it("has no rate deltas and no savings when a month is empty", () => {
+  it("computes savings with the unrounded averages", () => {
+    const fractional = [
+      refueling({ refueledOn: "2026-10-05", volumeMl: 30_000, pricePerLiterTenthCents: 1_700 }),
+      refueling({ refueledOn: "2026-10-20", volumeMl: 10_000, pricePerLiterTenthCents: 1_701 }),
+      refueling({ refueledOn: "2026-11-05", volumeMl: 30_000, pricePerLiterTenthCents: 1_651 }),
+      refueling({ refueledOn: "2026-11-20", volumeMl: 10_000, pricePerLiterTenthCents: 1_650 }),
+    ].map((entry, index) => ({ ...entry, odometerKm: 10_000 + index * 500 }));
+    // (1,700.25 − 1,650.75) × 40 L = 198 cents; the rounded 1,700 and 1,651 would give 196.
+    expect(compareMonths(fractional, INITIAL_KM, OCTOBER_TO_NOVEMBER).savingsCents).toBe(198);
+  });
+
+  it("has no rate deltas and no savings when the current month is empty", () => {
     const empty = compareMonths(history, INITIAL_KM, { base: "2026-11", current: "2026-12" });
     expect(empty.current).toMatchObject({ totalCents: 0, costPerKmTenthCents: null });
-    expect(empty.delta.avgPricePerLiterTenthCents).toBeNull();
-    expect(empty.delta.totalCents).toBe(-13_225);
+    expect(empty.delta).toMatchObject({
+      totalCents: -13_225,
+      avgPricePerLiterTenthCents: null,
+      consumptionMlPer100Km: null,
+      costPerKmTenthCents: null,
+    });
+    expect(empty.savingsCents).toBeNull();
+  });
+
+  it("has no rate deltas and no savings when the base month is empty", () => {
+    const empty = compareMonths(history, INITIAL_KM, { base: "2026-09", current: "2026-10" });
+    expect(empty.base).toMatchObject({ totalCents: 0, costPerKmTenthCents: null });
+    expect(empty.delta).toMatchObject({
+      totalCents: 12_300,
+      avgPricePerLiterTenthCents: null,
+      consumptionMlPer100Km: null,
+      costPerKmTenthCents: null,
+    });
     expect(empty.savingsCents).toBeNull();
   });
 

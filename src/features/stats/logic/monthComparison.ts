@@ -8,10 +8,13 @@ import {
 import {
   addMonths,
   averagePricePerLiter,
+  entriesBetween,
   type MonthKey,
   monthOf,
   monthStats,
   type MonthStats,
+  priceTimesVolume,
+  type StatsEntry,
   type StatsInput,
   statsEntries,
 } from "./period";
@@ -49,7 +52,8 @@ export function compareMonths(
   const entries = statsEntries(refuelings, initialOdometerKm);
   const base = withCostPerKm(monthStats(entries, months.base));
   const current = withCostPerKm(monthStats(entries, months.current));
-  return { base, current, delta: delta(base, current), savingsCents: savings(base, current) };
+  const savingsCents = savings(entries, base, current);
+  return { base, current, delta: delta(base, current), savingsCents };
 }
 
 /**
@@ -93,12 +97,25 @@ function difference(base: number | null, current: number | null): number | null 
   return base === null || current === null ? null : current - base;
 }
 
-/** (Ø price base − Ø price current) × liters of the current month, in cents. */
-function savings(base: ComparedMonth, current: ComparedMonth): number | null {
-  const basePrice = base.avgPricePerLiterTenthCents;
-  const currentPrice = current.avgPricePerLiterTenthCents;
-  if (basePrice === null || currentPrice === null) return null;
-  return Math.round(((basePrice - currentPrice) * current.volumeMl) / ML_TENTH_CENTS_PER_CENT);
+/**
+ * (Ø price base − Ø price current) × liters of the current month, in cents. Uses the exact,
+ * unrounded averages and rounds only the result, so rounding the prices adds no error.
+ * Rearranged to Σ(p × V) base × V current / V base − Σ(p × V) current.
+ */
+function savings(
+  entries: readonly StatsEntry[],
+  base: ComparedMonth,
+  current: ComparedMonth,
+): number | null {
+  if (base.volumeMl === 0 || current.volumeMl === 0) return null;
+  const basePriceTimesVolume = priceTimesVolume(refuelingsIn(entries, base.month));
+  const atBasePrice = (basePriceTimesVolume * current.volumeMl) / base.volumeMl;
+  const paid = priceTimesVolume(refuelingsIn(entries, current.month));
+  return Math.round((atBasePrice - paid) / ML_TENTH_CENTS_PER_CENT);
+}
+
+function refuelingsIn(entries: readonly StatsEntry[], month: MonthKey): StatsInput[] {
+  return entriesBetween(entries, month, month).map((entry) => entry.refueling);
 }
 
 function groupByMonth(refuelings: readonly StatsInput[]): Map<MonthKey, StatsInput[]> {
