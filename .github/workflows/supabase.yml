@@ -25,10 +25,8 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
+      # Without `version`, v3 installs the supabase version from the root package-lock.json.
       - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3
-        with:
-          # Same version as the devDependency in package-lock.json
-          version: 3.2.0
 
       # Docker is preinstalled on the runner. Services the tests do not need are skipped.
       # start applies migrations and seed.sql.
