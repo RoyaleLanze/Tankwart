@@ -83,7 +83,8 @@ function lookup<T>(table: Record<string | number, T>, key: string | number, kind
   return value;
 }
 
-function typeStyle(name: string): FontStyle {
+/** Text style of a type token from tokens.json, e.g. `typeStyle("price-lg")`. */
+export function typeStyle(name: string): FontStyle {
   for (const group of tokens.type.groups) {
     const style = group.styles.find((s) => s.name === name);
     if (style) {
