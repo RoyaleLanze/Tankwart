@@ -103,14 +103,29 @@ describe("createRefuelingSchema", () => {
   });
 
   describe("empty or non-numeric fields", () => {
-    it.each(["volumeMl", "pricePerLiterTenthCents", "totalCents", "odometerKm"] as const)(
-      "%s reports a German message",
-      (field) => {
-        const [issue] = issues({ [field]: undefined }, newestOnly);
-        expect(issue.path).toEqual([field]);
-        expect(issue.message).toMatch(/^Bitte .* angeben\.$/);
-      },
-    );
+    it.each([
+      ["volumeMl", "volumeMissing"],
+      ["pricePerLiterTenthCents", "priceMissing"],
+      ["totalCents", "totalMissing"],
+      ["odometerKm", "odometerMissing"],
+    ] as const)("%s reports %s", (field, code) => {
+      const [issue] = issues({ [field]: undefined }, newestOnly);
+      expect(issue.path).toEqual([field]);
+      expect(issue.message).toBe(code);
+    });
+  });
+
+  it.each(["volumeMl", "pricePerLiterTenthCents", "totalCents", "odometerKm"] as const)(
+    "reports a huge %s as too large, not as missing",
+    (field) => {
+      const fieldIssues = issues({ [field]: 1e20 }, newestOnly).filter((i) => i.path[0] === field);
+      expect(fieldIssues.map((i) => i.message)).toContain("valueTooLarge");
+      expect(fieldIssues.some((i) => i.message.endsWith("Missing"))).toBe(false);
+    },
+  );
+
+  it.each([null, undefined, 42, "text"])("rejects %p as input without crashing", (input) => {
+    expect(createRefuelingSchema(context).safeParse(input).success).toBe(false);
   });
 
   it("rejects values above the database integer limit", () => {
@@ -137,18 +152,18 @@ describe("createRefuelingSchema", () => {
     });
 
     it.each([
-      ["below the initial reading", { odometerKm: 79_999 }, /Anfangsstand/],
-      ["not above the previous refueling", { odometerKm: 84_000 }, /vorherigen Betankung/],
-      ["not below the next refueling", { odometerKm: 85_000 }, /nächsten Betankung/],
+      ["below the initial reading", { odometerKm: 79_999 }, "odometerBelowInitial"],
+      ["not above the previous refueling", { odometerKm: 84_000 }, "odometerNotAbovePrevious"],
+      ["not below the next refueling", { odometerKm: 85_000 }, "odometerNotBelowNext"],
       [
         "same reading on the same day",
         { refueledOn: "2026-11-10", odometerKm: 84_000 },
-        /selben Tag/,
+        "odometerDuplicateSameDay",
       ],
-    ])("explains the violated rule: %s", (_, input, message) => {
+    ])("reports the violated rule: %s", (_, input, code) => {
       const [issue] = issues(input);
       expect(issue.path).toEqual(["odometerKm"]);
-      expect(issue.message).toMatch(message);
+      expect(issue.message).toBe(code);
     });
 
     it("reports the initial reading first, even if the history is inconsistent", () => {
@@ -158,7 +173,7 @@ describe("createRefuelingSchema", () => {
         otherRefuelings: [{ refueledOn: "2026-11-01", odometerKm: 70_000 }],
       };
       const [issue] = issues({ odometerKm: 69_000 }, inconsistent);
-      expect(issue.message).toMatch(/Anfangsstand/);
+      expect(issue.message).toBe("odometerBelowInitial");
     });
 
     it("finds the neighbours from the entered date", () => {
@@ -215,10 +230,21 @@ describe("createRefuelingSchema", () => {
       "odometerKm",
     ]);
   });
+
+  it("reports codes, not text", () => {
+    const [issue] = issues({ pricePerLiterTenthCents: MAX_PRICE_PER_LITER_TENTH_CENTS + 1 });
+    expect(issue.message).toBe("priceOutOfRange");
+  });
 });
 
 describe("getRefuelingWarnings", () => {
   const previous = 84_000;
+
+  it("reports a warning code", () => {
+    expect(getRefuelingWarnings({ odometerKm: 90_000 }, newestOnly)).toEqual({
+      odometerKm: "distanceUnusuallyLarge",
+    });
+  });
 
   it.each([
     [previous + DISTANCE_WARNING_KM, false],

@@ -21,3 +21,4 @@ Kurze, nummerierte Entscheidungen im Format von [MADR](https://adr.github.io/mad
 | 0011 | Diagramm für die Statistik | Accepted |
 | 0012 | Datenmodell | Accepted |
 | 0013 | Theme, Icons und Schriften | Accepted |
+| 0014 | Fehlercodes statt Texte in der Domänenlogik | Accepted |

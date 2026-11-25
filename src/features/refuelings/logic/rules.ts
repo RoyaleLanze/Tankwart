@@ -11,6 +11,26 @@ export const DISTANCE_WARNING_KM = 2000;
 /** Largest value of a Postgres `integer` column; larger values would fail on insert. */
 export const MAX_DB_INTEGER = 2_147_483_647;
 
+/** Validation results as codes; the feature's messages.ts turns them into German text (ADR 0014). */
+export type RefuelingErrorCode =
+  | "dateInvalid"
+  | "dateInFuture"
+  | "volumeMissing"
+  | "volumeNotPositive"
+  | "volumeAboveTank"
+  | "priceMissing"
+  | "priceOutOfRange"
+  | "totalMissing"
+  | "totalNotPositive"
+  | "odometerMissing"
+  | "valueTooLarge"
+  | "odometerBelowInitial"
+  | "odometerNotAbovePrevious"
+  | "odometerNotBelowNext"
+  | "odometerDuplicateSameDay";
+
+export type RefuelingWarningCode = "distanceUnusuallyLarge";
+
 /** Another refueling of the same vehicle, as far as the odometer rules need it. */
 export type OtherRefueling = { refueledOn: string; odometerKm: number };
 
@@ -30,7 +50,7 @@ export function maxVolumeMl(tankCapacityMl: number): number {
 }
 
 /**
- * Error message if the odometer does not fit the history, else null. Earlier dates need a
+ * Error code if the odometer does not fit the history, else null. Earlier dates need a
  * lower odometer, later dates a higher one. On the same day the order is free (ADR 0012
  * orders same-day refuelings by odometer), only an identical reading is rejected.
  * ISO dates compare correctly as strings.
@@ -39,31 +59,32 @@ export function odometerError(
   odometerKm: number,
   refueledOn: string,
   context: RefuelingContext,
-): string | null {
-  if (odometerKm < context.initialOdometerKm) {
-    return "Kilometerstand liegt unter dem Anfangsstand des Fahrzeugs.";
-  }
+): RefuelingErrorCode | null {
+  if (odometerKm < context.initialOdometerKm) return "odometerBelowInitial";
   for (const other of context.otherRefuelings) {
     if (other.refueledOn < refueledOn && odometerKm <= other.odometerKm) {
-      return "Kilometerstand muss höher sein als bei der vorherigen Betankung.";
+      return "odometerNotAbovePrevious";
     }
     if (other.refueledOn > refueledOn && odometerKm >= other.odometerKm) {
-      return "Kilometerstand muss niedriger sein als bei der nächsten Betankung.";
+      return "odometerNotBelowNext";
     }
     if (other.refueledOn === refueledOn && odometerKm === other.odometerKm) {
-      return "Am selben Tag gibt es schon eine Betankung mit diesem Kilometerstand.";
+      return "odometerDuplicateSameDay";
     }
   }
   return null;
 }
 
 /** Warning (not an error) when the distance since the previous refueling is unusually large. */
-export function distanceWarning(odometerKm: number, context: RefuelingContext): string | null {
+export function distanceWarning(
+  odometerKm: number,
+  context: RefuelingContext,
+): RefuelingWarningCode | null {
   const lower = context.otherRefuelings
     .map((other) => other.odometerKm)
     .filter((km) => km < odometerKm);
   if (lower.length === 0) return null;
   return odometerKm - Math.max(...lower) > DISTANCE_WARNING_KM
-    ? "Ungewöhnlich weit seit der letzten Betankung. Fehlt eine Betankung?"
+    ? "distanceUnusuallyLarge"
     : null;
 }
