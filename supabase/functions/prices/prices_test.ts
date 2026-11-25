@@ -1,0 +1,207 @@
+// Run with: deno test supabase/functions/prices
+import { deepStrictEqual, equal, ok } from "node:assert/strict";
+import { CACHE_TTL_MS, type CacheEntry, createHandler, type Deps } from "./handler.ts";
+
+const NOW = new Date("2026-11-25T12:00:00Z");
+const STATION_ID = "00000000-0000-4000-8000-000000000001";
+const LIST = { action: "list", lat: 48.78321, lng: 9.18079, radiusKm: 5 };
+
+function setup(
+  overrides: Partial<Deps> = {},
+  upstream = () => Response.json({ ok: true, stations: [] }),
+) {
+  const store = new Map<string, CacheEntry>();
+  const calls: string[] = [];
+  const deps: Deps = {
+    isAuthenticated: () => Promise.resolve(true),
+    cache: {
+      read: (key) => Promise.resolve(store.get(key) ?? null),
+      write: (key, entry) => Promise.resolve(void store.set(key, entry)),
+      deleteOlderThan: (cutoff) => {
+        for (const [key, entry] of store) if (entry.fetchedAt < cutoff) store.delete(key);
+        return Promise.resolve();
+      },
+    },
+    fetch: (url) => {
+      calls.push(String(url));
+      return Promise.resolve(upstream());
+    },
+    apiKey: "test-key",
+    mock: false,
+    now: () => NOW,
+    ...overrides,
+  };
+  return { handle: createHandler(deps), store, calls };
+}
+
+const post = (body: unknown) =>
+  new Request("http://local/prices", { method: "POST", body: JSON.stringify(body) });
+
+Deno.test("rejects requests without a signed-in user", async () => {
+  const { handle, calls } = setup({ isAuthenticated: () => Promise.resolve(false) });
+  const res = await handle(post(LIST));
+  equal(res.status, 401);
+  deepStrictEqual(await res.json(), { error: "unauthorized" });
+  equal(calls.length, 0);
+});
+
+Deno.test("rejects non-POST requests", async () => {
+  const { handle } = setup();
+  equal((await handle(new Request("http://local/prices"))).status, 405);
+});
+
+Deno.test("rejects invalid input", async () => {
+  const { handle, calls } = setup();
+  const invalid = [
+    null,
+    { action: "unknown" },
+    { ...LIST, radiusKm: 3 },
+    { ...LIST, lat: 91 },
+    { ...LIST, lng: "9.18" },
+    { action: "detail", stationId: "not-a-uuid" },
+  ];
+  for (const body of invalid) {
+    const res = await handle(post(body));
+    equal(res.status, 400, JSON.stringify(body));
+    deepStrictEqual(await res.json(), { error: "invalidInput" });
+  }
+  equal(calls.length, 0);
+});
+
+Deno.test("rejects positions outside Germany, also in mock mode", async () => {
+  const { handle, calls } = setup({ mock: true });
+  for (const position of [
+    { lat: 48.85, lng: 2.35 },
+    { lat: 55.2, lng: 9.18 },
+  ]) {
+    const res = await handle(post({ ...LIST, ...position }));
+    equal(res.status, 400);
+    deepStrictEqual(await res.json(), { error: "outsideGermany" });
+  }
+  equal(calls.length, 0);
+});
+
+Deno.test("mock mode works without an API key and never calls Tankerkoenig", async () => {
+  const { handle, calls } = setup({ mock: true, apiKey: undefined });
+  const small = await (await handle(post({ ...LIST, radiusKm: 2 }))).json();
+  const large = await (await handle(post(LIST))).json();
+  equal(small.stations.length, 2);
+  equal(large.stations.length, 3);
+  equal(large.fetchedAt, NOW.toISOString());
+  equal(calls.length, 0);
+});
+
+Deno.test("mock detail has opening times, unknown station is 404", async () => {
+  const { handle } = setup({ mock: true, apiKey: undefined });
+  const detail = await (await handle(post({ action: "detail", stationId: STATION_ID }))).json();
+  equal(detail.station.id, STATION_ID);
+  equal(typeof detail.station.lat, "number");
+  equal(typeof detail.station.lng, "number");
+  ok(detail.station.openingTimes.length > 0);
+  const missing = await handle(post({ action: "detail", stationId: crypto.randomUUID() }));
+  equal(missing.status, 404);
+});
+
+Deno.test("without mock mode a missing API key is a server error", async () => {
+  const { handle } = setup({ apiKey: undefined });
+  const res = await handle(post(LIST));
+  equal(res.status, 500);
+  deepStrictEqual(await res.json(), { error: "missingApiKey" });
+});
+
+Deno.test("fetches all fuels with rounded coordinates and caches the result", async () => {
+  const { handle, store, calls } = setup();
+  const res = await handle(post(LIST));
+  equal(res.status, 200);
+  deepStrictEqual(await res.json(), { stations: [], fetchedAt: NOW.toISOString() });
+  const url = new URL(calls[0]);
+  equal(url.searchParams.get("lat"), "48.783");
+  equal(url.searchParams.get("type"), "all");
+  equal(url.searchParams.get("apikey"), "test-key");
+  ok(store.has("list:48.783:9.181:5"));
+});
+
+Deno.test("serves a fresh cache entry without calling Tankerkoenig", async () => {
+  const fetchedAt = new Date(NOW.getTime() - CACHE_TTL_MS + 1000);
+  const { handle, store, calls } = setup();
+  store.set("list:48.783:9.181:5", { payload: { stations: ["cached"] }, fetchedAt });
+  const body = await (await handle(post(LIST))).json();
+  deepStrictEqual(body, { stations: ["cached"], fetchedAt: fetchedAt.toISOString() });
+  equal(calls.length, 0);
+});
+
+Deno.test("refetches an expired cache entry", async () => {
+  const fetchedAt = new Date(NOW.getTime() - CACHE_TTL_MS);
+  const { handle, store, calls } = setup();
+  store.set("list:48.783:9.181:5", { payload: { stations: ["old"] }, fetchedAt });
+  const body = await (await handle(post(LIST))).json();
+  deepStrictEqual(body.stations, []);
+  equal(calls.length, 1);
+  equal(store.get("list:48.783:9.181:5")?.fetchedAt, NOW);
+});
+
+Deno.test("upstream failures become 502 and are not cached", async () => {
+  const detail = { action: "detail", stationId: STATION_ID };
+  const failures: [unknown, () => Response][] = [
+    [detail, () => new Response("down", { status: 503 })],
+    [LIST, () => Response.json({ ok: false, message: "apikey nicht angegeben" })],
+    [detail, () => new Response("not json")],
+    [LIST, () => Response.json({ ok: true, stations: "none" })],
+    [detail, () => Response.json({ ok: true, station: "none" })],
+    [
+      detail,
+      () => {
+        throw new TypeError("error sending request for url (https://...&apikey=test-key)");
+      },
+    ],
+  ];
+  for (const [body, upstream] of failures) {
+    const { handle, store } = setup({}, upstream);
+    const res = await handle(post(body));
+    equal(res.status, 502);
+    deepStrictEqual(await res.json(), { error: "upstreamUnavailable" });
+    equal(store.size, 0);
+  }
+});
+
+Deno.test("unknown station in real mode is 404 and not cached", async () => {
+  const answers = [
+    () => Response.json({ ok: false, message: "parameter error" }),
+    () => Response.json({ ok: true }),
+  ];
+  for (const upstream of answers) {
+    const { handle, store } = setup({}, upstream);
+    const res = await handle(post({ action: "detail", stationId: STATION_ID }));
+    equal(res.status, 404);
+    deepStrictEqual(await res.json(), { error: "stationNotFound" });
+    equal(store.size, 0);
+  }
+});
+
+Deno.test("a failing cache does not block prices", async () => {
+  const fail = () => Promise.reject(new Error("db down"));
+  const cache = { read: fail, write: fail, deleteOlderThan: fail };
+  const { handle, calls } = setup({ cache });
+  const errors: unknown[] = [];
+  const originalError = console.error;
+  console.error = (...args: unknown[]) => void errors.push(args);
+  try {
+    const res = await handle(post(LIST));
+    equal(res.status, 200);
+    deepStrictEqual(await res.json(), { stations: [], fetchedAt: NOW.toISOString() });
+  } finally {
+    console.error = originalError;
+  }
+  equal(calls.length, 1);
+  equal(errors.length, 3);
+});
+
+Deno.test("writing a new entry deletes expired entries of other keys", async () => {
+  const { handle, store } = setup();
+  const expired = new Date(NOW.getTime() - CACHE_TTL_MS - 1);
+  const fresh = new Date(NOW.getTime() - 1000);
+  store.set("list:50.000:8.000:5", { payload: {}, fetchedAt: expired });
+  store.set("list:51.000:7.000:5", { payload: {}, fetchedAt: fresh });
+  await handle(post(LIST));
+  deepStrictEqual([...store.keys()].sort(), ["list:48.783:9.181:5", "list:51.000:7.000:5"]);
+});
