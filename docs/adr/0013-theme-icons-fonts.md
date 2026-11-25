@@ -28,3 +28,22 @@ Neue Abhängigkeiten: `react-native-paper` (ADR 0004), `@expo/vector-icons`, `@e
 - Das Theme liest die Werte direkt aus `tokens.json`. Die Tokens bleiben so die einzige Quelle, auch für das dunkle Theme.
 - Der Dunkelmodus wird vor den übrigen MUST-HAVEs gebaut. Ab jetzt muss jeder Screen in beiden Modi lesbar sein und auf dem Emulator in beiden geprüft werden.
 - Im Übergabegespräch erklären können: wie Paper das Theme über den Provider an alle Komponenten verteilt, und warum die Schriften eingebettet statt geladen werden.
+
+## Ergänzung 25.11.2026: Elevation (Issue #54)
+
+**Kontext:** Bisher waren alle Elevation-Stufen (`level1`–`level5`) auf `surface` gesetzt, damit Paper die Leisten nicht mit seinem lila Standard tönt. Dadurch heben sich Dialoge und Menüs nicht von der Fläche ab.
+
+**Optionen:**
+
+- Tönung aus dem eigenen `primary` (Material-3-Weg): jede Stufe ist `primary` mit fester Deckkraft über `surface`.
+- Kontur (`outline`) bzw. Schatten statt Tönung.
+- Eigene Elevation-Farben als Tokens in `tokens.json`.
+
+**Entscheidung:** Tönung aus `primary`, gewählt von @SealJonny am 25.11.2026. Die Deckkräfte stammen aus Material 3 (5, 8, 11, 12 und 14 % für Stufe 1–5) und stehen als benannte Konstante in `src/lib/theme.ts`. Die Mischfarbe berechnet ein kleiner reiner Helfer (`src/lib/color.ts`, mit Jest-Test), ohne neue Abhängigkeit.
+
+**Konsequenzen:**
+
+- Dialoge (Stufe 3) und Menüs (Stufe 2) sind in Hell und Dunkel leicht indigo getönt und heben sich ab. Snackbars nutzen in Paper `inverseSurface` und waren schon vorher kontrastreich.
+- Top App Bar und Navigation Bar bleiben laut Design reines `surface`: Die Appbar nutzt ohne `elevated` ohnehin `surface`, die Navigation Bar (sonst Stufe 2) bekommt `surface` ausdrücklich in `src/components/NavigationBar.tsx`.
+- Paper-Komponenten auf Stufe 1 (`Card` im Modus `elevated`, `Surface`, Button `elevated`) werden leicht getönt. Laut Design sind Karten `surface` mit Schatten `elevation-1`. Wer die erste Karte baut, setzt dort den Hintergrund auf `surface` oder wählt eine andere Card-Variante.
+- Die Elevation-Farben stehen nicht in `tokens.json`, sondern werden aus `primary` und `surface` abgeleitet. Ändert sich eine der beiden Farben, ändern sich die Stufen mit.
