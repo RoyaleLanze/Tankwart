@@ -23,13 +23,21 @@ export type RefuelingConsumption =
 
 const KM_PER_100_KM = 100;
 
-/** Oldest first; same day ordered by odometer (ADR 0012). Returns a new array. */
+/**
+ * Oldest first; same day ordered by odometer (ADR 0012). Returns a new array.
+ * The id only makes the order deterministic for the same day and odometer, which validation
+ * rejects (odometerDuplicateSameDay) but the database does not prevent yet (#61).
+ */
 export function sortChronologically<T extends ConsumptionInput>(refuelings: readonly T[]): T[] {
-  return [...refuelings].sort((a, b) =>
-    a.refueledOn === b.refueledOn
-      ? a.odometerKm - b.odometerKm
-      : a.refueledOn.localeCompare(b.refueledOn),
+  return [...refuelings].sort(
+    (a, b) =>
+      compare(a.refueledOn, b.refueledOn) || a.odometerKm - b.odometerKm || compare(a.id, b.id),
   );
+}
+
+/** Plain code-unit comparison; ISO dates sort correctly this way, independent of the locale. */
+function compare(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 /** Consumption result per refueling id, for all refuelings of one vehicle in any order. */
@@ -65,14 +73,16 @@ function closeInterval(
 ): RefuelingConsumption {
   if (start === null) return { kind: "start" };
   const distanceKm = end.odometerKm - start.odometerKm;
+  // distanceKm <= 0 cannot come from validated data (M4 odometer rules); it only guards the division.
   if (!valid || distanceKm <= 0) return { kind: "notCounted" };
   const mlPer100Km = Math.round((volumeMl * KM_PER_100_KM) / distanceKm);
   return { kind: "interval", mlPer100Km, volumeMl, distanceKm };
 }
 
 /**
- * Average over counted intervals, weighted by distance (total liters / total km), or null if
- * there is none, i.e. fewer than two full refuelings: then a hint is shown instead (M7).
+ * Average over counted intervals, weighted by distance (total liters / total km), or null if no
+ * interval is counted. That includes fewer than two full refuelings (M7 hint) but also intervals
+ * that all contain a gap, so the UI derives its hint text from the refuelings, not from null.
  */
 export function averageConsumption(results: Iterable<RefuelingConsumption>): number | null {
   let volumeMl = 0;

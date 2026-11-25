@@ -314,6 +314,13 @@ describe("sortChronologically", () => {
     expect(sortChronologically([a, b, c]).map((r) => r.id)).toEqual([b.id, c.id, a.id]);
   });
 
+  it("breaks a tie of date and odometer by id, so the result does not depend on row order", () => {
+    const x = refueling({ id: "b", refueledOn: "2026-11-02", odometerKm: 10_500 });
+    const y = refueling({ id: "a", refueledOn: "2026-11-02", odometerKm: 10_500 });
+    expect(sortChronologically([x, y]).map((r) => r.id)).toEqual(["a", "b"]);
+    expect(sortChronologically([y, x]).map((r) => r.id)).toEqual(["a", "b"]);
+  });
+
   it("does not change the input array", () => {
     const input = [
       refueling({ refueledOn: "2026-11-02" }),
