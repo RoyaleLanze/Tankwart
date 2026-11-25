@@ -19,17 +19,52 @@ function color(name: string, mode: Mode): string {
 }
 
 function px(value: string): number {
-  return Number.parseFloat(value);
+  const number = Number.parseFloat(value);
+  if (Number.isNaN(number)) throw new Error(`Token value is not a number: ${value}`);
+  return number;
 }
 
-function scale(group: { tokens: { name: string; value: string }[] }): Record<string, number> {
-  return Object.fromEntries(group.tokens.map((t) => [t.name, px(t.value)]));
+// JSON imports type token names as plain strings, so the names are listed here to make
+// typos a type error. The values still come only from tokens.json, and both lists must
+// match exactly, so a token added to the JSON fails at startup until it is listed here.
+function scale<const Name extends string>(
+  group: { tokens: { name: string; value: string }[] },
+  names: readonly Name[],
+): (name: Name) => number {
+  const listed: readonly string[] = names;
+  const jsonNames = group.tokens.map((t) => t.name);
+  const mismatch = [
+    ...jsonNames.filter((n) => !listed.includes(n)),
+    ...listed.filter((n) => !jsonNames.includes(n)),
+  ];
+  if (mismatch.length > 0) throw new Error(`Scale tokens out of sync: ${mismatch.join(", ")}`);
+
+  const values = new Map(group.tokens.map((t) => [t.name, px(t.value)]));
+  return (name) => {
+    const value = values.get(name);
+    if (value === undefined) throw new Error(`Unknown scale token: ${name}`);
+    return value;
+  };
 }
 
-/** Spacing, radii and component sizes in dp, e.g. `spacing["space-4"]` = 16. */
-export const spacing = scale(tokens.spacing);
-export const radius = scale(tokens.radius);
-export const sizes = scale(tokens.size);
+/** Spacing, radii and component sizes in dp, e.g. `spacing("space-4")` = 16. */
+export const spacing = scale(tokens.spacing, [
+  "space-1",
+  "space-2",
+  "space-3",
+  "space-4",
+  "space-6",
+  "space-8",
+]);
+export const radius = scale(tokens.radius, [
+  "radius-xs",
+  "radius-sm",
+  "radius-md",
+  "radius-lg",
+  "radius-xl",
+  "radius-full",
+]);
+export const sizes = scale(tokens.size, ["touch-min", "top-app-bar", "navigation-bar", "fab"]);
 
 /** Material 3 standard icon size in dp. */
 export const ICON_SIZE = 24;

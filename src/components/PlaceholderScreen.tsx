@@ -17,6 +17,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: spacing["space-4"],
+    padding: spacing("space-4"),
   },
 });
