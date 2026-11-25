@@ -43,4 +43,4 @@ Alle Empfehlungen aus der Tabelle, gewählt von @SealJonny am 19.11.2026.
 
 **Entscheidung:** Unique-Constraint, gewählt von @SealJonny am 25.11.2026. Er ersetzt den Index `(vehicle_id, refueled_on)`, weil der Unique-Index mit denselben Spalten beginnt.
 
-**Konsequenzen:** Auch Seeds und andere Clients können keine mehrdeutige Reihenfolge mehr anlegen. Der Fehler `23505` (Constraint `refuelings_vehicle_day_odometer_key`) wird im API-Modul der Betankungen (#12) auf den vorhandenen Code `odometerDuplicateSameDay` abgebildet, damit der Nutzer denselben Text sieht wie bei der App-Prüfung.
+**Konsequenzen:** Auch Seeds und andere Clients können keine mehrdeutige Reihenfolge mehr anlegen. Der Fehler `23505` (Constraint `refuelings_vehicle_day_odometer_key`) wird im API-Modul der Betankungen (#12) auf den vorhandenen Code `odometerDuplicateSameDay` abgebildet, damit der Nutzer denselben Text sieht wie bei der App-Prüfung. Die Migration scheitert bewusst, falls eine Datenbank schon solche Duplikate enthält. Vor `db push` in die Cloud deshalb prüfen: `select vehicle_id, refueled_on, odometer_km from refuelings group by 1, 2, 3 having count(*) > 1;` muss leer sein.
