@@ -4,7 +4,7 @@ import type { BottomTabBarProps } from "expo-router/js-tabs";
 import type { ColorValue } from "react-native";
 import { BottomNavigation } from "react-native-paper";
 
-import { ICON_SIZE } from "@/lib/theme";
+import { ICON_SIZE, useAppTheme } from "@/lib/theme";
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -38,10 +38,13 @@ export function NavigationBar({
   navigateToTab,
   insets,
 }: BottomTabBarProps) {
+  const { colors } = useAppTheme();
   const focusedKey = state.routes[state.index].key;
   return (
     <BottomNavigation.Bar
       navigationState={state}
+      // Paper paints the bar in elevation.level2, which is tinted now; the design wants plain surface.
+      style={{ backgroundColor: colors.surface }}
       safeAreaInsets={insets}
       onTabPress={({ route, preventDefault }) => {
         // Same as Expo Router's default tab bar: emit the event, then switch tabs
