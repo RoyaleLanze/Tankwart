@@ -1,7 +1,10 @@
 import { refueling } from "../__fixtures__/statsFixture";
-import { metricValue, summarizeMetric, yearStats } from "./yearStats";
+import { elapsedMonths, metricValue, summarizeMetric, yearStats } from "./yearStats";
 
 const INITIAL_KM = 9_000;
+// April 2026 is the current month: January to April have elapsed.
+const TODAY = "2026-04-20";
+const NEXT_YEAR = "2027-01-01";
 
 describe("yearStats", () => {
   it("returns twelve empty months for no refuelings", () => {
@@ -83,11 +86,11 @@ describe("summarizeMetric", () => {
     2026,
   );
 
-  it("sums additive metrics and averages over months with refuelings", () => {
-    // March and May–December are empty and do not pull the average down.
-    expect(summarizeMetric(stats, "totalCents")).toEqual({
+  it("averages additive metrics over the elapsed months of the current year", () => {
+    // Empty March counts, May–December have not begun yet: 19,000 / 4.
+    expect(summarizeMetric(stats, "totalCents", TODAY)).toEqual({
       sum: 19_000,
-      average: 6_333,
+      average: 4_750,
       highestMonth: "2026-02",
       lowestMonth: "2026-04",
     });
@@ -95,16 +98,16 @@ describe("summarizeMetric", () => {
 
   it("never marks an empty month as the lowest", () => {
     expect(metricValue(stats.months[2], "distanceKm")).toBeNull();
-    expect(summarizeMetric(stats, "distanceKm")).toEqual({
+    expect(summarizeMetric(stats, "distanceKm", TODAY)).toEqual({
       sum: 1_200,
-      average: 400,
+      average: 300,
       highestMonth: "2026-02",
       lowestMonth: "2026-01",
     });
   });
 
   it("uses the year value for rates and has no sum", () => {
-    expect(summarizeMetric(stats, "avgPricePerLiterTenthCents")).toEqual({
+    expect(summarizeMetric(stats, "avgPricePerLiterTenthCents", TODAY)).toEqual({
       sum: null,
       average: stats.total.avgPricePerLiterTenthCents,
       highestMonth: "2026-01",
@@ -112,15 +115,41 @@ describe("summarizeMetric", () => {
     });
   });
 
+  it("counts empty months of a past year in the average", () => {
+    // Refueling every second month, 1,000 km each time: 6,000 km over 12 months.
+    const everySecondMonth = yearStats(
+      [1, 3, 5, 7, 9, 11].map((month, index) =>
+        refueling({
+          refueledOn: `2025-${String(month).padStart(2, "0")}-15`,
+          odometerKm: 10_000 + index * 1_000,
+        }),
+      ),
+      INITIAL_KM,
+      2025,
+    );
+    expect(summarizeMetric(everySecondMonth, "distanceKm", TODAY)).toMatchObject({
+      sum: 6_000,
+      average: 500,
+    });
+  });
+
+  it("has no average for a year that has not begun", () => {
+    const future = yearStats([refueling({ refueledOn: "2027-02-01" })], INITIAL_KM, 2027);
+    expect(summarizeMetric(future, "totalCents", TODAY)).toMatchObject({
+      sum: 7_000,
+      average: null,
+    });
+  });
+
   it("has no average and no marks for a year without refuelings", () => {
     const empty = yearStats([], INITIAL_KM, 2026);
-    expect(summarizeMetric(empty, "totalCents")).toEqual({
+    expect(summarizeMetric(empty, "totalCents", NEXT_YEAR)).toEqual({
       sum: 0,
       average: null,
       highestMonth: null,
       lowestMonth: null,
     });
-    expect(summarizeMetric(empty, "consumptionMlPer100Km").average).toBeNull();
+    expect(summarizeMetric(empty, "consumptionMlPer100Km", NEXT_YEAR).average).toBeNull();
   });
 
   it("marks no month when all valued months are equal", () => {
@@ -132,7 +161,7 @@ describe("summarizeMetric", () => {
       INITIAL_KM,
       2026,
     );
-    expect(summarizeMetric(tie, "totalCents")).toMatchObject({
+    expect(summarizeMetric(tie, "totalCents", NEXT_YEAR)).toMatchObject({
       highestMonth: null,
       lowestMonth: null,
     });
@@ -148,7 +177,7 @@ describe("summarizeMetric", () => {
       2026,
     );
     // Only July closes a consumption interval.
-    expect(summarizeMetric(single, "consumptionMlPer100Km")).toMatchObject({
+    expect(summarizeMetric(single, "consumptionMlPer100Km", NEXT_YEAR)).toMatchObject({
       highestMonth: null,
       lowestMonth: null,
     });
@@ -166,9 +195,28 @@ describe("summarizeMetric", () => {
       INITIAL_KM,
       2026,
     );
-    expect(summarizeMetric(partial, "totalCents")).toMatchObject({
+    expect(summarizeMetric(partial, "totalCents", NEXT_YEAR)).toMatchObject({
       highestMonth: "2026-02",
       lowestMonth: "2026-01",
     });
+  });
+});
+
+describe("elapsedMonths", () => {
+  it.each([
+    [2025, 12],
+    [2026, 4],
+    [2027, 0],
+  ])("year %i has %i elapsed months in April 2026", (year, expected) => {
+    expect(elapsedMonths(year, TODAY)).toBe(expected);
+  });
+
+  it("counts the current month from its first day", () => {
+    expect(elapsedMonths(2026, "2026-01-01")).toBe(1);
+    expect(elapsedMonths(2026, "2026-12-31")).toBe(12);
+  });
+
+  it("rejects a today that is not an ISO date", () => {
+    expect(() => elapsedMonths(2026, "20.04.2026")).toThrow();
   });
 });

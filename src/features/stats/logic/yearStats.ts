@@ -7,7 +7,9 @@ import {
   type MonthKey,
   monthStats,
   type MonthStats,
+  monthOf,
   monthsOfYear,
+  MONTHS_PER_YEAR,
   periodStats,
   type PeriodStats,
   type StatsInput,
@@ -56,11 +58,26 @@ export function metricValue(month: MonthStats, metric: YearMetric): number | nul
 }
 
 /**
- * Additive metrics: sum of the year and average per month with a value (empty months, such as
- * the rest of the current year, would otherwise pull the average down). Rates: the value of the
- * whole year, weighted like a single month, not the mean of the monthly values.
+ * Months of `year` that have begun on `today` ("YYYY-MM-DD"): all twelve for a past year, up to
+ * and including the current month for the current year, none for a future year.
  */
-export function summarizeMetric(stats: YearStats, metric: YearMetric): MetricSummary {
+export function elapsedMonths(year: number, today: string): number {
+  const [todayYear, todayMonth] = monthOf(today).split("-").map(Number);
+  if (year < todayYear) return MONTHS_PER_YEAR;
+  if (year > todayYear) return 0;
+  return todayMonth;
+}
+
+/**
+ * Additive metrics: sum of the year and average per elapsed month (`today` is "YYYY-MM-DD"),
+ * so empty months in between count as 0 and the months still to come do not. Rates: the value
+ * of the whole year, weighted like a single month, not the mean of the monthly values.
+ */
+export function summarizeMetric(
+  stats: YearStats,
+  metric: YearMetric,
+  today: string,
+): MetricSummary {
   const valued = stats.months.flatMap((month) => {
     const value = metricValue(month, metric);
     return value === null ? [] : [{ month: month.month, value }];
@@ -70,8 +87,9 @@ export function summarizeMetric(stats: YearStats, metric: YearMetric): MetricSum
     return { sum: null, average: stats.total[metric], ...extremes };
   }
   const total = valued.reduce((sum, month) => sum + month.value, 0);
-  const average = valued.length > 0 ? Math.round(total / valued.length) : null;
-  return { sum: total, average, ...extremes };
+  const elapsed = elapsedMonths(stats.year, today);
+  const hasAverage = valued.length > 0 && elapsed > 0;
+  return { sum: total, average: hasAverage ? Math.round(total / elapsed) : null, ...extremes };
 }
 
 /**
