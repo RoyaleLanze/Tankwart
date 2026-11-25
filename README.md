@@ -43,14 +43,14 @@ Datenbank neu aufsetzen (löscht alle lokalen Daten, spielt Migrationen und `sup
 npx supabase db reset
 ```
 
-Der Seed legt zwei Testnutzer mit je rund 12 Monaten Betankungen an. Die Zugangsdaten gelten **nur lokal**, der Seed wird nie in die Cloud gespielt (`db push` überträgt nur Migrationen). Deshalb gegen die Cloud **nie** `db reset --linked` oder `db push --include-seed` ausführen, sonst gäbe es dort zwei Konten mit öffentlich bekanntem Passwort.
+Der Seed legt zwei Testnutzer mit Betankungen über rund 12 Monate an (beim Corsa rund 10). Die Zugangsdaten gelten **nur lokal**, der Seed wird nie in die Cloud gespielt (`db push` überträgt nur Migrationen). Deshalb gegen die Cloud **nie** `db reset --linked` oder `db push --include-seed` ausführen, sonst gäbe es dort zwei Konten mit öffentlich bekanntem Passwort.
 
 | E-Mail | Passwort | Fahrzeuge |
 |---|---|---|
 | `nutzer-a@tankwart.local` | `tankwart-lokal` | Golf (E10, aktiv), Corsa (E5) |
 | `nutzer-b@tankwart.local` | `tankwart-lokal` | Passat (Diesel) |
 
-Die Daten enden immer am Tag des Resets, ein erneutes `db reset` holt sie also auf den aktuellen Monat.
+Die Daten sind relativ zum Tag des Resets erzeugt, die letzte Betankung liegt höchstens zwei Tage davor. Ein erneutes `db reset` holt sie also auf den aktuellen Monat.
 
 ### Supabase Cloud
 

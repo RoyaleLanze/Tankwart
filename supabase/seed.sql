@@ -1,5 +1,6 @@
 -- Local development data only (applied by `supabase db reset`, never pushed to the cloud).
--- Two test users, each with about 12 months of refuelings ending today:
+-- Two test users with refuelings over about 12 months (Corsa about 10), the last one
+-- at most two days before the reset:
 --   nutzer-a@tankwart.local / tankwart-lokal  (Golf E10 and Corsa E5, Golf active)
 --   nutzer-b@tankwart.local / tankwart-lokal  (Passat Diesel)
 -- The rows follow the app rules from M4: increasing km, 0.50–4.00 €/L,
