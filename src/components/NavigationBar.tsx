@@ -4,7 +4,7 @@ import type { BottomTabBarProps } from "expo-router/js-tabs";
 import type { ColorValue } from "react-native";
 import { BottomNavigation } from "react-native-paper";
 
-import { useAppTheme } from "@/lib/theme";
+import { ICON_SIZE } from "@/lib/theme";
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -38,14 +38,14 @@ export function NavigationBar({
   navigateToTab,
   insets,
 }: BottomTabBarProps) {
-  const { colors } = useAppTheme();
+  const focusedKey = state.routes[state.index].key;
   return (
     <BottomNavigation.Bar
-      style={{ backgroundColor: colors.surface }}
       navigationState={state}
       safeAreaInsets={insets}
       onTabPress={({ route, preventDefault }) => {
-        // Same order as Expo Router's default tab bar: emit the event, then navigate unless prevented.
+        // Same as Expo Router's default tab bar: emit the event, then switch tabs
+        // unless a screen prevented it or the tab is already active.
         const event = emitter.emit({
           type: "tabPress",
           target: route.key,
@@ -53,12 +53,13 @@ export function NavigationBar({
         });
         if (event.defaultPrevented) {
           preventDefault();
-        } else {
+        } else if (route.key !== focusedKey) {
           navigateToTab(route.key);
         }
       }}
+      onTabLongPress={({ route }) => emitter.emit({ type: "tabLongPress", target: route.key })}
       renderIcon={({ route, focused, color }) =>
-        descriptors[route.key].options.tabBarIcon?.({ focused, color, size: 24 }) ?? null
+        descriptors[route.key].options.tabBarIcon?.({ focused, color, size: ICON_SIZE }) ?? null
       }
       getLabelText={({ route }) => descriptors[route.key].options.title}
       // Without an explicit label, Android merges the icon glyph into what TalkBack reads.
