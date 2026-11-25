@@ -8,7 +8,7 @@ import {
   periodStats,
   statsEntries,
 } from "./period";
-import { refueling } from "./statsFixture";
+import { refueling } from "../__fixtures__/statsFixture";
 
 const INITIAL_KM = 9_000;
 

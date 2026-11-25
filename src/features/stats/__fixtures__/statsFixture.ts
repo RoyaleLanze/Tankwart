@@ -1,6 +1,6 @@
 // Test data for the statistics tests; not used by the app.
 
-import type { StatsInput } from "./period";
+import type { StatsInput } from "../logic/period";
 
 let nextId = 0;
 
