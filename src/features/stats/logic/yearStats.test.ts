@@ -1,4 +1,4 @@
-import { refueling } from "./statsFixture";
+import { refueling } from "../__fixtures__/statsFixture";
 import { metricValue, summarizeMetric, yearStats } from "./yearStats";
 
 const INITIAL_KM = 9_000;
