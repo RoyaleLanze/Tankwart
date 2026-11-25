@@ -3,6 +3,7 @@ import { Button, HelperText, Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { VehicleRequiredFields } from "@/components/VehicleRequiredFields";
+import { useSignOut } from "@/features/auth/hooks/useSignOut";
 import { useVehicleForm } from "@/features/vehicles/hooks/useVehicleForm";
 import { useCreateVehicle } from "@/features/vehicles/hooks/useVehicles";
 import { sizes, spacing, useAppTheme } from "@/lib/theme";
@@ -15,6 +16,7 @@ export default function OnboardingScreen() {
   const { colors } = useAppTheme();
   const { mutateAsync: createVehicle } = useCreateVehicle();
   const { control, setFocus, submit, isSubmitting, submitError } = useVehicleForm(createVehicle);
+  const { signOut, isSigningOut, error: signOutError } = useSignOut();
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -41,9 +43,25 @@ export default function OnboardingScreen() {
               onPress={submit}
               loading={isSubmitting}
               disabled={isSubmitting}
-              contentStyle={styles.submitContent}
+              contentStyle={styles.buttonContent}
             >
               Fahrzeug anlegen
+            </Button>
+            {/* The settings with "Abmelden" need a vehicle, so the way out of a wrong
+                account is here (M14). */}
+            {signOutError && (
+              <HelperText type="error" accessibilityLiveRegion="assertive">
+                {signOutError}
+              </HelperText>
+            )}
+            <Button
+              mode="text"
+              onPress={signOut}
+              loading={isSigningOut}
+              disabled={isSigningOut || isSubmitting}
+              contentStyle={styles.buttonContent}
+            >
+              Abmelden
             </Button>
           </View>
         </ScrollView>
@@ -68,7 +86,7 @@ const styles = StyleSheet.create({
     marginTop: "auto",
     gap: spacing("space-2"),
   },
-  submitContent: {
+  buttonContent: {
     minHeight: sizes("touch-min"),
   },
 });

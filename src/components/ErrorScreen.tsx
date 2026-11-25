@@ -7,14 +7,14 @@ type Props = {
   /** Says what failed and what the user can do, e.g. "Prüfe deine Internetverbindung …". */
   message: string;
   onRetry: () => void;
-  /** Shows a spinner on the button while the retry runs. */
-  isRetrying: boolean;
+  /** A way out besides retrying, e.g. signing out, shown as a text button. */
+  secondaryAction?: { label: string; onPress: () => void };
 };
 
 const ICON_SIZE_LARGE = 48;
 
 /** Full-screen error state with a retry button (M15). */
-export function ErrorScreen({ message, onRetry, isRetrying }: Props) {
+export function ErrorScreen({ message, onRetry, secondaryAction }: Props) {
   const { colors } = useAppTheme();
 
   return (
@@ -23,15 +23,14 @@ export function ErrorScreen({ message, onRetry, isRetrying }: Props) {
       <Text variant="bodyLarge" style={styles.message} accessibilityLiveRegion="polite">
         {message}
       </Text>
-      <Button
-        mode="contained"
-        onPress={onRetry}
-        loading={isRetrying}
-        disabled={isRetrying}
-        contentStyle={styles.buttonContent}
-      >
+      <Button mode="contained" onPress={onRetry} contentStyle={styles.buttonContent}>
         Erneut versuchen
       </Button>
+      {secondaryAction && (
+        <Button mode="text" onPress={secondaryAction.onPress} contentStyle={styles.buttonContent}>
+          {secondaryAction.label}
+        </Button>
+      )}
     </View>
   );
 }

@@ -9,6 +9,7 @@ import { AppBar } from "@/components/AppBar";
 import { ErrorScreen } from "@/components/ErrorScreen";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useSession } from "@/features/auth/hooks/useSession";
+import { useSignOut } from "@/features/auth/hooks/useSignOut";
 import { useVehicles } from "@/features/vehicles/hooks/useVehicles";
 import { LOAD_ERROR_TEXT } from "@/features/vehicles/messages";
 import { darkTheme, lightTheme, type AppTheme } from "@/lib/theme";
@@ -35,8 +36,10 @@ const navigationThemes = {
   dark: navigationTheme(darkTheme, DarkTheme),
 };
 
-// Cache for all server data (ADR 0008), shared by every screen.
-const queryClient = new QueryClient();
+// Cache for all server data (ADR 0008), shared by every screen. No retries here: supabase-js
+// already retries a failed GET three times (1, 2 and 4 s). With TanStack's own three retries
+// on top, the error state took 35 s to appear when offline.
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
 // Keeps the splash screen visible until the stored session has been read.
 SplashScreen.preventAutoHideAsync();
@@ -79,6 +82,7 @@ export default function RootLayout() {
 function RootNavigator({ isSignedIn }: { isSignedIn: boolean }) {
   const queryClient = useQueryClient();
   const vehicles = useVehicles({ enabled: isSignedIn });
+  const { signOut, error: signOutError } = useSignOut();
 
   // The cache holds the data of the signed-in user. The next user must not see it.
   useEffect(() => {
@@ -88,11 +92,14 @@ function RootNavigator({ isSignedIn }: { isSignedIn: boolean }) {
   // Like the session, the vehicles decide which screens are reachable, so the navigator waits
   // for them. Otherwise the onboarding would flash up on every start.
   if (isSignedIn && vehicles.data === undefined) {
+    // Retrying shows the loading screen again: TanStack resets the error while it fetches.
+    // Signing out is the way out when loading keeps failing (M14). Its own rare error, if any,
+    // replaces the message so it is not lost.
     return vehicles.isError ? (
       <ErrorScreen
-        message={LOAD_ERROR_TEXT}
+        message={signOutError ?? LOAD_ERROR_TEXT}
         onRetry={() => vehicles.refetch()}
-        isRetrying={vehicles.isFetching}
+        secondaryAction={{ label: "Abmelden", onPress: signOut }}
       />
     ) : (
       <LoadingScreen label="Fahrzeuge werden geladen …" />
