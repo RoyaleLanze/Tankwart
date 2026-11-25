@@ -20,3 +20,4 @@ Kurze, nummerierte Entscheidungen im Format von [MADR](https://adr.github.io/mad
 | 0010 | Lokale Speicherung (expo-sqlite/localStorage) | Accepted |
 | 0011 | Diagramm für die Statistik | Accepted |
 | 0012 | Datenmodell | Accepted |
+| 0013 | Theme, Icons und Schriften | Accepted |
