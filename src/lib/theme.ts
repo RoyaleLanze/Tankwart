@@ -8,6 +8,7 @@ import {
 } from "react-native-paper";
 
 import tokens from "../../docs/design/tokens.json";
+import { mixColors } from "./color";
 
 type Mode = "light" | "dark";
 type FontStyle = MD3Theme["fonts"]["bodyLarge"];
@@ -117,9 +118,21 @@ const fonts = {
   labelSmall: typeStyle("label-sm"),
 };
 
+// Opacity of primary over surface per elevation level, as in Material 3's tonal elevation
+// (https://m3.material.io/styles/elevation/applying-elevation). Paper reads levels 1–5
+// for menus, dialogs, the navigation bar etc.
+const ELEVATION_TINT_OPACITY = {
+  level1: 0.05,
+  level2: 0.08,
+  level3: 0.11,
+  level4: 0.12,
+  level5: 0.14,
+} as const;
+
 function buildTheme(mode: Mode) {
   const base = mode === "light" ? MD3LightTheme : MD3DarkTheme;
   const c = (name: string) => color(name, mode);
+  const tint = (opacity: number) => mixColors(c("surface"), c("primary"), opacity);
   return {
     ...base,
     fonts,
@@ -144,14 +157,14 @@ function buildTheme(mode: Mode) {
       onSurface: c("on-surface"),
       surfaceVariant: c("surface-variant"),
       onSurfaceVariant: c("on-surface-variant"),
-      // Replace Paper's purple baseline tints (navigation bar, menus, snackbars) with token colors.
+      // Tonal elevation tinted from our primary instead of Paper's purple baseline (ADR 0013).
       elevation: {
         level0: "transparent",
-        level1: c("surface"),
-        level2: c("surface"),
-        level3: c("surface"),
-        level4: c("surface"),
-        level5: c("surface"),
+        level1: tint(ELEVATION_TINT_OPACITY.level1),
+        level2: tint(ELEVATION_TINT_OPACITY.level2),
+        level3: tint(ELEVATION_TINT_OPACITY.level3),
+        level4: tint(ELEVATION_TINT_OPACITY.level4),
+        level5: tint(ELEVATION_TINT_OPACITY.level5),
       },
       inverseSurface: c("on-surface"),
       inverseOnSurface: c("surface"),
