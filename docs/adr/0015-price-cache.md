@@ -21,6 +21,7 @@ Wir nehmen Option 1, weil sie ADR 0005 umsetzt, Tankerkönig entlastet und mit e
 ## Konsequenzen
 
 - RLS ist aktiviert, aber ohne Policy, und `anon` sowie `authenticated` sind alle Rechte entzogen (`revoke all`). Nur die Function greift mit der Service Role zu. So kann kein Nutzer den Cache lesen oder mit falschen Preisen füllen. Ein pgTAP-Test weist das nach.
-- Zeilen werden je Schlüssel überschrieben (Upsert) und nicht gelöscht. Bei den kleinen Datenmengen des Projekts reicht das.
+- Zeilen werden je Schlüssel überschrieben (Upsert). Bei jedem Schreiben löscht die Function außerdem alle Einträge, die älter als die TTL sind, damit die Tabelle nicht wächst.
+- Umkreissuchen sind nur innerhalb Deutschlands erlaubt (`GERMANY_BOUNDS`, Breite 47,2–55,1, Länge 5,8–15,1), weil Tankerkönig nur Deutschland abdeckt. Andere Positionen lehnt die Function mit `outsideGermany` ab. Das begrenzt auch die Zahl möglicher Cache-Schlüssel.
 - TTL 5 Minuten (`CACHE_TTL_MS`). Koordinaten werden auf 3 Nachkommastellen gerundet (etwa 100 m), damit nahe Anfragen sich einen Eintrag teilen. Der Aufruf an Tankerkönig bricht nach 8 s ab.
 - Im Übergabegespräch erklären können: warum RLS ohne Policy die Tabelle sperrt (nur die Service Role umgeht RLS) und warum gerundet wird (mehr Cache-Treffer, weniger Abfragen).
