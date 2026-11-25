@@ -2,7 +2,9 @@
 // Units as in the database: tenths of a cent per liter, ml, cents; distances in meters.
 
 import type { Database } from "@/lib/database.types";
+// Units and string ordering are owned by refuelings/logic; logic/ must not import src/lib.
 import { ML_TENTH_CENTS_PER_CENT } from "@/features/refuelings/logic/computeMissing";
+import { compareStrings } from "@/features/refuelings/logic/consumption";
 
 export type FuelType = Database["public"]["Enums"]["fuel_type"];
 
@@ -75,7 +77,7 @@ function byPriceThenDistance(a: Candidate, b: Candidate): number {
   return (
     a.priceTenthCents - b.priceTenthCents ||
     a.distanceMeters - b.distanceMeters ||
-    compareIds(a.id, b.id)
+    compareStrings(a.id, b.id)
   );
 }
 
@@ -83,10 +85,6 @@ function byDistanceThenPrice(a: Candidate, b: Candidate): number {
   return (
     a.distanceMeters - b.distanceMeters ||
     a.priceTenthCents - b.priceTenthCents ||
-    compareIds(a.id, b.id)
+    compareStrings(a.id, b.id)
   );
-}
-
-function compareIds(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0;
 }
