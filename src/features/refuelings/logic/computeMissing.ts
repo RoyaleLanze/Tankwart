@@ -11,7 +11,7 @@ export type Amounts = {
 export type ComputedAmount = { field: keyof Amounts; value: number };
 
 /** ml × (1/10 ct per L) = 1/10000 ct, so this factor converts between the three units. */
-const ML_TENTH_CENTS_PER_CENT = 10_000;
+export const ML_TENTH_CENTS_PER_CENT = 10_000;
 
 /**
  * Computes the empty field if exactly one of the three is undefined and the other two are

@@ -1,0 +1,60 @@
+name: Supabase
+
+# Database (pgTAP) and Edge Function (Deno) tests, ADR 0007.
+# Separate workflow with a paths filter so that app-only PRs stay fast.
+on:
+  pull_request:
+    branches: [main]
+    paths: ['supabase/**', '.github/workflows/supabase.yml']
+  push:
+    branches: [main]
+    paths: ['supabase/**', '.github/workflows/supabase.yml']
+
+concurrency:
+  group: supabase-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  db:
+    name: pgTAP (supabase test db)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      # Without `version`, v3 installs the supabase version from the root package-lock.json.
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3
+
+      # Docker is preinstalled on the runner. Services the tests do not need are skipped.
+      # start applies migrations and seed.sql.
+      - run: supabase start -x studio,imgproxy,mailpit,realtime,edge-runtime,logflare,vector,supavisor,postgres-meta
+      - run: supabase test db
+
+  functions:
+    name: Deno (supabase/functions)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2
+        with:
+          # Matches the Deno used locally via `npx deno@2` (lockfile v5 needs >= 2.3).
+          deno-version: 2.9.6
+
+      # Every folder with a deno.json is tested on its own. Each function needs a
+      # committed deno.lock, because --frozen fails on a missing or outdated lockfile.
+      # --permit-no-files keeps a function without tests green; no functions yet is green too.
+      - name: deno test per function
+        run: |
+          failed=0
+          while IFS= read -r -d '' config; do
+            dir=$(dirname "$config")
+            echo "::group::$dir"
+            (cd "$dir" && deno test --frozen --permit-no-files --allow-env --allow-net --allow-read) || failed=1
+            echo "::endgroup::"
+          done < <(find supabase/functions -name deno.json -print0 2>/dev/null)
+          exit "$failed"
