@@ -43,8 +43,9 @@ update public.profiles set active_vehicle_id = '5eed0000-0000-4000-8000-00000000
 where id = '5eed0000-0000-4000-8000-00000000000b';
 
 -- Refuelings are generated per vehicle from a few parameters, deterministic (no random()).
--- Every 10th refueling (i % 10 = 4) is a partial fill 10 L short of full; the next full fill
--- tops up those 10 L, so the full-tank method still sees realistic consumption.
+-- Every 10th refueling (i % 10 = 4) is a partial fill 5 L short of full; the next full fill
+-- tops up those 5 L, so the full-tank method still sees realistic consumption.
+-- 5 L keeps that next fill below the tank capacity of every vehicle.
 with plan (vehicle_id, fills, every_days, base_km, ml_per_km, base_price, stations) as (values
   ('5eed0000-0000-4000-8000-0000000000a1'::uuid, 26, 14, 560, 64, 1720,
    array['Aral|Durlacher Allee 50, 76131 Karlsruhe', 'JET|Rheinhafenstraße 10, 76189 Karlsruhe',
@@ -70,8 +71,8 @@ fills as (
 volumes as (
   select f.*,
     (odometer_km - lag(odometer_km, 1, v.initial_odometer_km) over w) * ml_per_km
-      - case when partial then 10000 else 0 end
-      + case when lag(partial, 1, false) over w then 10000 else 0 end as volume_ml
+      - case when partial then 5000 else 0 end
+      + case when lag(partial, 1, false) over w then 5000 else 0 end as volume_ml
   from fills f
   join public.vehicles v on v.id = f.vehicle_id
   window w as (partition by f.vehicle_id order by i)
