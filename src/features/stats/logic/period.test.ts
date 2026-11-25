@@ -19,7 +19,16 @@ describe("monthOf", () => {
     expect(monthOf("2026-12-31")).toBe("2026-12");
   });
 
-  it.each(["", "2026-11", "25.11.2026", "2026-11-25T23:30:00Z"])("rejects %p", (value) => {
+  it.each([
+    "",
+    "2026-11",
+    "25.11.2026",
+    "2026-11-25T23:30:00Z",
+    "2026-00-10",
+    "2026-13-10",
+    "2026-11-00",
+    "2026-11-32",
+  ])("rejects %p", (value) => {
     expect(() => monthOf(value)).toThrow("Expected YYYY-MM-DD");
   });
 });
@@ -36,7 +45,7 @@ describe("addMonths", () => {
     expect(addMonths(month, offset)).toBe(expected);
   });
 
-  it.each(["2026-1", "2026-11-01", "November"])("rejects %p", (value) => {
+  it.each(["2026-1", "2026-11-01", "November", "2026-00", "2026-13"])("rejects %p", (value) => {
     expect(() => addMonths(value, 1)).toThrow("Expected YYYY-MM");
   });
 });
@@ -53,6 +62,11 @@ describe("statsEntries", () => {
   it("counts the first refueling's km from the initial odometer", () => {
     const [first] = statsEntries([refueling({ odometerKm: 9_400 })], INITIAL_KM);
     expect(first.distanceKm).toBe(400);
+  });
+
+  it("counts 0 km if the first refueling is at the initial odometer", () => {
+    const [first] = statsEntries([refueling({ odometerKm: INITIAL_KM })], INITIAL_KM);
+    expect(first.distanceKm).toBe(0);
   });
 
   it("counts km since the previous refueling, in date order then odometer", () => {
@@ -100,16 +114,30 @@ describe("periodStats", () => {
   it("sums a period including partial refuelings", () => {
     const entries = statsEntries(
       [
-        refueling({ odometerKm: 10_000, volumeMl: 30_000, totalCents: 5_220 }),
-        refueling({ odometerKm: 10_500, volumeMl: 20_500, totalCents: 3_567, isFullTank: false }),
+        refueling({
+          odometerKm: 10_000,
+          volumeMl: 30_000,
+          pricePerLiterTenthCents: 1_740,
+          totalCents: 5_220,
+        }),
+        refueling({
+          odometerKm: 10_500,
+          volumeMl: 20_500,
+          pricePerLiterTenthCents: 1_740,
+          totalCents: 3_567,
+          isFullTank: false,
+        }),
       ],
       INITIAL_KM,
     );
-    expect(periodStats(entries)).toMatchObject({
+    // The full refueling is only the start and the partial one closes no interval.
+    expect(periodStats(entries)).toEqual({
       refuelingCount: 2,
       totalCents: 8_787,
       volumeMl: 50_500,
       distanceKm: 1_500,
+      avgPricePerLiterTenthCents: 1_740,
+      consumptionMlPer100Km: null,
     });
   });
 

@@ -51,8 +51,9 @@ export type PeriodStats = {
 export type MonthStats = PeriodStats & { month: MonthKey };
 
 export const MONTHS_PER_YEAR = 12;
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-const MONTH_KEY = /^(\d{4})-(\d{2})$/;
+// Month 01–12 and day 01–31; whether the day exists in that month is left to the database.
+const ISO_DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+const MONTH_KEY = /^(\d{4})-(0[1-9]|1[0-2])$/;
 const MONTH_KEY_LENGTH = "YYYY-MM".length;
 
 /** "2026-11-25" → "2026-11". Throws on anything that is not an ISO date (developer error). */
