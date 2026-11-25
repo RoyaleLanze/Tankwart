@@ -1,5 +1,6 @@
 // Central German formatting for amounts and dates. Inputs use the database units
 // (cents, ml, tenths of a cent, km), so callers never convert on their own.
+import { ML_PER_LITER } from "./units";
 
 const LOCALE = "de-DE";
 /** Non-breaking space, so a value never wraps away from its unit. */
@@ -7,7 +8,6 @@ const NBSP = "\u00A0";
 
 export const TENTH_CENTS_PER_CENT = 10;
 const CENTS_PER_EURO = 100;
-const ML_PER_LITER = 1000;
 const TENTH_CENTS_PER_EURO = CENTS_PER_EURO * TENTH_CENTS_PER_CENT;
 /** Unit after every euro amount, e.g. "182,40 €". */
 export const EURO_SUFFIX = `${NBSP}€`;
