@@ -40,9 +40,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   account: {
-    padding: spacing["space-4"],
+    padding: spacing("space-4"),
   },
   buttonContent: {
-    minHeight: sizes["touch-min"],
+    minHeight: sizes("touch-min"),
   },
 });

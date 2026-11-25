@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing["space-4"],
-    padding: spacing["space-4"],
+    gap: spacing("space-4"),
+    padding: spacing("space-4"),
   },
 });
