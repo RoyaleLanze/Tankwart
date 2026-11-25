@@ -1,7 +1,8 @@
 import { useState } from "react";
 
 import { signOut } from "../api/authApi";
-import { authErrorMessage } from "../logic/authErrors";
+import { authErrorCode } from "../logic/authErrors";
+import { authServerErrorText } from "../messages";
 
 export function useSignOut() {
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -14,7 +15,7 @@ export function useSignOut() {
       await signOut();
       // No navigation here: the auth guard shows the login screen once the session is gone.
     } catch (caught) {
-      setError(authErrorMessage(caught));
+      setError(authServerErrorText(authErrorCode(caught)));
     } finally {
       setIsSigningOut(false);
     }

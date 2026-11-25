@@ -3,8 +3,9 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
 import { signIn, signUp } from "../api/authApi";
-import { authErrorMessage } from "../logic/authErrors";
+import { authErrorCode } from "../logic/authErrors";
 import { authSchemas } from "../logic/authSchema";
+import { authServerErrorText } from "../messages";
 import type { AuthMode, Credentials } from "../types";
 
 const submitByMode: Record<AuthMode, (credentials: Credentials) => Promise<void>> = {
@@ -28,7 +29,7 @@ export function useAuthForm(mode: AuthMode) {
       await submitByMode[mode](credentials);
       // No navigation here: the auth guard switches screens as soon as the session changes.
     } catch (error) {
-      setError("root", { message: authErrorMessage(error) });
+      setError("root", { message: authServerErrorText(authErrorCode(error)) });
     }
   });
 

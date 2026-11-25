@@ -22,7 +22,7 @@ describe("authSchemas.signIn", () => {
   it("asks for the email when it is empty or only spaces", () => {
     for (const email of ["", "   "]) {
       expect(errorsOf(schema.safeParse({ email, password: "x" }))).toEqual([
-        ["email", "Gib deine E-Mail-Adresse ein."],
+        ["email", "emailMissing"],
       ]);
     }
   });
@@ -31,14 +31,14 @@ describe("authSchemas.signIn", () => {
     "rejects the invalid email %p",
     (email) => {
       expect(errorsOf(schema.safeParse({ email, password: "x" }))).toEqual([
-        ["email", "Diese E-Mail-Adresse ist ungültig."],
+        ["email", "emailInvalid"],
       ]);
     },
   );
 
   it("asks for the password when it is empty", () => {
     expect(errorsOf(schema.safeParse({ email: "max@beispiel.de", password: "" }))).toEqual([
-      ["password", "Gib dein Passwort ein."],
+      ["password", "passwordMissing"],
     ]);
   });
 
@@ -53,7 +53,6 @@ describe("authSchemas.signIn", () => {
 
 describe("authSchemas.signUp", () => {
   const schema = authSchemas.signUp;
-  const lengthMessage = `Das Passwort braucht mindestens ${MIN_PASSWORD_LENGTH} Zeichen.`;
 
   it("requires at least 8 characters, as configured in supabase/config.toml", () => {
     expect(MIN_PASSWORD_LENGTH).toBe(8);
@@ -67,13 +66,13 @@ describe("authSchemas.signUp", () => {
   it("rejects a password one character shorter than the minimum", () => {
     const password = "a".repeat(MIN_PASSWORD_LENGTH - 1);
     expect(errorsOf(schema.safeParse({ email: "max@beispiel.de", password }))).toEqual([
-      ["password", lengthMessage],
+      ["password", "passwordTooShort"],
     ]);
   });
 
-  it("rejects an empty password with the length message", () => {
+  it("rejects an empty password with the length code", () => {
     expect(errorsOf(schema.safeParse({ email: "max@beispiel.de", password: "" }))).toEqual([
-      ["password", lengthMessage],
+      ["password", "passwordTooShort"],
     ]);
   });
 
@@ -84,7 +83,7 @@ describe("authSchemas.signUp", () => {
 
   it("uses the same email rules as signing in", () => {
     expect(errorsOf(schema.safeParse({ email: "max@", password: "geheim123" }))).toEqual([
-      ["email", "Diese E-Mail-Adresse ist ungültig."],
+      ["email", "emailInvalid"],
     ]);
   });
 });

@@ -9,6 +9,8 @@ export type FormTextFieldProps<T extends FieldValues> = {
   label: string;
   /** Decorative icon at the start of the field, e.g. "email-outline". */
   icon?: string;
+  /** Turns a validation code from the schema into the text shown to the user (ADR 0014). */
+  errorText: (message: string) => string;
 } & Omit<
   TextInputProps,
   "mode" | "label" | "value" | "onChangeText" | "onBlur" | "error" | "left" | "ref"
@@ -23,40 +25,44 @@ export function FormTextField<T extends FieldValues>({
   name,
   label,
   icon,
+  errorText,
   ...inputProps
 }: FormTextFieldProps<T>) {
   return (
     <Controller
       control={control}
       name={name}
-      render={({ field, fieldState: { error } }) => (
-        <View>
-          <TextInput
-            {...inputProps}
-            // Lets react-hook-form focus the field, e.g. the first invalid one after submitting.
-            ref={field.ref}
-            mode="outlined"
-            label={label}
-            // Paper's label is a separate text view; the native field needs its own name.
-            accessibilityLabel={label}
-            accessibilityHint={error?.message}
-            left={
-              icon ? (
-                <TextInput.Icon icon={icon} importantForAccessibility="no" focusable={false} />
-              ) : undefined
-            }
-            value={field.value}
-            onChangeText={field.onChange}
-            onBlur={field.onBlur}
-            error={error !== undefined}
-          />
-          {error && (
-            <HelperText type="error" accessibilityLiveRegion="polite">
-              {error.message}
-            </HelperText>
-          )}
-        </View>
-      )}
+      render={({ field, fieldState: { error } }) => {
+        const shownError = error && errorText(error.message ?? "");
+        return (
+          <View>
+            <TextInput
+              {...inputProps}
+              // Lets react-hook-form focus the field, e.g. the first invalid one after submitting.
+              ref={field.ref}
+              mode="outlined"
+              label={label}
+              // Paper's label is a separate text view; the native field needs its own name.
+              accessibilityLabel={label}
+              accessibilityHint={shownError}
+              left={
+                icon ? (
+                  <TextInput.Icon icon={icon} importantForAccessibility="no" focusable={false} />
+                ) : undefined
+              }
+              value={field.value}
+              onChangeText={field.onChange}
+              onBlur={field.onBlur}
+              error={error !== undefined}
+            />
+            {shownError && (
+              <HelperText type="error" accessibilityLiveRegion="polite">
+                {shownError}
+              </HelperText>
+            )}
+          </View>
+        );
+      }}
     />
   );
 }
