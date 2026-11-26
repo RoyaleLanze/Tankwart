@@ -34,9 +34,13 @@ function toRow(input: VehicleInput): TablesInsert<"vehicles"> {
   };
 }
 
-/** All vehicles of the signed-in user, oldest first. */
+/** All vehicles of the signed-in user, oldest first; the id makes equal creation times stable. */
 export async function listVehicles(): Promise<Vehicle[]> {
-  const { data, error } = await supabase.from("vehicles").select().order("created_at");
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select()
+    .order("created_at")
+    .order("id");
   if (error) throw error;
   return data.map(toVehicle);
 }
