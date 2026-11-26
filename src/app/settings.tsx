@@ -16,7 +16,9 @@ export default function SettingsScreen() {
   return (
     <View style={styles.screen}>
       {/* The other sections of mockup 7.9 follow with the settings screen issue. */}
-      <List.Section title="Fahrzeuge">
+      <List.Section>
+        {/* Paper's section title is no heading for TalkBack, so it is set here. */}
+        <List.Subheader accessibilityRole="header">Fahrzeuge</List.Subheader>
         <List.Item
           title="Fahrzeuge verwalten"
           description={vehicleCountText(vehicles.length)}

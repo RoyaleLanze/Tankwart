@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRef } from "react";
 import { useForm, type DefaultValues } from "react-hook-form";
 
-import { vehicleSchema, type VehicleFormValues } from "../logic/vehicleSchema";
+import { vehicleSchema, vehicleToFormValues, type VehicleFormValues } from "../logic/vehicleSchema";
 import { SAVE_ERROR_TEXT } from "../messages";
 import type { VehicleInput } from "../types";
 
@@ -18,17 +18,21 @@ const EMPTY_FORM: DefaultValues<VehicleFormValues> = {
 
 /**
  * Form state for adding or editing a vehicle. The fields hold text; after validation, `save`
- * gets the vehicle in database units (ADR 0009).
+ * gets the vehicle in database units (ADR 0009). When editing, `stored` is the vehicle whose
+ * values the form starts with; react-hook-form reads them only once.
  */
 export function useVehicleForm(
   save: (input: VehicleInput) => Promise<unknown>,
-  defaultValues = EMPTY_FORM,
+  stored?: VehicleInput,
 ) {
   const { control, handleSubmit, setError, setFocus, formState } = useForm<
     VehicleFormValues,
     unknown,
     VehicleInput
-  >({ resolver: zodResolver(vehicleSchema), defaultValues });
+  >({
+    resolver: zodResolver(vehicleSchema),
+    defaultValues: stored ? vehicleToFormValues(stored) : EMPTY_FORM,
+  });
 
   // react-hook-form does not block a second submit while the first one runs. The keyboard's
   // action key can still submit while the button is disabled, which would save twice.
