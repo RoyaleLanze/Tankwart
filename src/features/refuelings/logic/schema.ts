@@ -68,11 +68,12 @@ function blocksOdometerCheck(issue: { path?: PropertyKey[] }): boolean {
   return !issue.path?.length || ODOMETER_INPUTS.has(issue.path[0]);
 }
 
-export type RefuelingInput = z.infer<ReturnType<typeof createRefuelingSchema>>;
+/** The validated fields; types.ts adds the ones without rules to the full RefuelingInput. */
+export type RefuelingFields = z.infer<ReturnType<typeof createRefuelingSchema>>;
 
 /** Warnings do not block saving, so they are kept apart from the schema's errors. */
 export function getRefuelingWarnings(
-  input: Pick<RefuelingInput, "odometerKm">,
+  input: Pick<RefuelingFields, "odometerKm">,
   context: RefuelingContext,
 ): { odometerKm?: RefuelingWarningCode } {
   const warning = distanceWarning(input.odometerKm, context);
