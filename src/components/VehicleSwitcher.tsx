@@ -9,11 +9,14 @@ type Option = { id: string; name: string };
 
 type Props = {
   vehicles: readonly Option[];
-  activeId: string;
+  /** The vehicle shown in the chip; one of `vehicles`. */
+  active: Option;
   onSelect: (id: string) => void;
   /** Shown as a message below the screen, e.g. when saving the choice failed. */
   error?: string;
   onDismissError: () => void;
+  /** Tries the failed choice again; the message offers it as an action. */
+  onRetry: () => void;
 };
 
 // Paper draws chip icons at 18 dp; the dropdown arrow matches the car icon and the label color.
@@ -23,14 +26,20 @@ const CHIP_ICON_SIZE = 18;
  * Chip with the active vehicle's name that opens a menu of all vehicles (M2,
  * design-system.md → TopAppBar). The active one is marked with a check mark, not only a color.
  */
-export function VehicleSwitcher({ vehicles, activeId, onSelect, error, onDismissError }: Props) {
+export function VehicleSwitcher({
+  vehicles,
+  active,
+  onSelect,
+  error,
+  onDismissError,
+  onRetry,
+}: Props) {
   const { colors } = useAppTheme();
   const [isOpen, setIsOpen] = useState(false);
-  const active = vehicles.find((vehicle) => vehicle.id === activeId);
 
   function select(id: string) {
     setIsOpen(false);
-    if (id !== activeId) onSelect(id);
+    onSelect(id);
   }
 
   return (
@@ -52,11 +61,11 @@ export function VehicleSwitcher({ vehicles, activeId, onSelect, error, onDismiss
             textStyle={styles.label}
             style={styles.chip}
             ellipsizeMode="middle"
-            accessibilityLabel={`Aktives Fahrzeug: ${active?.name ?? ""}. Fahrzeug wechseln`}
+            accessibilityLabel={`Aktives Fahrzeug: ${active.name}. Fahrzeug wechseln`}
           >
             {/* The icon font renders inside the chip's label text, so the arrow follows the name.
                 TalkBack reads the label above instead. */}
-            {`${active?.name ?? ""} `}
+            {`${active.name} `}
             <MaterialCommunityIcons
               name="menu-down"
               size={CHIP_ICON_SIZE}
@@ -66,7 +75,7 @@ export function VehicleSwitcher({ vehicles, activeId, onSelect, error, onDismiss
         }
       >
         {vehicles.map((vehicle) => {
-          const isActive = vehicle.id === activeId;
+          const isActive = vehicle.id === active.id;
           return (
             <Menu.Item
               key={vehicle.id}
@@ -85,6 +94,7 @@ export function VehicleSwitcher({ vehicles, activeId, onSelect, error, onDismiss
         <Snackbar
           visible={error !== undefined}
           onDismiss={onDismissError}
+          action={{ label: "Erneut versuchen", onPress: onRetry }}
           wrapperStyle={styles.snackbar}
         >
           {error ?? ""}

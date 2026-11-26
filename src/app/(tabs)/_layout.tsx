@@ -57,10 +57,16 @@ function ActiveVehicleSwitcher() {
   return (
     <VehicleSwitcher
       vehicles={vehicles.data}
-      activeId={active.id}
+      active={active}
       onSelect={(id) => setActive.mutate(id)}
       error={setActive.isError ? SWITCH_ERROR_TEXT : undefined}
       onDismissError={setActive.reset}
+      // Paper calls onDismiss right after the action, which would reset the new attempt. The
+      // microtask starts it after that reset.
+      onRetry={() => {
+        const failedId = setActive.variables;
+        if (failedId !== undefined) queueMicrotask(() => setActive.mutate(failedId));
+      }}
     />
   );
 }

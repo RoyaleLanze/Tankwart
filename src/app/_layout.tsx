@@ -102,8 +102,9 @@ function RootNavigator({ isSignedIn }: { isSignedIn: boolean }) {
       <ErrorScreen
         message={signOutError ?? LOAD_ERROR_TEXT}
         onRetry={() => {
-          vehicles.refetch();
-          activeVehicleId.refetch();
+          // Only the failed one: the other may be loaded already or still loading.
+          if (vehicles.isError) vehicles.refetch();
+          if (activeVehicleId.isError) activeVehicleId.refetch();
         }}
         secondaryAction={{ label: "Abmelden", onPress: signOut }}
       />
