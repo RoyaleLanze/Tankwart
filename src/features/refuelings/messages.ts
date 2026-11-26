@@ -37,6 +37,14 @@ const WARNING_TEXTS: Record<RefuelingWarningCode, string> = {
   distanceUnusuallyLarge: `Mehr als ${formatKm(DISTANCE_WARNING_KM)} seit der letzten Betankung. Fehlt eine Betankung?`,
 };
 
+// Failed requests. Without a network is the usual cause, so the text says what to check.
+export const LOAD_ERROR_TEXT =
+  "Deine Betankungen konnten nicht geladen werden. Prüfe deine Internetverbindung und versuche es erneut.";
+export const SAVE_ERROR_TEXT =
+  "Die Betankung konnte nicht gespeichert werden. Prüfe deine Internetverbindung und versuche es erneut.";
+export const DELETE_ERROR_TEXT =
+  "Die Betankung konnte nicht gelöscht werden. Prüfe deine Internetverbindung und versuche es erneut.";
+
 /** Shown if a validation message is not one of our codes, so the user never sees a raw code. */
 export const UNKNOWN_ERROR_TEXT = "Bitte die Eingabe prüfen.";
 
