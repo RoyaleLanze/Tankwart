@@ -17,10 +17,17 @@ type Props = {
   setFocus: UseFormSetFocus<VehicleFormValues>;
   /** Called by the keyboard's action key in the last field, e.g. to save. */
   onLastFieldSubmit: () => void;
+  /** The action key's label in the last field: "done" when it saves, "next" when more follows. */
+  lastReturnKeyType?: "done" | "next";
 };
 
 /** The four fields every vehicle needs (M1), as in mockup 7.2. */
-export function VehicleRequiredFields({ control, setFocus, onLastFieldSubmit }: Props) {
+export function VehicleRequiredFields({
+  control,
+  setFocus,
+  onLastFieldSubmit,
+  lastReturnKeyType = "done",
+}: Props) {
   return (
     <View style={styles.fields}>
       <FormTextField
@@ -61,7 +68,7 @@ export function VehicleRequiredFields({ control, setFocus, onLastFieldSubmit }: 
         helperText="Damit prüft die App, ob die getankten Liter passen."
         errorText={vehicleErrorText}
         keyboardType="decimal-pad"
-        returnKeyType="done"
+        returnKeyType={lastReturnKeyType}
         onSubmitEditing={onLastFieldSubmit}
       />
     </View>
