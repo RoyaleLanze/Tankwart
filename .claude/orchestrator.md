@@ -30,3 +30,4 @@ Gilt für jede Sitzung von @SealJonny und @RoyaleLanze. `CLAUDE.md` bindet diese
 
 - Mit dem Menschen nur auf Deutsch. Code, Bezeichner und Kommentare bleiben Englisch.
 - Nach jeder Agent-Rückmeldung kurz zusammenfassen: was gebaut wurde, warum so, was im Übergabegespräch wichtig ist.
+- **Zu jeder PR, die ein Agent gebaut hat,** schreibt der Orchestrator dem Menschen in der Sitzung einen Absatz mit **höchstens 5 Sätzen**: die wichtigsten Punkte für das Übergabegespräch mit dem Dozenten (was gebaut wurde und warum so, welche Alternative es gab, welches Muster dahintersteckt, welche Stelle man selbst erklären können muss). So bleibt der Mensch auf dem Stand, ohne die PR lesen zu müssen. Der Auftrag an den Agent fordert dafür die nötigen Stichpunkte im Bericht an.
