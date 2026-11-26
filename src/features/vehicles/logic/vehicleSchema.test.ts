@@ -72,6 +72,10 @@ describe("vehicleSchema", () => {
     });
   });
 
+  it.each(["ka-xy 99", "Ka-Xy 99"])("stores the plate %j in capitals", (licensePlate) => {
+    expect(parse({ licensePlate }).data?.licensePlate).toBe("KA-XY 99");
+  });
+
   it("drops keys that are not form fields, such as user_id", () => {
     expect(parse({ user_id: "other-user" } as Changes).data).not.toHaveProperty("user_id");
   });
@@ -196,5 +200,23 @@ describe("vehicleToFormValues", () => {
     ],
   ])("round trip keeps the vehicle: %s", (_, vehicle) => {
     expect(vehicleSchema.parse(vehicleToFormValues(vehicle))).toEqual(vehicle);
+  });
+
+  // Amounts where ml / 1000 is not exact in binary floating point.
+  it.each([1, 7, 999, 1001, 45_501, 1_999_999, MAX_DB_INTEGER - 1])(
+    "round trip keeps %i ml in both amount fields",
+    (ml) => {
+      const vehicle = { ...stored, tankCapacityMl: ml, manufacturerConsumptionMlPer100Km: ml };
+      expect(vehicleSchema.parse(vehicleToFormValues(vehicle))).toEqual(vehicle);
+    },
+  );
+
+  it("normalises text another client stored with spaces (see vehicleToFormValues)", () => {
+    const untrimmed = { ...stored, name: " Golf ", makeModel: "", licensePlate: "ka-tw 1 " };
+    expect(vehicleSchema.parse(vehicleToFormValues(untrimmed))).toMatchObject({
+      name: "Golf",
+      makeModel: null,
+      licensePlate: "KA-TW 1",
+    });
   });
 });

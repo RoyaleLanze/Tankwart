@@ -21,6 +21,8 @@ export function parseDecimal(text: string): number {
 /**
  * 45.5 → "45,5", the text a decimal field starts with when editing. The way back to
  * parseDecimal: all digits, no rounding and no unit, so saving unchanged keeps the value.
+ * Holds for 0 and for 0.000001 up to below 10^21 (every database amount in liters); outside
+ * that range JavaScript writes an exponent ("1e-7"), which parseDecimal rejects.
  */
 export function decimalInputText(value: number): string {
   return String(value).replace(".", ",");

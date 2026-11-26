@@ -42,6 +42,7 @@ describe("decimalInputText", () => {
     [45.5, "45,5"],
     [45.501, "45,501"],
     [0.001, "0,001"],
+    [2147483.647, "2147483,647"],
   ])("writes %d as %j, which parseDecimal reads back", (value, text) => {
     expect(decimalInputText(value)).toBe(text);
     expect(parseDecimal(text)).toBe(value);

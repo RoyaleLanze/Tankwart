@@ -75,7 +75,8 @@ export const vehicleSchema = z
     initialOdometerKm: odometerKm,
     tankCapacityLiters: tankCapacityMl,
     makeModel: optionalText,
-    licensePlate: optionalText,
+    // In capitals like on the plate, also when pasted or typed with shift.
+    licensePlate: optionalText.transform((plate) => plate && plate.toLocaleUpperCase("de-DE")),
     consumptionLitersPer100Km: consumptionMlPer100Km,
   })
   // The form fields are named after what the user types. Their values are already in ml,
@@ -95,7 +96,9 @@ const litersText = (ml: number) => decimalInputText(ml / ML_PER_LITER);
 
 /**
  * The way back for editing: a stored vehicle as the text the form starts with. Saving it
- * unchanged gives the same vehicle again (round trip, see the tests).
+ * unchanged gives the same vehicle again (round trip, see the tests) for everything this app
+ * stores. Text stored by another client is normalised on the next save: trimmed, empty text
+ * as null, the plate in capitals.
  */
 export function vehicleToFormValues(vehicle: VehicleInput): VehicleFormValues {
   const consumption = vehicle.manufacturerConsumptionMlPer100Km;
