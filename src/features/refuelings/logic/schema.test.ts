@@ -1,5 +1,5 @@
 import { computeMissing } from "./computeMissing";
-import { createRefuelingSchema, getRefuelingWarnings, type RefuelingInput } from "./schema";
+import { createRefuelingSchema, getRefuelingWarnings, type RefuelingFields } from "./schema";
 import {
   DISTANCE_WARNING_KM,
   MAX_DB_INTEGER,
@@ -24,7 +24,7 @@ const newestOnly: RefuelingContext = {
   otherRefuelings: [{ refueledOn: "2026-11-10", odometerKm: 84_000 }],
 };
 
-const valid: RefuelingInput = {
+const valid: RefuelingFields = {
   refueledOn: "2026-11-20",
   volumeMl: 40_000,
   pricePerLiterTenthCents: 1749,
@@ -32,13 +32,13 @@ const valid: RefuelingInput = {
   odometerKm: 84_500,
 };
 
-function issues(input: Partial<RefuelingInput>, ctx: RefuelingContext = context) {
+function issues(input: Partial<RefuelingFields>, ctx: RefuelingContext = context) {
   const result = createRefuelingSchema(ctx).safeParse({ ...valid, ...input });
   return result.success ? [] : result.error.issues;
 }
 
 /** Field paths with an error, e.g. ["volumeMl"]; empty when valid. */
-function errorFields(input: Partial<RefuelingInput>, ctx: RefuelingContext = context): string[] {
+function errorFields(input: Partial<RefuelingFields>, ctx: RefuelingContext = context): string[] {
   return issues(input, ctx).map((issue) => issue.path.join("."));
 }
 
@@ -288,7 +288,7 @@ describe("getRefuelingWarnings", () => {
 
 describe("computed amounts are still validated (M3 + M4)", () => {
   /** Fills the missing field like the form does, then validates the result. */
-  function validateComputed(amounts: Partial<RefuelingInput>): string[] {
+  function validateComputed(amounts: Partial<RefuelingFields>): string[] {
     const computed = computeMissing(amounts);
     if (!computed) throw new Error("expected a computed amount");
     return errorFields({ ...amounts, [computed.field]: computed.value });

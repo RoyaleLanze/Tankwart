@@ -27,6 +27,8 @@ export const LOAD_ERROR_TEXT =
   "Deine Fahrzeuge konnten nicht geladen werden. Prüfe deine Internetverbindung und versuche es erneut.";
 export const SAVE_ERROR_TEXT =
   "Das Fahrzeug konnte nicht gespeichert werden. Prüfe deine Internetverbindung und versuche es erneut.";
+export const SWITCH_ERROR_TEXT =
+  "Das Fahrzeug konnte nicht gewechselt werden. Prüfe deine Internetverbindung und versuche es erneut.";
 
 /** Edit screen of a vehicle that was deleted meanwhile, e.g. on another device. */
 export const NOT_FOUND_TEXT = "Dieses Fahrzeug gibt es nicht mehr.";

@@ -3,6 +3,10 @@ import { Tabs } from "expo-router/js-tabs";
 
 import { AppBar } from "@/components/AppBar";
 import { NavigationBar, tabIcon } from "@/components/NavigationBar";
+import { VehicleSwitcher } from "@/components/VehicleSwitcher";
+import { useActiveVehicle, useSetActiveVehicle } from "@/features/vehicles/hooks/useActiveVehicle";
+import { useVehicles } from "@/features/vehicles/hooks/useVehicles";
+import { SWITCH_ERROR_TEXT } from "@/features/vehicles/messages";
 
 /** The four main screens, always in this order (design-system.md → NavigationBar). */
 export default function TabsLayout() {
@@ -12,8 +16,10 @@ export default function TabsLayout() {
     <Tabs
       tabBar={(props) => <NavigationBar {...props} />}
       screenOptions={{
-        header: ({ options }) => (
-          <AppBar title={options.title ?? ""} onSettings={() => router.push("/settings")} />
+        // Main screens show the vehicle switcher instead of a title; the navigation bar names
+        // the screen (design-system.md → TopAppBar).
+        header: () => (
+          <AppBar start={<ActiveVehicleSwitcher />} onSettings={() => router.push("/settings")} />
         ),
       }}
     >
@@ -37,5 +43,30 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
+  );
+}
+
+/** Connects the switcher to the vehicle list and the stored choice (M2). */
+function ActiveVehicleSwitcher() {
+  const vehicles = useVehicles();
+  const active = useActiveVehicle();
+  const setActive = useSetActiveVehicle();
+  // The root layout shows the tabs only with loaded vehicles, so this is a short gap at most.
+  if (!vehicles.data || !active) return null;
+
+  return (
+    <VehicleSwitcher
+      vehicles={vehicles.data}
+      active={active}
+      onSelect={(id) => setActive.mutate(id)}
+      error={setActive.isError ? SWITCH_ERROR_TEXT : undefined}
+      onDismissError={setActive.reset}
+      // Paper calls onDismiss right after the action, which would reset the new attempt. The
+      // microtask starts it after that reset.
+      onRetry={() => {
+        const failedId = setActive.variables;
+        if (failedId !== undefined) queueMicrotask(() => setActive.mutate(failedId));
+      }}
+    />
   );
 }
