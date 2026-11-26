@@ -26,24 +26,22 @@ export function useActiveVehicle(): Vehicle | undefined {
 
 /**
  * Switches the active vehicle. The cache changes at once, so the screens switch without
- * waiting for the server; if saving fails, the previous choice comes back.
+ * waiting for the server. Whatever the outcome, the server's value is reloaded afterwards:
+ * it is the truth, so a failed save also brings the previous choice back.
  */
 export function useSetActiveVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: setActiveVehicleId,
+    // Saves run one after another, so quick taps cannot reach the server in a different order.
+    scope: { id: "activeVehicle" },
     onMutate: async (vehicleId) => {
       // A running load could otherwise overwrite the new choice with the old one.
       await queryClient.cancelQueries({ queryKey: ACTIVE_VEHICLE_ID_KEY });
-      const previous = queryClient.getQueryData<string | null>(ACTIVE_VEHICLE_ID_KEY);
       queryClient.setQueryData(ACTIVE_VEHICLE_ID_KEY, vehicleId);
-      return { previous };
     },
-    // Only while the cache still holds this choice: after a sign-out the cache is cleared, and
-    // the previous user's vehicle must not reach the next user.
-    onError: (_error, vehicleId, context) =>
-      queryClient.setQueryData<string | null>(ACTIVE_VEHICLE_ID_KEY, (current) =>
-        current === vehicleId ? context?.previous : current,
-      ),
+    // After a sign-out the cache is cleared and nothing observes the key, so there is nothing
+    // to reload and the previous user's choice cannot reach the next user.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ACTIVE_VEHICLE_ID_KEY }),
   });
 }
