@@ -22,6 +22,12 @@ const ERROR_TEXTS: Record<VehicleErrorCode, string> = {
   valueTooLarge: "Der Wert ist zu groß.",
 };
 
+// Failed requests. Without a network is the usual cause, so the text says what to check.
+export const LOAD_ERROR_TEXT =
+  "Deine Fahrzeuge konnten nicht geladen werden. Prüfe deine Internetverbindung und versuche es erneut.";
+export const SAVE_ERROR_TEXT =
+  "Das Fahrzeug konnte nicht gespeichert werden. Prüfe deine Internetverbindung und versuche es erneut.";
+
 /** Shown if a validation message is not one of our codes, so the user never sees a raw code. */
 export const UNKNOWN_ERROR_TEXT = "Bitte prüfe deine Eingabe.";
 
