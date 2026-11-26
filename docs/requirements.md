@@ -65,18 +65,36 @@ Quelle: Projektvorstellung vom 05.11.2026. M1–M15 sind die projektspezifischen
 
 ## NICE-TO-HAVEs (erst nach allen MUST-HAVEs)
 
-Ungefähr in dieser Reihenfolge:
-1. Ersparnis inklusive Umweg (Anfahrtskosten, Sortierung „Ersparnis“, einstellbare Tankmenge). In den Mockups: Sortier-Chip „Ersparnis“, Karte „Kosten mit Anfahrt“
-2. Kartenansicht mit Preis-Markern
-3. Favoriten-Tankstellen, Navigation, Abstand zum günstigsten Preis
-4. Home: Karte „Günstig tanken in der Nähe“, Prognose der Monatsausgaben
-5. Verbrauch gegen Herstellerangabe, Filter im Verlauf
-6. Texterkennung auf dem Belegfoto
-7. Passwort zurücksetzen/ändern, Konto löschen
-8. Offline-Erfassung, CSV-Export (Download-Icon im Monatsvergleich), iOS, Dunkelmodus (Tokens vorhanden)
-9. Englische Oberfläche nach Gerätesprache (Deutsch bleibt Standard), siehe #59
+Planung vom 26.11.2026 (Entscheidungen @SealJonny). Jedes NICE hat ein Issue, die Reihenfolge ergibt sich aus den Meilensteinen.
 
-Bewusst nicht geplant: Preisalarm, weil Tankerkönig Abfragen nur auf Nutzeraktion erlaubt.
+**Vorgezogen**, weil sie die Architektur betreffen und später teurer würden:
+- **i18n-Fundament** (#97, Woche 2): Ab dann nutzen alle UI-Texte Schlüssel statt fester deutscher Texte. Die englischen Texte selbst kommen in #59 (Woche 5).
+- **Offline-Erfassung** (#107, Woche 4): nur neue Betankungen, über pausierte TanStack-Mutationen mit Persistenz (ADR folgt). Bearbeiten und Löschen brauchen weiter Netz.
+- **Konto löschen** (#99, Woche 4): Edge Function mit Service-Role. Sie löscht auch die Belegfotos unter `receipts/<uid>/`.
+
+**Woche 5:**
+1. Ersparnis inklusive Umweg (Anfahrtskosten, Sortierung „Ersparnis“, einstellbare Tankmenge), #100. In den Mockups: Sortier-Chip „Ersparnis“, Karte „Kosten mit Anfahrt“
+2. Favoriten-Tankstellen, Navigation, Abstand zum günstigsten Preis, #102
+3. Home: Karte „Günstig tanken in der Nähe“ (lädt keine Preise von selbst), Prognose der Monatsausgaben, #101
+4. Verbrauch gegen Herstellerangabe, Filter im Verlauf, #103
+5. Texterkennung auf dem Belegfoto, auf dem Gerät mit ML Kit (keine Cloud-OCR), #106
+6. Passwort zurücksetzen und ändern, #104
+7. CSV-Export (Download-Icon im Monatsvergleich), #105
+8. Englische Texte, #59
+
+**Schon umgesetzt:** Dunkelmodus (ADR 0013).
+
+**Auswirkungen auf MUST-Issues** (stehen als Hinweis im jeweiligen Issue):
+- #12: Die Mutation zum Erfassen bekommt einen festen `mutationKey`, die ID der Betankung erzeugt der Client (für #107).
+- #13: Belegfotos nur unter `receipts/<uid>/`, beim Löschen oder Ersetzen wird das Storage-Objekt mitgelöscht (für #99).
+- #14: Der Entwurf wird gelöscht, sobald die Mutation angenommen ist, auch wenn sie noch auf Netz wartet (für #107).
+- #17, #18: so bauen, dass der Umweg aus #100 später dazukommen kann.
+- #23: Home lädt nie automatisch Preise (für #101).
+
+Bewusst nicht geplant:
+- Preisalarm, weil Tankerkönig Abfragen nur auf Nutzeraktion erlaubt.
+- Kartenansicht mit Preis-Markern: Google Maps braucht auf Android einen API-Key mit Abrechnungskonto (widerspricht „nichts Kostenpflichtiges“), MapLibre wäre eine neue native Abhängigkeit für ein NICE.
+- iOS: wird vor der Abgabe nicht umgesetzt und ist ohne Mac nicht testbar (#108).
 
 ## Entscheidungen aus dem Mockup-Abgleich (17.11.2026)
 
