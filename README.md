@@ -69,7 +69,7 @@ npx supabase db push --remote             # spielt sie ein (nur Migrationen, kei
 npx supabase functions deploy prices      # deployt die Edge Function
 ```
 
-Den Tankerkönig-Key im Dashboard unter Edge Functions → Secrets als `TANKERKOENIG_API_KEY` eintragen. So landet er nicht in der Shell-History. `PRICES_MOCK` bleibt in der Cloud ungesetzt, dann liefert die Function echte Preise.
+Den Tankerkönig-Key im Dashboard unter Edge Functions → Secrets als `TANKERKOENIG_API_KEY` eintragen. `npx supabase secrets set TANKERKOENIG_API_KEY=…` geht auch, dann steht der Key aber in der Shell-History. `PRICES_MOCK` bleibt in der Cloud ungesetzt, dann liefert die Function echte Preise.
 
 Für die App gegen die Cloud stehen in `.env` die Projekt-URL und der Publishable Key aus dem Dashboard (Project Settings → API Keys).
 
