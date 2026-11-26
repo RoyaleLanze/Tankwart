@@ -85,12 +85,40 @@ describe("sortStations", () => {
     expect(ids(sortStations([...same].reverse(), "e5", "distance"))).toEqual(["a", "b"]);
   });
 
-  it("keeps closed stations in their place", () => {
+  it("puts closed stations after all open ones when sorting by price", () => {
+    const withClosed = [
+      station("closedCheap", 2000, 1699, { isOpen: false }),
+      station("openDear", 300, 1799),
+      station("closedDear", 100, 1749, { isOpen: false }),
+      station("openCheap", 900, 1749),
+    ];
+    expect(ids(sortStations(withClosed, "e5", "price"))).toEqual([
+      "openCheap",
+      "openDear",
+      "closedCheap",
+      "closedDear",
+    ]);
+  });
+
+  it("keeps stations without a price last, open or closed, nearest first", () => {
+    const mixed = [
+      station("closedNoPrice", 50, null, { isOpen: false }),
+      station("openNoPrice", 100, null),
+      station("closedPriced", 500, 1699, { isOpen: false }),
+    ];
+    expect(ids(sortStations(mixed, "e5", "price"))).toEqual([
+      "closedPriced",
+      "closedNoPrice",
+      "openNoPrice",
+    ]);
+  });
+
+  it("mixes open and closed stations when sorting by distance", () => {
     const withClosed = [
       station("open", 300, 1799),
-      station("closed", 2000, 1699, { isOpen: false }),
+      station("closedNear", 100, 1699, { isOpen: false }),
     ];
-    expect(ids(sortStations(withClosed, "e5", "price"))).toEqual(["closed", "open"]);
+    expect(ids(sortStations(withClosed, "e5", "distance"))).toEqual(["closedNear", "open"]);
   });
 
   it("returns an empty list for no stations", () => {
