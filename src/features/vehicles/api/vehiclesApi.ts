@@ -47,3 +47,18 @@ export async function createVehicle(input: VehicleInput): Promise<Vehicle> {
   if (error) throw error;
   return toVehicle(data);
 }
+
+/**
+ * Replaces the user's values of a vehicle and returns it as stored. A vehicle that is gone or
+ * belongs to someone else matches no row, so `single()` fails and the error is thrown.
+ */
+export async function updateVehicle(id: string, input: VehicleInput): Promise<Vehicle> {
+  const { data, error } = await supabase
+    .from("vehicles")
+    .update(toRow(input))
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return toVehicle(data);
+}
