@@ -20,6 +20,7 @@ type ListOrder = { fuelType: FuelType; sortOrder: StationSortOrder };
  * Stations around the searched position, sorted for the chosen fuel. Prices are only requested
  * on a user action (M9, Tankerkönig's terms): with `search` null nothing loads, and a result is
  * never refetched on its own. A new search (position, radius) or `refetch()` asks again.
+ * `refetch()` is only valid while `search` is set: with `skipToken` it rejects.
  */
 export function useStations(search: StationSearch | null, { fuelType, sortOrder }: ListOrder) {
   // Sorting in `select` runs on the cached list, so switching fuel or order needs no request.
@@ -34,9 +35,14 @@ export function useStations(search: StationSearch | null, { fuelType, sortOrder 
     queryKey: stationsKey(search),
     queryFn: search ? () => searchStations(search) : skipToken,
     select: sortList,
-    // Never stale: no refetch on mount, focus or reconnect, only on a user action.
+    // Never stale and no automatic request of any kind: not on mount (also not a retry of a
+    // failed search when the screen is mounted again), focus or reconnect. Every request counts
+    // against the rate limit, so only a user action may start one.
     staleTime: Infinity,
-    // A retry would not be a user action, and after rateLimited it would only count again.
     retry: false,
+    retryOnMount: false,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
