@@ -68,16 +68,16 @@ Quelle: Projektvorstellung vom 05.11.2026. M1–M15 sind die projektspezifischen
 Planung vom 26.11.2026 (Entscheidungen @SealJonny). Jedes NICE hat ein Issue, die Reihenfolge ergibt sich aus den Meilensteinen.
 
 **Vorgezogen**, weil sie die Architektur betreffen und später teurer würden:
-- **i18n-Fundament** (#97, Woche 2): Ab dann nutzen alle UI-Texte Schlüssel statt fester deutscher Texte. Die englischen Texte selbst kommen in #59 (Woche 5).
+- **i18n-Fundament** (#97, Woche 2): Ab dann nutzen alle UI-Texte Schlüssel statt fester deutscher Texte. #97 legt in seiner ADR auch fest, wie die `messages.ts` aus ADR 0014 auf Schlüssel umgestellt werden, und ergänzt ADR 0014. Die englischen Texte selbst kommen in #59 (Woche 5).
 - **Offline-Erfassung** (#107, Woche 4): nur neue Betankungen, über pausierte TanStack-Mutationen mit Persistenz (ADR folgt). Bearbeiten und Löschen brauchen weiter Netz.
-- **Konto löschen** (#99, Woche 4): Edge Function mit Service-Role. Sie löscht auch die Belegfotos unter `receipts/<uid>/`.
+- **Konto löschen** (#99, Woche 4): Edge Function mit Service-Role (ADR folgt, Sicherheitsentscheidung). Sie löscht auch die Belegfotos unter `receipts/<uid>/`.
 
 **Woche 5:**
 1. Ersparnis inklusive Umweg (Anfahrtskosten, Sortierung „Ersparnis“, einstellbare Tankmenge), #100. In den Mockups: Sortier-Chip „Ersparnis“, Karte „Kosten mit Anfahrt“
 2. Favoriten-Tankstellen, Navigation, Abstand zum günstigsten Preis, #102
 3. Home: Karte „Günstig tanken in der Nähe“ (lädt keine Preise von selbst), Prognose der Monatsausgaben, #101
 4. Verbrauch gegen Herstellerangabe, Filter im Verlauf, #103
-5. Texterkennung auf dem Belegfoto, auf dem Gerät mit ML Kit (keine Cloud-OCR), #106
+5. Texterkennung auf dem Belegfoto, auf dem Gerät mit ML Kit (keine Cloud-OCR, ADR für die native Abhängigkeit folgt), #106
 6. Passwort zurücksetzen und ändern, #104
 7. CSV-Export (Download-Icon im Monatsvergleich), #105
 8. Englische Texte, #59
