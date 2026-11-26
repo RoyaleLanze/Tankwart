@@ -22,9 +22,7 @@ export class StationsError extends Error {
 
 /** Stations in the radius with all three prices. Throws a StationsError. */
 export async function searchStations({ position, radiusKm }: StationSearch): Promise<StationList> {
-  const { data, error } = await supabase.functions.invoke("prices", {
-    body: { action: "list", lat: position.lat, lng: position.lng, radiusKm },
-  });
+  const { data, error } = await invokeList({ position, radiusKm });
   if (error) throw new StationsError(await errorCode(error), { cause: error });
   try {
     return parseStationList(data);
@@ -33,11 +31,29 @@ export async function searchStations({ position, radiusKm }: StationSearch): Pro
   }
 }
 
+async function invokeList({ position, radiusKm }: StationSearch) {
+  try {
+    return await supabase.functions.invoke("prices", {
+      body: { action: "list", lat: position.lat, lng: position.lng, radiusKm },
+    });
+  } catch (cause) {
+    // invoke normally returns its errors; a thrown one (e.g. a TypeError) never reached the function.
+    throw new StationsError("network", { cause });
+  }
+}
+
+const CODE_BY_STATUS: Partial<Record<number, StationsErrorCode>> = {
+  401: "unauthorized",
+  429: "rateLimited",
+};
+
 async function errorCode(error: unknown): Promise<StationsErrorCode> {
   if (error instanceof FunctionsFetchError) return "network";
   if (!(error instanceof FunctionsHttpError)) return "unknown";
   // For a non-2xx answer the context is the Response, whose body is { error: code }.
   const response: Response = error.context;
   const body: unknown = await response.json().catch(() => null);
-  return pricesErrorCode(body);
+  const code = pricesErrorCode(body);
+  // A gateway can answer for the function (e.g. 401 or 429) without our body.
+  return code === "unknown" ? (CODE_BY_STATUS[response.status] ?? "unknown") : code;
 }

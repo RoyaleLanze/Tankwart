@@ -48,6 +48,25 @@ describe("searchStations", () => {
     expect(await codeOf(searchStations(SEARCH))).toBe("unknown");
   });
 
+  it.each([
+    [401, "unauthorized"],
+    [429, "rateLimited"],
+    [500, "unknown"],
+  ])("falls back on status %i if the body has no code", async (status, code) => {
+    failWith(httpError(status, "<html>Gateway</html>"));
+    expect(await codeOf(searchStations(SEARCH))).toBe(code);
+  });
+
+  it("prefers the code of the body over the status", async () => {
+    failWith(httpError(401, JSON.stringify({ error: "outsideGermany" })));
+    expect(await codeOf(searchStations(SEARCH))).toBe("outsideGermany");
+  });
+
+  it("wraps a thrown error of invoke as network", async () => {
+    invoke.mockRejectedValueOnce(new TypeError("Network request failed"));
+    expect(await codeOf(searchStations(SEARCH))).toBe("network");
+  });
+
   it("reports network if the request did not reach the function", async () => {
     failWith(new FunctionsFetchError(new TypeError("Network request failed")));
     expect(await codeOf(searchStations(SEARCH))).toBe("network");
