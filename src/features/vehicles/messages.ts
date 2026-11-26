@@ -27,6 +27,8 @@ export const LOAD_ERROR_TEXT =
   "Deine Fahrzeuge konnten nicht geladen werden. Prüfe deine Internetverbindung und versuche es erneut.";
 export const SAVE_ERROR_TEXT =
   "Das Fahrzeug konnte nicht gespeichert werden. Prüfe deine Internetverbindung und versuche es erneut.";
+export const SWITCH_ERROR_TEXT =
+  "Das Fahrzeug konnte nicht gewechselt werden. Prüfe deine Internetverbindung und versuche es erneut.";
 
 /** Shown if a validation message is not one of our codes, so the user never sees a raw code. */
 export const UNKNOWN_ERROR_TEXT = "Bitte prüfe deine Eingabe.";

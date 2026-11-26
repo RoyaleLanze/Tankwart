@@ -2,7 +2,7 @@ import { Controller, type Control, type FieldValues, type Path } from "react-hoo
 import { StyleSheet, View } from "react-native";
 import { Chip, HelperText, Text } from "react-native-paper";
 
-import { sizes, spacing, useAppTheme } from "@/lib/theme";
+import { CHIP_HIT_SLOP, spacing, useAppTheme } from "@/lib/theme";
 
 type Option = { value: string; label: string };
 
@@ -15,11 +15,6 @@ type Props<T extends FieldValues, TTransformed> = {
   /** Turns a validation code from the schema into the text shown to the user (ADR 0014). */
   errorText: (message: string) => string;
 };
-
-// Paper's M3 chips are 32 dp high; the hit slop brings the touch area to touch-min.
-const PAPER_CHIP_HEIGHT = 32;
-const VERTICAL_SLOP = (sizes("touch-min") - PAPER_CHIP_HEIGHT) / 2;
-const CHIP_HIT_SLOP = { top: VERTICAL_SLOP, bottom: VERTICAL_SLOP };
 
 /**
  * Exactly one choice from a few options as filter chips, bound to react-hook-form
