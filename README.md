@@ -43,7 +43,7 @@ Datenbank neu aufsetzen (löscht alle lokalen Daten, spielt Migrationen und `sup
 npx supabase db reset
 ```
 
-Der Seed legt zwei Testnutzer mit Betankungen über rund 12 Monate an (beim Corsa rund 10). Die Zugangsdaten gelten **nur lokal**, der Seed wird nie in die Cloud gespielt (`db push` überträgt nur Migrationen). Deshalb gegen die Cloud **nie** `db reset --linked` oder `db push --include-seed` ausführen, sonst gäbe es dort zwei Konten mit öffentlich bekanntem Passwort.
+Der Seed legt zwei Testnutzer mit Betankungen über rund 12 Monate an (beim Corsa rund 10). Die Zugangsdaten gelten **nur lokal**, der Seed wird nie in die Cloud gespielt (`db push --remote` überträgt nur Migrationen). Deshalb gegen die Cloud **nie** `db reset --remote` oder `db push --remote --include-seed` ausführen, sonst gäbe es dort zwei Konten mit öffentlich bekanntem Passwort.
 
 | E-Mail | Passwort | Fahrzeuge |
 |---|---|---|
@@ -61,7 +61,17 @@ npx supabase login
 npx supabase link --project-ref <project-ref>   # Dashboard → Project Settings → General → Project ID
 ```
 
-Migrationen in die Cloud spielen: `npx supabase db push`. Für die App gegen die Cloud stehen in `.env` die Projekt-URL und der Publishable Key aus dem Dashboard (Project Settings → API Keys).
+Die Datenbank-Befehle der CLI (`db push`, `db reset`, `migration list`) zielen ohne weitere Angabe auf die **lokale** Instanz. Für das verknüpfte Cloud-Projekt braucht es `--remote`. `functions deploy` und `secrets` zielen immer auf die Cloud.
+
+```bash
+npx supabase db push --remote --dry-run   # zeigt, welche Migrationen in der Cloud fehlen
+npx supabase db push --remote             # spielt sie ein (nur Migrationen, kein Seed)
+npx supabase functions deploy prices      # deployt die Edge Function
+```
+
+Den Tankerkönig-Key im Dashboard unter Edge Functions → Secrets als `TANKERKOENIG_API_KEY` eintragen. So landet er nicht in der Shell-History. `PRICES_MOCK` bleibt in der Cloud ungesetzt, dann liefert die Function echte Preise.
+
+Für die App gegen die Cloud stehen in `.env` die Projekt-URL und der Publishable Key aus dem Dashboard (Project Settings → API Keys).
 
 ## Tests
 
@@ -87,7 +97,7 @@ Deno muss nicht installiert sein, es läuft über `npx deno@2`. Die Befehle im F
 cd supabase/functions/prices && npx deno@2 test
 ```
 
-Lokal im Mock-Modus (feste Beispielpreise, kein Tankerkönig-Key nötig): `cp supabase/functions/.env.example supabase/functions/.env` und darin `PRICES_MOCK=true` lassen, danach `npx supabase start` bzw. `npx supabase functions serve`. Für echte Preise `PRICES_MOCK=false` und `TANKERKOENIG_API_KEY` setzen, in der Cloud nur als Secret: `npx supabase secrets set TANKERKOENIG_API_KEY=…`.
+Lokal im Mock-Modus (feste Beispielpreise, kein Tankerkönig-Key nötig): `cp supabase/functions/.env.example supabase/functions/.env` und darin `PRICES_MOCK=true` lassen, danach `npx supabase start` bzw. `npx supabase functions serve`. Für echte Preise `PRICES_MOCK=false` und `TANKERKOENIG_API_KEY` setzen, in der Cloud nur als Secret (siehe [Supabase Cloud](#supabase-cloud)).
 
 Auch im Mock-Modus lehnt die Function Positionen außerhalb Deutschlands ab (`outsideGermany`). Der Emulator braucht deshalb einen Standort in Deutschland, z. B. Karlsruhe (Reihenfolge Länge, Breite): `adb -s <serial> emu geo fix 8.4037 49.0069`.
 
