@@ -66,16 +66,8 @@ export function formatPricePerLiter(tenthCents: number): PricePerLiterParts {
 
 // Dates from the database are ISO dates without time ("2026-11-18"). They are read and
 // formatted in UTC, so the device time zone can never shift them to the previous day.
-const dayShort = new Intl.DateTimeFormat(LOCALE, {
-  day: "numeric",
-  month: "short",
-  timeZone: "UTC",
-});
-const monthLong = new Intl.DateTimeFormat(LOCALE, {
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
+const dayShort = new Intl.DateTimeFormat(LOCALE, { day: "numeric", month: "short", timeZone: "UTC" });
+const monthLong = new Intl.DateTimeFormat(LOCALE, { month: "long", year: "numeric", timeZone: "UTC" });
 const timeOfDay = new Intl.DateTimeFormat(LOCALE, { hour: "2-digit", minute: "2-digit" });
 
 function parseIsoDate(isoDate: string): Date {
