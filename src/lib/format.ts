@@ -1,13 +1,11 @@
 // Central German formatting for amounts and dates. Inputs use the database units
 // (cents, ml, tenths of a cent, km), so callers never convert on their own.
-import { ML_PER_LITER, TENTH_CENTS_PER_CENT } from "./units";
+import { CENTS_PER_EURO, ML_PER_LITER, TENTH_CENTS_PER_CENT, TENTH_CENTS_PER_EURO } from "./units";
 
 const LOCALE = "de-DE";
 /** Non-breaking space, so a value never wraps away from its unit. */
 const NBSP = "\u00A0";
 
-const CENTS_PER_EURO = 100;
-const TENTH_CENTS_PER_EURO = CENTS_PER_EURO * TENTH_CENTS_PER_CENT;
 /** Unit after every euro amount, e.g. "182,40 €". */
 export const EURO_SUFFIX = `${NBSP}€`;
 
@@ -68,8 +66,16 @@ export function formatPricePerLiter(tenthCents: number): PricePerLiterParts {
 
 // Dates from the database are ISO dates without time ("2026-11-18"). They are read and
 // formatted in UTC, so the device time zone can never shift them to the previous day.
-const dayShort = new Intl.DateTimeFormat(LOCALE, { day: "numeric", month: "short", timeZone: "UTC" });
-const monthLong = new Intl.DateTimeFormat(LOCALE, { month: "long", year: "numeric", timeZone: "UTC" });
+const dayShort = new Intl.DateTimeFormat(LOCALE, {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
+const monthLong = new Intl.DateTimeFormat(LOCALE, {
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
 const timeOfDay = new Intl.DateTimeFormat(LOCALE, { hour: "2-digit", minute: "2-digit" });
 
 function parseIsoDate(isoDate: string): Date {
