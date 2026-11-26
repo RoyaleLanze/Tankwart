@@ -17,3 +17,11 @@ export function parseDecimal(text: string): number {
   const trimmed = text.trim();
   return DECIMAL.test(trimmed) ? Number(trimmed.replace(",", ".")) : Number.NaN;
 }
+
+/**
+ * 45.5 → "45,5", the text a decimal field starts with when editing. The way back to
+ * parseDecimal: all digits, no rounding and no unit, so saving unchanged keeps the value.
+ */
+export function decimalInputText(value: number): string {
+  return String(value).replace(".", ",");
+}

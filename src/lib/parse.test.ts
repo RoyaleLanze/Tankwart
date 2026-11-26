@@ -1,4 +1,4 @@
-import { parseDecimal, parseWholeNumber } from "./parse";
+import { decimalInputText, parseDecimal, parseWholeNumber } from "./parse";
 
 describe("parseWholeNumber", () => {
   it.each([
@@ -33,6 +33,18 @@ describe("parseDecimal", () => {
 
   it("reads a dot as decimal separator, never as thousands separator", () => {
     expect(parseDecimal("1.000")).toBe(1);
+  });
+});
+
+describe("decimalInputText", () => {
+  it.each([
+    [50, "50"],
+    [45.5, "45,5"],
+    [45.501, "45,501"],
+    [0.001, "0,001"],
+  ])("writes %d as %j, which parseDecimal reads back", (value, text) => {
+    expect(decimalInputText(value)).toBe(text);
+    expect(parseDecimal(text)).toBe(value);
   });
 });
 
