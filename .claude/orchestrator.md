@@ -24,6 +24,7 @@ Gilt für jede Sitzung von @SealJonny und @RoyaleLanze. `CLAUDE.md` bindet diese
   | triviales Nachschlagen | `haiku` |
 
   Die Wahl wird beim Start in einem Satz begründet.
+- **Hintergrundprozesse:** Ein Agent beendet alles, was er selbst im Hintergrund startet (Supabase-Function-Server, Metro, Emulator-Hilfsprozesse), bevor er berichtet. Sonst wartet er endlos auf die Shell. Der Orchestrator schreibt das in jeden Auftrag.
 - **Tokensparend arbeiten:** knappe Aufträge mit Pfaden statt kopierten Dateiinhalten. Keine Agents für Dinge, die ein einzelner `gh`- oder `grep`-Aufruf erledigt. Laufende Agents nicht nur wegen des Modells neu starten.
 
 ## Kommunikation
