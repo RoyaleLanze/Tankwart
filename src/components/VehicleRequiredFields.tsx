@@ -19,6 +19,16 @@ type Props = {
   onLastFieldSubmit: () => void;
   /** The action key's label in the last field: "done" when it saves, "next" when more follows. */
   lastReturnKeyType?: "done" | "next";
+  /** Label and hint of the odometer field, e.g. when editing an existing vehicle. */
+  odometerText?: OdometerText;
+};
+
+export type OdometerText = { label: string; helperText: string };
+
+// When a vehicle is added, the odometer it has today is where its distances start.
+const CURRENT_ODOMETER: OdometerText = {
+  label: "Aktueller Kilometerstand",
+  helperText: "Ab diesem Stand werden deine Strecken gezählt.",
 };
 
 /** The four fields every vehicle needs (M1), as in mockup 7.2. */
@@ -27,6 +37,7 @@ export function VehicleRequiredFields({
   setFocus,
   onLastFieldSubmit,
   lastReturnKeyType = "done",
+  odometerText = CURRENT_ODOMETER,
 }: Props) {
   return (
     <View style={styles.fields}>
@@ -50,10 +61,10 @@ export function VehicleRequiredFields({
       <FormTextField
         control={control}
         name="initialOdometerKm"
-        label="Aktueller Kilometerstand"
+        label={odometerText.label}
         icon="speedometer"
         right={<TextInput.Affix text="km" />}
-        helperText="Ab diesem Stand werden deine Strecken gezählt."
+        helperText={odometerText.helperText}
         errorText={vehicleErrorText}
         keyboardType="number-pad"
         returnKeyType="next"

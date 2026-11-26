@@ -4,7 +4,7 @@ import { Avatar, Card, IconButton, Menu } from "react-native-paper";
 
 import { FUEL_TYPE_LABELS } from "@/features/vehicles/messages";
 import type { Vehicle } from "@/features/vehicles/types";
-import { radius, useAppTheme } from "@/lib/theme";
+import { radius, sizes, useAppTheme } from "@/lib/theme";
 
 type Props = {
   vehicle: Vehicle;
@@ -32,6 +32,9 @@ export function VehicleCard({ vehicle, onEdit }: Props) {
       <Card.Title
         title={vehicle.name}
         titleVariant="titleMedium"
+        // Large font sizes wrap instead of cutting off the fuel type.
+        titleNumberOfLines={2}
+        subtitleNumberOfLines={2}
         subtitle={details}
         subtitleStyle={{ color: colors.onSurfaceVariant }}
         left={() => (
@@ -48,11 +51,15 @@ export function VehicleCard({ vehicle, onEdit }: Props) {
           <Menu
             visible={isMenuOpen}
             onDismiss={() => setIsMenuOpen(false)}
+            // Paper's default is English; TalkBack reads it on Android.
+            overlayAccessibilityLabel="Menü schließen"
             anchor={
               <IconButton
                 icon="dots-vertical"
                 onPress={() => setIsMenuOpen(true)}
                 accessibilityLabel={`Optionen für ${vehicle.name}`}
+                accessibilityState={{ expanded: isMenuOpen }}
+                style={styles.menuButton}
               />
             }
           >
@@ -75,5 +82,12 @@ const styles = StyleSheet.create({
   // Paper reserves 40 dp for the left element; the mockup's avatar is 44 dp.
   avatar: {
     width: AVATAR_SIZE,
+  },
+  // Paper's icon button is 40 dp. Its hitSlop does not work on Android, because the button
+  // clips its content (overflow hidden), so the button itself gets touch-min (tested on device).
+  menuButton: {
+    width: sizes("touch-min"),
+    height: sizes("touch-min"),
+    borderRadius: radius("radius-full"),
   },
 });
