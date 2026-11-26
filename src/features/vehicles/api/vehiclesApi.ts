@@ -21,8 +21,11 @@ function toVehicle(row: Tables<"vehicles">): Vehicle {
   };
 }
 
+/** Only the columns the user sets, so id, user_id and created_at can never be sent. */
+type VehicleRow = Omit<TablesInsert<"vehicles">, "id" | "user_id" | "created_at">;
+
 /** The columns the user sets. user_id is filled in by the database (default auth.uid()). */
-function toRow(input: VehicleInput): TablesInsert<"vehicles"> {
+function toRow(input: VehicleInput): VehicleRow {
   return {
     name: input.name,
     fuel_type: input.fuelType,
@@ -34,9 +37,9 @@ function toRow(input: VehicleInput): TablesInsert<"vehicles"> {
   };
 }
 
-/** All vehicles of the signed-in user, oldest first. */
+/** All vehicles of the signed-in user, oldest first; the id keeps the order stable on ties. */
 export async function listVehicles(): Promise<Vehicle[]> {
-  const { data, error } = await supabase.from("vehicles").select().order("created_at");
+  const { data, error } = await supabase.from("vehicles").select().order("created_at").order("id");
   if (error) throw error;
   return data.map(toVehicle);
 }

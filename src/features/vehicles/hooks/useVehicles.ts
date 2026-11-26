@@ -39,5 +39,8 @@ export function useUpdateVehicle(id: string) {
       queryClient.setQueryData<Vehicle[]>(VEHICLES_KEY, (vehicles) =>
         vehicles?.map((vehicle) => (vehicle.id === updated.id ? updated : vehicle)),
       ),
+    // The list may be out of date, e.g. the vehicle was deleted on another device. Reloading it
+    // lets the edit screen show that, instead of failing again with the same error.
+    onError: () => queryClient.invalidateQueries({ queryKey: VEHICLES_KEY }),
   });
 }
