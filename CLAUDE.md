@@ -130,6 +130,10 @@ Erst danach merged der Orchestrator, sofern die übrigen Kriterien erfüllt sind
 | `security-reviewer` | RLS, Secrets, Berechtigungen, Datenfluss (nur lesend) |
 | `code-reviewer` | Korrektheits-Review jeder PR mit dem Skill `code-review` (Stufe medium, nur lesend) |
 
+Die Hauptsitzung ist der Orchestrator: Sie plant, delegiert, prüft und merged, implementiert aber nicht selbst. Rolle, Modellwahl pro Agent, Parallelität und Worktrees stehen in der folgenden Datei, die mit dieser Datei geladen wird:
+
+@.claude/orchestrator.md
+
 ## Expo-Plugin
 
 Das offizielle Expo-Plugin (`expo@claude-plugins-official`) wird über `.claude/settings.json` (`enabledPlugins`) für beide aktiviert (Skills `expo:*`, z. B. `expo-router`, `expo-data-fetching`, `expo-upgrade`). Nutzt es für aktuelle API-Details, Setup und SDK-Fragen. **Bei Widersprüchen gelten unsere ADRs.** Ein Beispiel: Das Plugin empfiehlt `@expo/ui` oder NativeTabs, wir nutzen react-native-paper (ADR 0004). Eine Abweichung davon wäre eine neue ADR.
