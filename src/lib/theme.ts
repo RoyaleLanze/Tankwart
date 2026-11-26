@@ -70,6 +70,11 @@ export const sizes = scale(tokens.size, ["touch-min", "top-app-bar", "navigation
 /** Material 3 standard icon size in dp. */
 export const ICON_SIZE = 24;
 
+// Paper's M3 chips are 32 dp high; the hit slop brings the touch area to touch-min.
+const PAPER_CHIP_HEIGHT = 32;
+const CHIP_VERTICAL_SLOP = (sizes("touch-min") - PAPER_CHIP_HEIGHT) / 2;
+export const CHIP_HIT_SLOP = { top: CHIP_VERTICAL_SLOP, bottom: CHIP_VERTICAL_SLOP };
+
 // Family names and weights as embedded by the expo-font plugin in app.json.
 const FONT_FAMILIES: Record<string, string> = { display: "Manrope", sans: "Inter" };
 const FONT_WEIGHTS: Record<number, FontStyle["fontWeight"]> = {
