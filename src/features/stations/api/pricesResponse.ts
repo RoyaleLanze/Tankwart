@@ -8,13 +8,16 @@ import type { Station, StationList } from "../types";
 
 /** Euros per liter → tenths of a cent. Tankerkönig reports a missing price as false or null. */
 function toTenthCents(value: unknown): number | null {
-  // 0 is no real price either; it must never count as the cheapest (#66).
-  if (typeof value !== "number" || value <= 0) return null;
-  return Math.round(value * TENTH_CENTS_PER_EURO);
+  if (typeof value !== "number") return null;
+  const tenthCents = Math.round(value * TENTH_CENTS_PER_EURO);
+  // 0 (or less, or a price below half a tenth cent) is no real price; it must never count
+  // as the cheapest (#66).
+  return tenthCents > 0 ? tenthCents : null;
 }
 
 const price = z.unknown().transform(toTenthCents);
-// Tankerkönig sends missing texts as "" or null; the app only knows null.
+// Tankerkönig sends missing texts as "" or null; the app only knows null. Only id, name,
+// distance and open state are required for a station, the address parts are optional.
 const optionalText = z
   .string()
   .nullish()
@@ -25,9 +28,9 @@ const stationSchema = z
     id: z.string(),
     name: z.string(),
     brand: optionalText,
-    street: z.string(),
+    street: optionalText,
     houseNumber: optionalText,
-    place: z.string(),
+    place: optionalText,
     dist: z.number().nonnegative(),
     isOpen: z.boolean(),
     e5: price,
@@ -41,11 +44,19 @@ const stationSchema = z
   }));
 
 const stationListSchema = z.object({
-  stations: z.array(stationSchema),
+  stations: z.array(z.unknown()),
   fetchedAt: z.iso.datetime().transform((iso) => new Date(iso)),
 });
 
-/** Throws a ZodError if the answer does not have the expected shape. */
+/**
+ * Throws a ZodError if the answer as a whole is malformed. A single malformed station is
+ * skipped instead, so one bad entry does not hide the other stations.
+ */
 export function parseStationList(body: unknown): StationList {
-  return stationListSchema.parse(body);
+  const { stations, fetchedAt } = stationListSchema.parse(body);
+  const parsed = stations.map((station) => stationSchema.safeParse(station));
+  return {
+    stations: parsed.flatMap((result) => (result.success ? [result.data] : [])),
+    fetchedAt,
+  };
 }

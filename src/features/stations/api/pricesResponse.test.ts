@@ -53,6 +53,11 @@ describe("parseStationList", () => {
     expect(station.distanceMeters).toBe(4200);
   });
 
+  it("treats a price that rounds to 0 tenth cents as not sold", () => {
+    expect(parseOne({ e5: 0.0004 }).pricesTenthCents.e5).toBeNull();
+    expect(parseOne({ e5: 0.0005 }).pricesTenthCents.e5).toBe(1);
+  });
+
   it.each([[false], [null], [0], [-1.5], ["1.749"], [undefined]])(
     "treats the price %j as not sold",
     (e10) => {
@@ -66,6 +71,39 @@ describe("parseStationList", () => {
     expect(station.houseNumber).toBeNull();
   });
 
+  it("keeps a station without street, house number, place and brand", () => {
+    const station = parseOne({ street: null, houseNumber: null, place: "", brand: undefined });
+    expect(station).toMatchObject({ street: null, houseNumber: null, place: null, brand: null });
+  });
+
+  it("accepts a distance of 0 and skips a negative one", () => {
+    const body = {
+      stations: [apiStation({ id: "a", dist: 0 }), apiStation({ id: "b", dist: -0.1 })],
+      fetchedAt: FETCHED_AT,
+    };
+    const { stations } = parseStationList(body);
+    expect(stations.map((station) => station.id)).toEqual(["a"]);
+    expect(stations[0].distanceMeters).toBe(0);
+  });
+
+  it("skips only the invalid station and keeps the rest", () => {
+    const body = {
+      stations: [
+        apiStation({ id: "a" }),
+        apiStation({ id: undefined }),
+        "junk",
+        apiStation({ id: "b" }),
+      ],
+      fetchedAt: FETCHED_AT,
+    };
+    expect(parseStationList(body).stations.map((station) => station.id)).toEqual(["a", "b"]);
+  });
+
+  it("reads the fetch time in the format toISOString() sends", () => {
+    const iso = new Date(Date.UTC(2026, 10, 26, 9, 52, 0, 123)).toISOString();
+    expect(parseStationList({ stations: [], fetchedAt: iso }).fetchedAt).toEqual(new Date(iso));
+  });
+
   it("returns an empty list when no station is in the radius", () => {
     expect(parseStationList({ stations: [], fetchedAt: FETCHED_AT }).stations).toEqual([]);
   });
@@ -75,9 +113,7 @@ describe("parseStationList", () => {
     ["no stations", { fetchedAt: FETCHED_AT }],
     ["no fetch time", { stations: [] }],
     ["an invalid fetch time", { stations: [], fetchedAt: "gestern" }],
-    ["a station without id", { stations: [apiStation({ id: undefined })], fetchedAt: FETCHED_AT }],
-    ["a text distance", { stations: [apiStation({ dist: "0.8" })], fetchedAt: FETCHED_AT }],
-    ["no open state", { stations: [apiStation({ isOpen: null })], fetchedAt: FETCHED_AT }],
+    ["stations of the wrong type", { stations: "none", fetchedAt: FETCHED_AT }],
   ])("rejects an answer with %s", (_case, body) => {
     expect(() => parseStationList(body)).toThrow();
   });
