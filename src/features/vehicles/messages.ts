@@ -28,6 +28,14 @@ export const LOAD_ERROR_TEXT =
 export const SAVE_ERROR_TEXT =
   "Das Fahrzeug konnte nicht gespeichert werden. Prüfe deine Internetverbindung und versuche es erneut.";
 
+/** Edit screen of a vehicle that was deleted meanwhile, e.g. on another device. */
+export const NOT_FOUND_TEXT = "Dieses Fahrzeug gibt es nicht mehr.";
+
+/** "1 Fahrzeug", "2 Fahrzeuge" (settings, mockup 7.9). */
+export function vehicleCountText(count: number): string {
+  return count === 1 ? "1 Fahrzeug" : `${count} Fahrzeuge`;
+}
+
 /** Shown if a validation message is not one of our codes, so the user never sees a raw code. */
 export const UNKNOWN_ERROR_TEXT = "Bitte prüfe deine Eingabe.";
 

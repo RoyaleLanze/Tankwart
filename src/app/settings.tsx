@@ -1,18 +1,31 @@
+import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
-import { Button, HelperText } from "react-native-paper";
+import { Button, HelperText, List } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { PlaceholderScreen } from "@/components/PlaceholderScreen";
 import { useSignOut } from "@/features/auth/hooks/useSignOut";
+import { useVehicles } from "@/features/vehicles/hooks/useVehicles";
+import { vehicleCountText } from "@/features/vehicles/messages";
 import { sizes, spacing } from "@/lib/theme";
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { signOut, isSigningOut, error } = useSignOut();
+  const { data: vehicles = [] } = useVehicles();
 
   return (
     <View style={styles.screen}>
-      <PlaceholderScreen />
-      {/* Temporary until the settings screen issue adds the account section. */}
+      {/* The other sections of mockup 7.9 follow with the settings screen issue. */}
+      <List.Section title="Fahrzeuge">
+        <List.Item
+          title="Fahrzeuge verwalten"
+          description={vehicleCountText(vehicles.length)}
+          left={(props) => <List.Icon {...props} icon="car-outline" />}
+          right={(props) => <List.Icon {...props} icon="chevron-right" />}
+          onPress={() => router.push("/vehicles")}
+          accessibilityRole="button"
+        />
+      </List.Section>
       {/* The app is drawn edge to edge, so keep the button above the system navigation. */}
       <SafeAreaView edges={["bottom"]} style={styles.account}>
         {error && (
@@ -39,7 +52,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
+  // Pushes the sign-out button to the bottom.
   account: {
+    marginTop: "auto",
     padding: spacing("space-4"),
   },
   buttonContent: {

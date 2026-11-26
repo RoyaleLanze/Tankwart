@@ -120,6 +120,9 @@ function RootNavigator({ isSignedIn }: { isSignedIn: boolean }) {
       <Stack.Protected guard={isSignedIn && hasVehicle}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ title: "Einstellungen" }} />
+        <Stack.Screen name="vehicles/index" options={{ title: "Fahrzeuge" }} />
+        <Stack.Screen name="vehicles/new" options={{ title: "Fahrzeug hinzufügen" }} />
+        <Stack.Screen name="vehicles/[id]" options={{ title: "Fahrzeug bearbeiten" }} />
       </Stack.Protected>
       {/* Without a vehicle the app leads straight to adding one (M1). */}
       <Stack.Protected guard={isSignedIn && !hasVehicle}>
