@@ -46,7 +46,8 @@ function toRow(input: RefuelingInput): Omit<TablesInsert<"refuelings">, "vehicle
 
 /**
  * All refuelings of one vehicle, newest first as the history shows them (M6). On the same day
- * the higher odometer is the later refueling (ADR 0012).
+ * the higher odometer is the later refueling (ADR 0012). There is no `.range()`: PostgREST's
+ * max_rows (1000 on hosted Supabase) caps the list, far above realistic use.
  */
 export async function listRefuelings(vehicleId: string): Promise<Refueling[]> {
   const { data, error } = await supabase

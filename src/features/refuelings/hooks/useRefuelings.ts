@@ -16,7 +16,11 @@ export function refuelingsKey(vehicleId: string | undefined) {
   return ["refuelings", vehicleId] as const;
 }
 
-/** Refuelings of a vehicle, newest first. Waits while no vehicle is known yet. */
+/**
+ * Refuelings of a vehicle, newest first. Without a vehicleId the query stays `pending` with
+ * `fetchStatus: "idle"` (skipToken), so screens must use `isLoading`/`fetchStatus` instead of
+ * `isPending`, and `refetch()` is not allowed then.
+ */
 export function useRefuelings(vehicleId: string | undefined) {
   return useQuery({
     queryKey: refuelingsKey(vehicleId),
