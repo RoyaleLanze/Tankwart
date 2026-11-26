@@ -48,6 +48,7 @@ npm-debug.*
 
 # Claude Code (lokale Einstellungen)
 .claude/settings.local.json
+.claude/worktrees/
 
 # Expo-Template
 .kotlin/
