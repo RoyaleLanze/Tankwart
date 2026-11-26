@@ -121,6 +121,36 @@ describe("sortStations", () => {
     expect(ids(sortStations(withClosed, "e5", "distance"))).toEqual(["closedNear", "open"]);
   });
 
+  it("puts a station without a diesel price last even if it is nearer and has an e5 price", () => {
+    const fuels = [
+      station("onlyE5", 100, 1699),
+      station("hasDiesel", 4000, 1800, { pricesTenthCents: { e5: 1800, e10: null, diesel: 1609 } }),
+    ];
+    expect(ids(sortStations(fuels, "diesel", "price"))).toEqual(["hasDiesel", "onlyE5"]);
+    expect(ids(sortStations(fuels, "diesel", "distance"))).toEqual(["hasDiesel", "onlyE5"]);
+  });
+
+  it("sorts by price when all stations are closed", () => {
+    const allClosed = [
+      station("dear", 100, 1799, { isOpen: false }),
+      station("cheap", 3000, 1699, { isOpen: false }),
+      station("middle", 500, 1749, { isOpen: false }),
+    ];
+    expect(ids(sortStations(allClosed, "e5", "price"))).toEqual(["cheap", "middle", "dear"]);
+  });
+
+  it("puts the open station first on equal price and distance, before the id rule", () => {
+    const tied = [station("a", 500, 1749, { isOpen: false }), station("b", 500, 1749)];
+    expect(ids(sortStations(tied, "e5", "price"))).toEqual(["b", "a"]);
+  });
+
+  it("handles a single station with and without a price", () => {
+    expect(ids(sortStations([station("priced", 500, 1749)], "e5", "price"))).toEqual(["priced"]);
+    expect(ids(sortStations([station("unpriced", 500, null)], "e5", "price"))).toEqual([
+      "unpriced",
+    ]);
+  });
+
   it("returns an empty list for no stations", () => {
     expect(sortStations([], "e5", "price")).toEqual([]);
   });
