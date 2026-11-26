@@ -11,9 +11,11 @@ export function pickActiveVehicle(
 ): Vehicle | undefined {
   const chosen = vehicles.find((vehicle) => vehicle.id === activeVehicleId);
   if (chosen) return chosen;
-  // ISO timestamps compare correctly as strings; on a tie the later one in the list wins.
+  // Compared as instants: offsets, "Z" vs "+00:00" and fraction lengths break string order.
+  // On a tie the later one in the list wins.
   return vehicles.reduce<Vehicle | undefined>(
-    (latest, vehicle) => (!latest || vehicle.createdAt >= latest.createdAt ? vehicle : latest),
+    (latest, vehicle) =>
+      !latest || Date.parse(vehicle.createdAt) >= Date.parse(latest.createdAt) ? vehicle : latest,
     undefined,
   );
 }
