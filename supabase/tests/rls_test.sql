@@ -1,7 +1,7 @@
 -- RLS tests with two users (M14): user A must neither read nor write user B's data.
 -- Silent RLS effects (0 rows updated/deleted) are verified afterwards as postgres.
 begin;
-select plan(45);
+select plan(49);
 
 -- Fixtures, created as postgres (bypasses RLS).
 insert into auth.users (id, email) values
@@ -97,19 +97,42 @@ select throws_ok(
     values ('bbbbbbbb-0000-0000-0000-0000000000f2', 'aaaaaaaa-0000-0000-0000-00000000000a', '2026-11-05', 10000, 1700, 1700, 1700, 'Esso')$$,
   '23505', 'duplicate key value violates unique constraint "refuelings_pkey"',
   'A reusing B''s refueling id on an own vehicle gets 23505 on the primary key');
+-- Positive control: an upsert on an own id updates the row (reset afterwards).
+select lives_ok(
+  $$insert into public.refuelings (id, vehicle_id, refueled_on, volume_ml, price_per_liter_tenth_cents, total_cents, odometer_km, station_name, note)
+    values ('aaaaaaaa-0000-0000-0000-0000000000f1', 'aaaaaaaa-0000-0000-0000-00000000000a', '2026-11-01', 40000, 1749, 6996, 1500, 'Aral', 'upserted')
+    on conflict (id) do update set note = excluded.note$$,
+  'A can upsert an own refueling');
+select is((select note from public.refuelings where id = 'aaaaaaaa-0000-0000-0000-0000000000f1'), 'upserted',
+  'the upsert on an own id changes the row');
+update public.refuelings set note = null where id = 'aaaaaaaa-0000-0000-0000-0000000000f1';
 select throws_ok(
   $$insert into public.refuelings (id, vehicle_id, refueled_on, volume_ml, price_per_liter_tenth_cents, total_cents, odometer_km, station_name)
     values ('bbbbbbbb-0000-0000-0000-0000000000f2', 'aaaaaaaa-0000-0000-0000-00000000000a', '2026-11-05', 10000, 1700, 1700, 1700, 'Esso')
     on conflict (id) do update set note = 'Hacked', vehicle_id = excluded.vehicle_id$$,
-  '42501', null, 'A cannot upsert over B''s refueling');
+  '42501', 'new row violates row-level security policy (USING expression) for table "refuelings"',
+  'A cannot upsert over B''s refueling');
+-- Deliberately accepted existence oracle (#120, ADR 0017): 0 rows means the id is taken, nothing of B is returned.
+select is_empty(
+  $$insert into public.refuelings (id, vehicle_id, refueled_on, volume_ml, price_per_liter_tenth_cents, total_cents, odometer_km, station_name)
+    values ('bbbbbbbb-0000-0000-0000-0000000000f2', 'aaaaaaaa-0000-0000-0000-00000000000a', '2026-11-05', 10000, 1700, 1700, 1700, 'Esso')
+    on conflict (id) do nothing returning id$$,
+  'on conflict do nothing with B''s id inserts and returns nothing');
+select throws_ok(
+  $$update public.refuelings set id = 'bbbbbbbb-0000-0000-0000-0000000000f2'
+    where id = 'aaaaaaaa-0000-0000-0000-0000000000f1'$$,
+  '23505', 'duplicate key value violates unique constraint "refuelings_pkey"',
+  'A renaming an own refueling to B''s id gets 23505 on the primary key');
+select results_eq(
+  $$select vehicle_id, note, odometer_km from public.refuelings where id = 'aaaaaaaa-0000-0000-0000-0000000000f1'$$,
+  $$values ('aaaaaaaa-0000-0000-0000-00000000000a'::uuid, null::text, 1500)$$,
+  'A''s refueling keeps its id after the failed rename');
 
 select set_config('request.jwt.claims', '{"sub":"bbbbbbbb-0000-0000-0000-000000000000","role":"authenticated"}', true);
 select results_eq(
   $$select vehicle_id, note, odometer_km from public.refuelings where id = 'bbbbbbbb-0000-0000-0000-0000000000f2'$$,
   $$values ('bbbbbbbb-0000-0000-0000-00000000000b'::uuid, 'orig'::text, 2500)$$,
   'B''s refueling is unchanged after the id collisions');
-select is((select count(*) from public.refuelings where id = 'bbbbbbbb-0000-0000-0000-0000000000f2'), 1::bigint,
-  'B still sees exactly one row with that id');
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-000000000000","role":"authenticated"}', true);
 select throws_ok(
   $$update public.refuelings set vehicle_id = 'bbbbbbbb-0000-0000-0000-00000000000b'
