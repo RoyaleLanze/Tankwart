@@ -22,6 +22,8 @@ const ERROR_KEYS: Record<VehicleErrorCode, TextKey> = {
   tankCapacityInvalid: "vehicles.errors.tankCapacityInvalid",
   consumptionInvalid: "vehicles.errors.consumptionInvalid",
   valueTooLarge: "vehicles.errors.valueTooLarge",
+  initialOdometerAboveRefueling: "vehicles.errors.initialOdometerAboveRefueling",
+  tankCapacityBelowRefueling: "vehicles.errors.tankCapacityBelowRefueling",
 };
 
 // Failed requests. Without a network is the usual cause, so the text says what to check.

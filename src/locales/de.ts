@@ -41,6 +41,10 @@ export const de = {
       tankCapacityInvalid: "Das Tankvolumen muss eine Zahl größer als 0 sein.",
       consumptionInvalid: "Der Verbrauch muss eine Zahl größer als 0 sein.",
       valueTooLarge: "Der Wert ist zu groß.",
+      initialOdometerAboveRefueling:
+        "Der Kilometerstand liegt über dem einer vorhandenen Betankung. Gib einen niedrigeren Stand ein.",
+      tankCapacityBelowRefueling:
+        "Eine vorhandene Betankung passt nicht in dieses Tankvolumen. Gib ein größeres Volumen ein.",
       unknown: "Bitte prüfe deine Eingabe.",
     },
     loadError:
