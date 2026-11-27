@@ -4,6 +4,7 @@ import { formatEuro, formatKm } from "@/lib/format";
 import { i18n, translate, type TextKey } from "@/lib/i18n";
 import { TENTH_CENTS_PER_CENT } from "@/lib/units";
 
+import type { SaveErrorKind } from "./logic/saveError";
 import {
   DISTANCE_WARNING_KM,
   MAX_PRICE_PER_LITER_TENTH_CENTS,
@@ -24,6 +25,7 @@ const ERROR_KEYS: Record<RefuelingErrorCode, TextKey> = {
   totalMissing: "refuelings.errors.totalMissing",
   totalNotPositive: "refuelings.errors.totalNotPositive",
   odometerMissing: "refuelings.errors.odometerMissing",
+  stationMissing: "refuelings.errors.stationMissing",
   valueTooLarge: "refuelings.errors.valueTooLarge",
   odometerBelowInitial: "refuelings.errors.odometerBelowInitial",
   odometerNotAbovePrevious: "refuelings.errors.odometerNotAbovePrevious",
@@ -39,6 +41,8 @@ const WARNING_KEYS: Record<RefuelingWarningCode, TextKey> = {
 // Built once at load in the start language; a language change needs a restart (ADR 0016).
 export const LOAD_ERROR_TEXT = i18n.t("refuelings.loadError");
 export const SAVE_ERROR_TEXT = i18n.t("refuelings.saveError");
+// The server was reached but refused the data, so a network hint would mislead.
+export const SAVE_REJECTED_TEXT = i18n.t("refuelings.saveRejected");
 export const DELETE_ERROR_TEXT = i18n.t("refuelings.deleteError");
 
 /** Shown if a validation message is not one of our codes, so the user never sees a raw code. */
@@ -57,6 +61,11 @@ export function refuelingErrorText(message: string): string {
     min: formatEuro(MIN_PRICE_PER_LITER_TENTH_CENTS / TENTH_CENTS_PER_CENT),
     max: formatEuro(MAX_PRICE_PER_LITER_TENTH_CENTS / TENTH_CENTS_PER_CENT),
   });
+}
+
+/** Text for a failed save; a field error (saveFieldError) is shown at its field instead. */
+export function saveErrorText(kind: SaveErrorKind): string {
+  return kind === "rejected" ? SAVE_REJECTED_TEXT : SAVE_ERROR_TEXT;
 }
 
 export function refuelingWarningText(code: RefuelingWarningCode): string {

@@ -1,11 +1,6 @@
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import {
-  createRefueling,
-  deleteRefueling,
-  listRefuelings,
-  updateRefueling,
-} from "../api/refuelingsApi";
+import { deleteRefueling, listRefuelings, updateRefueling } from "../api/refuelingsApi";
 import type { RefuelingInput } from "../types";
 
 /**
@@ -37,14 +32,6 @@ export function useRefuelings(vehicleId: string | undefined) {
 function useInvalidateRefuelings(vehicleId: string) {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: refuelingsKey(vehicleId) });
-}
-
-export function useCreateRefueling(vehicleId: string) {
-  const onSuccess = useInvalidateRefuelings(vehicleId);
-  return useMutation({
-    mutationFn: (input: RefuelingInput) => createRefueling(vehicleId, input),
-    onSuccess,
-  });
 }
 
 export function useUpdateRefueling(vehicleId: string) {

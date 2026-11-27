@@ -74,6 +74,7 @@ export const de = {
       totalMissing: "Bitte den Gesamtbetrag angeben.",
       totalNotPositive: "Gesamtbetrag muss größer als 0 sein.",
       odometerMissing: "Bitte den Kilometerstand angeben.",
+      stationMissing: "Bitte die Tankstelle angeben.",
       valueTooLarge: "Wert ist zu groß.",
       odometerBelowInitial: "Kilometerstand liegt unter dem Anfangsstand des Fahrzeugs.",
       odometerNotAbovePrevious: "Kilometerstand muss höher sein als bei der vorherigen Betankung.",
@@ -90,6 +91,7 @@ export const de = {
       "Deine Betankungen konnten nicht geladen werden. Prüfe deine Internetverbindung und versuche es erneut.",
     saveError:
       "Die Betankung konnte nicht gespeichert werden. Prüfe deine Internetverbindung und versuche es erneut.",
+    saveRejected: "Die Betankung konnte nicht gespeichert werden. Bitte prüfe deine Eingaben.",
     deleteError:
       "Die Betankung konnte nicht gelöscht werden. Prüfe deine Internetverbindung und versuche es erneut.",
   },

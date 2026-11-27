@@ -30,6 +30,7 @@ const valid: RefuelingFields = {
   pricePerLiterTenthCents: 1749,
   totalCents: 6996,
   odometerKm: 84_500,
+  stationName: "Aral",
 };
 
 function issues(input: Partial<RefuelingFields>, ctx: RefuelingContext = context) {
@@ -187,6 +188,33 @@ describe("createRefuelingSchema", () => {
       expect(errorFields({ ...sameDay, odometerKm: 83_900 })).toEqual([]);
       expect(errorFields({ ...sameDay, odometerKm: 84_100 })).toEqual([]);
       expect(errorFields({ ...sameDay, odometerKm: 84_000 })).toEqual(["odometerKm"]);
+    });
+  });
+
+  describe("station name (required, free text until M5)", () => {
+    it.each(["", " ", "\t\n  "])("rejects %j at the field", (stationName) => {
+      expect(errorFields({ stationName })).toEqual(["stationName"]);
+      expect(issues({ stationName })[0].message).toBe("stationMissing");
+    });
+
+    it.each([null, undefined])("rejects %p with the same code", (stationName) => {
+      const stationIssues = issues({ stationName } as Partial<RefuelingFields>);
+      expect(stationIssues.map((issue) => issue.message)).toEqual(["stationMissing"]);
+    });
+
+    it("reports it together with an odometer error", () => {
+      const reported = issues({ stationName: "", odometerKm: 80_000 - 1 });
+      expect(reported.map((issue) => [issue.path[0], issue.message])).toEqual(
+        expect.arrayContaining([
+          ["stationName", "stationMissing"],
+          ["odometerKm", "odometerBelowInitial"],
+        ]),
+      );
+    });
+
+    it("accepts a name and stores it trimmed", () => {
+      const result = createRefuelingSchema(context).safeParse({ ...valid, stationName: "  Aral " });
+      expect(result.success && result.data.stationName).toBe("Aral");
     });
   });
 

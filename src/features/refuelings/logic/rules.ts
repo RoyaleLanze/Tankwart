@@ -23,6 +23,7 @@ export type RefuelingErrorCode =
   | "totalMissing"
   | "totalNotPositive"
   | "odometerMissing"
+  | "stationMissing"
   | "valueTooLarge"
   | "odometerBelowInitial"
   | "odometerNotAbovePrevious"
