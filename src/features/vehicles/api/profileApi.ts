@@ -9,10 +9,7 @@ import { supabase } from "@/lib/supabase";
  * row is missing. A missing row must not block the app: the newest vehicle is the fallback.
  */
 export async function getActiveVehicleId(): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("active_vehicle_id")
-    .maybeSingle();
+  const { data, error } = await supabase.from("profiles").select("active_vehicle_id").maybeSingle();
   if (error) throw error;
   return data?.active_vehicle_id ?? null;
 }

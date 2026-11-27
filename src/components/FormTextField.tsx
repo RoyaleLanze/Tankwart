@@ -14,6 +14,8 @@ export type FormTextFieldProps<T extends FieldValues, TTransformed = T> = {
   errorText: (message: string) => string;
   /** Hint below the field while it has no error, e.g. what the value is used for. */
   helperText?: string;
+  /** Color of the hint, e.g. the warning color; the default is the neutral hint color. */
+  helperColor?: string;
 } & Omit<
   TextInputProps,
   "mode" | "label" | "value" | "onChangeText" | "onBlur" | "error" | "left" | "ref"
@@ -30,6 +32,7 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
   icon,
   errorText,
   helperText,
+  helperColor,
   ...inputProps
 }: FormTextFieldProps<T, TTransformed>) {
   return (
@@ -66,7 +69,11 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
             ) : (
               helperText && (
                 // Already read as the field's hint, so the screen reader skips it here.
-                <HelperText type="info" importantForAccessibility="no">
+                <HelperText
+                  type="info"
+                  importantForAccessibility="no"
+                  style={helperColor ? { color: helperColor } : undefined}
+                >
                   {helperText}
                 </HelperText>
               )

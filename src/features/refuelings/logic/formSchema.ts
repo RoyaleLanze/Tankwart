@@ -14,14 +14,19 @@ import type { RefuelingContext, RefuelingWarningCode } from "./rules";
 import { createRefuelingSchema, getRefuelingWarnings, type RefuelingFields } from "./schema";
 
 /** Which form field shows the error of a validated field (the names differ by unit). */
-const FORM_FIELD_OF: Record<keyof RefuelingFields, keyof RefuelingFormValues> = {
+const FORM_FIELD_OF = {
   refueledOn: "refueledOn",
   volumeMl: "volumeLiters",
   pricePerLiterTenthCents: "pricePerLiter",
   totalCents: "totalEuros",
   odometerKm: "odometerKm",
   stationName: "stationName",
-};
+} as const satisfies Record<keyof RefuelingFields, keyof RefuelingFormValues>;
+
+/** The form field for an error that belongs to a validated field, e.g. from the database. */
+export function formFieldOf(field: keyof RefuelingFields): keyof RefuelingFormValues {
+  return FORM_FIELD_OF[field];
+}
 
 function isValidatedField(key: PropertyKey | undefined): key is keyof RefuelingFields {
   return typeof key === "string" && Object.hasOwn(FORM_FIELD_OF, key);
@@ -41,8 +46,14 @@ function amountFromText(text: string, unitsPerInput: number): number | undefined
   return text.trim() === "" ? undefined : finite(Math.round(parseDecimal(text) * unitsPerInput));
 }
 
+/** The three amount fields of the form. */
+export type AmountTexts = Pick<
+  RefuelingFormValues,
+  "volumeLiters" | "pricePerLiter" | "totalEuros"
+>;
+
 /** The three amounts in database units; the empty ones are `undefined`. */
-function amountsFromValues(values: RefuelingFormValues): Partial<Amounts> {
+function amountsFromValues(values: AmountTexts): Partial<Amounts> {
   return {
     volumeMl: amountFromText(values.volumeLiters, ML_PER_LITER),
     pricePerLiterTenthCents: amountFromText(values.pricePerLiter, TENTH_CENTS_PER_EURO),
@@ -54,7 +65,7 @@ function amountsFromValues(values: RefuelingFormValues): Partial<Amounts> {
  * The amount the app computes on saving: the one empty field, once the other two are valid
  * numbers. The form shows it before the user saves.
  */
-export function computedAmount(values: RefuelingFormValues): ComputedAmount | null {
+export function computedAmount(values: AmountTexts): ComputedAmount | null {
   return computeMissing(amountsFromValues(values));
 }
 
@@ -116,7 +127,7 @@ export function defaultFormValues(today: string): RefuelingFormValues {
 
 /** Warning for the odometer text typed so far; none while it is empty or not a number. */
 export function odometerWarning(
-  values: RefuelingFormValues,
+  values: Pick<RefuelingFormValues, "odometerKm">,
   context: RefuelingContext,
 ): RefuelingWarningCode | undefined {
   const odometerKm = parseWholeNumber(values.odometerKm);
