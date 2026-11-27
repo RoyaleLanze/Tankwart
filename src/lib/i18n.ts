@@ -26,4 +26,3 @@ i18n.use(initReactI18next).init({
   initAsync: false,
   interpolation: { escapeValue: false }, // React Native does not render HTML
 });
-
