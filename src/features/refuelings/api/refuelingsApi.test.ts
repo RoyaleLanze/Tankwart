@@ -1,4 +1,10 @@
-import { createRefueling, deleteRefueling, listRefuelings, updateRefueling } from "./refuelingsApi";
+import {
+  createRefueling,
+  deleteRefueling,
+  getRefueling,
+  listRefuelings,
+  updateRefueling,
+} from "./refuelingsApi";
 import type { RefuelingInput } from "../types";
 
 // Minimal chainable stand-in for the Supabase query builder: every method records its call and
@@ -10,7 +16,17 @@ jest.mock("@/lib/supabase", () => {
   const builder: Record<string, unknown> = {
     then: (resolve: (value: unknown) => unknown) => resolve(mockResult),
   };
-  for (const method of ["from", "select", "insert", "update", "delete", "eq", "order", "single"]) {
+  for (const method of [
+    "from",
+    "select",
+    "insert",
+    "update",
+    "delete",
+    "eq",
+    "order",
+    "single",
+    "maybeSingle",
+  ]) {
     builder[method] = (...args: unknown[]) => {
       mockCalls.push([method, args]);
       return builder;
@@ -80,6 +96,20 @@ describe("refuelingsApi", () => {
     ]);
   });
 
+  it("reads one refueling by id, or null when RLS hides it", async () => {
+    expect(await getRefueling("r1")).toEqual({
+      ...input,
+      id: "r1",
+      vehicleId: "v1",
+      createdAt: row.created_at,
+    });
+    expect(mockCalls).toContainEqual(["eq", ["id", "r1"]]);
+    expect(mockCalls.map(([name]) => name)).toContain("maybeSingle");
+
+    mockResult = { data: null, error: null };
+    expect(await getRefueling("r1")).toBeNull();
+  });
+
   it("rethrows the original error object", async () => {
     const error = new Error("boom");
     mockResult = { data: null, error };
@@ -87,5 +117,6 @@ describe("refuelingsApi", () => {
     await expect(createRefueling("r1", "v1", input)).rejects.toBe(error);
     await expect(updateRefueling("r1", input)).rejects.toBe(error);
     await expect(deleteRefueling("r1")).rejects.toBe(error);
+    await expect(getRefueling("r1")).rejects.toBe(error);
   });
 });

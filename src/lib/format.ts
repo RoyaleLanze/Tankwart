@@ -24,8 +24,14 @@ function perLocale<T>(create: (locale: string) => T): () => T {
 /** Non-breaking space, so a value never wraps away from its unit. */
 const NBSP = "\u00A0";
 
+/** Units as shown in input fields (affixes) and after values. */
+export const UNIT_LITER = "L";
+export const UNIT_EURO = "€";
+export const UNIT_PRICE_PER_LITER = "€/L";
+export const UNIT_KM = "km";
+
 /** Unit after every euro amount, e.g. "182,40 €". */
-export const EURO_SUFFIX = `${NBSP}€`;
+export const EURO_SUFFIX = `${NBSP}${UNIT_EURO}`;
 
 const twoDecimals = perLocale(
   (locale) => new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
@@ -44,12 +50,12 @@ export function formatEuro(cents: number): string {
 
 /** 52400 → "52,4 L" */
 export function formatLiters(ml: number): string {
-  return `${oneDecimal().format(ml / ML_PER_LITER)}${NBSP}L`;
+  return `${oneDecimal().format(ml / ML_PER_LITER)}${NBSP}${UNIT_LITER}`;
 }
 
 /** 84230 → "84.230 km" */
 export function formatKm(km: number): string {
-  return `${wholeNumber().format(km)}${NBSP}km`;
+  return `${wholeNumber().format(km)}${NBSP}${UNIT_KM}`;
 }
 
 /** 6400 ml per 100 km → "6,4 L/100 km" */
@@ -80,6 +86,12 @@ export function formatPricePerLiter(tenthCents: number): PricePerLiterParts {
     // "50,0 Cent pro Liter" instead of "0 Euro 50,0 Cent pro Liter".
     accessibilityLabel: euros > 0 ? `${euros} Euro ${spokenCents}` : spokenCents,
   };
+}
+
+/** 1749 → "1,749 €/L": the whole price as plain text, e.g. in a hint (no superscript). */
+export function formatPricePerLiterText(tenthCents: number): string {
+  const { euroAndCents, tenthCent } = formatPricePerLiter(tenthCents);
+  return `${euroAndCents}${tenthCent}${NBSP}${UNIT_PRICE_PER_LITER}`;
 }
 
 // Dates from the database are ISO dates without time ("2026-11-18"). They are read and

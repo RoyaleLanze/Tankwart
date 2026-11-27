@@ -14,6 +14,7 @@ export const de = {
     total: "Gesamtbetrag",
     amountsHint: "Gib zwei der drei Werte ein, den dritten rechnet die App aus.",
     computed: "Wird berechnet: {{value}}",
+    computedAffix: "berechnet",
     odometer: "Kilometerstand",
     station: "Tankstelle",
     note: "Notiz (optional)",
@@ -24,6 +25,5 @@ export const de = {
     loading: "Betankungen werden geladen …",
     noVehicle: "Lege zuerst ein Fahrzeug an, dann kannst du Betankungen erfassen.",
     addVehicle: "Fahrzeug hinzufügen",
-    fabLabel: "Betankung erfassen",
   },
 } as const;

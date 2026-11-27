@@ -1,6 +1,11 @@
 import { Controller, type Control, type FieldValues, type Path } from "react-hook-form";
-import { View } from "react-native";
-import { HelperText, TextInput, type TextInputProps } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { HelperText, Icon, TextInput, type TextInputProps } from "react-native-paper";
+
+import { spacing } from "@/lib/theme";
+
+/** Size of the icon before a hint; matches the hint text. */
+const ICON_SIZE = 16;
 
 // TTransformed: the values after validation, when the schema turns the text into other types.
 export type FormTextFieldProps<T extends FieldValues, TTransformed = T> = {
@@ -16,6 +21,8 @@ export type FormTextFieldProps<T extends FieldValues, TTransformed = T> = {
   helperText?: string;
   /** Color of the hint, e.g. the warning color; the default is the neutral hint color. */
   helperColor?: string;
+  /** Icon before the hint, so a warning never relies on its color alone. */
+  helperIcon?: string;
 } & Omit<
   TextInputProps,
   "mode" | "label" | "value" | "onChangeText" | "onBlur" | "error" | "left" | "ref"
@@ -33,6 +40,7 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
   errorText,
   helperText,
   helperColor,
+  helperIcon,
   ...inputProps
 }: FormTextFieldProps<T, TTransformed>) {
   return (
@@ -51,7 +59,7 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
               label={label}
               // Paper's label is a separate text view; the native field needs its own name.
               accessibilityLabel={label}
-              accessibilityHint={shownError ?? helperText}
+              accessibilityHint={shownError}
               left={
                 icon ? (
                   <TextInput.Icon icon={icon} importantForAccessibility="no" focusable={false} />
@@ -68,14 +76,17 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
               </HelperText>
             ) : (
               helperText && (
-                // Already read as the field's hint, so the screen reader skips it here.
-                <HelperText
-                  type="info"
-                  importantForAccessibility="no"
-                  style={helperColor ? { color: helperColor } : undefined}
-                >
-                  {helperText}
-                </HelperText>
+                <View style={styles.hint}>
+                  {helperIcon && <Icon source={helperIcon} size={ICON_SIZE} color={helperColor} />}
+                  {/* Live region: the screen reader announces the hint when it changes. */}
+                  <HelperText
+                    type="info"
+                    accessibilityLiveRegion="polite"
+                    style={[styles.hintText, helperColor ? { color: helperColor } : undefined]}
+                  >
+                    {helperText}
+                  </HelperText>
+                </View>
               )
             )}
           </View>
@@ -84,3 +95,16 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
     />
   );
 }
+
+const styles = StyleSheet.create({
+  hint: {
+    flexDirection: "row",
+    alignItems: "center",
+    // HelperText has its own horizontal padding of the same size.
+    paddingLeft: spacing("space-3"),
+  },
+  hintText: {
+    flex: 1,
+    paddingLeft: spacing("space-1"),
+  },
+});

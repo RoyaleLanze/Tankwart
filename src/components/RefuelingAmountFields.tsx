@@ -7,7 +7,14 @@ import type { ComputedAmount } from "@/features/refuelings/logic/computeMissing"
 import type { RefuelingFormValues } from "@/features/refuelings/logic/formValues";
 import { refuelingErrorText } from "@/features/refuelings/messages";
 import type { RefuelingInput } from "@/features/refuelings/types";
-import { EURO_SUFFIX, formatEuro, formatLiters, formatPricePerLiter } from "@/lib/format";
+import {
+  UNIT_EURO,
+  UNIT_LITER,
+  UNIT_PRICE_PER_LITER,
+  formatEuro,
+  formatLiters,
+  formatPricePerLiterText,
+} from "@/lib/format";
 import { spacing, useAppTheme } from "@/lib/theme";
 
 import { FormTextField } from "./FormTextField";
@@ -19,64 +26,86 @@ type Props = {
   computed: ComputedAmount | null;
 };
 
-/** The computed value as text, e.g. "52,4 L" or "1,749 €/L" (without the superscript). */
+type AmountField = {
+  name: "volumeLiters" | "pricePerLiter" | "totalEuros";
+  labelKey: "refuelingForm.volume" | "refuelingForm.pricePerLiter" | "refuelingForm.total";
+  icon: string;
+  unit: string;
+  /** The value the app computes into this field when it is the empty one. */
+  computes: ComputedAmount["field"];
+  /** Field that gets the focus on "next". */
+  next: "pricePerLiter" | "totalEuros" | "odometerKm";
+};
+
+const AMOUNT_FIELDS: AmountField[] = [
+  {
+    name: "volumeLiters",
+    labelKey: "refuelingForm.volume",
+    icon: "gas-station-outline",
+    unit: UNIT_LITER,
+    computes: "volumeMl",
+    next: "pricePerLiter",
+  },
+  {
+    name: "pricePerLiter",
+    labelKey: "refuelingForm.pricePerLiter",
+    icon: "tag-outline",
+    unit: UNIT_PRICE_PER_LITER,
+    computes: "pricePerLiterTenthCents",
+    next: "totalEuros",
+  },
+  {
+    name: "totalEuros",
+    labelKey: "refuelingForm.total",
+    icon: "cash",
+    unit: UNIT_EURO,
+    computes: "totalCents",
+    next: "odometerKm",
+  },
+];
+
+/** The computed value as text, e.g. "52,4 L" or "1,749 €/L". */
 function formatComputed({ field, value }: ComputedAmount): string {
   if (field === "volumeMl") return formatLiters(value);
   if (field === "totalCents") return formatEuro(value);
-  const price = formatPricePerLiter(value);
-  return `${price.euroAndCents}${price.tenthCent}${EURO_SUFFIX}/L`;
+  return formatPricePerLiterText(value);
 }
 
 /** Volume, price per liter and total: two of the three are enough (M3). */
 export function RefuelingAmountFields({ control, setFocus, computed }: Props) {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
-  const hint = (field: ComputedAmount["field"]) =>
-    computed?.field === field
-      ? t("refuelingForm.computed", { value: formatComputed(computed) })
-      : undefined;
-
   return (
     <View style={styles.fields}>
       <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
         {t("refuelingForm.amountsHint")}
       </Text>
-      <FormTextField
-        control={control}
-        name="volumeLiters"
-        label={t("refuelingForm.volume")}
-        icon="gas-station-outline"
-        right={<TextInput.Affix text="L" />}
-        helperText={hint("volumeMl")}
-        errorText={refuelingErrorText}
-        keyboardType="decimal-pad"
-        returnKeyType="next"
-        onSubmitEditing={() => setFocus("pricePerLiter")}
-      />
-      <FormTextField
-        control={control}
-        name="pricePerLiter"
-        label={t("refuelingForm.pricePerLiter")}
-        icon="tag-outline"
-        right={<TextInput.Affix text="€/L" />}
-        helperText={hint("pricePerLiterTenthCents")}
-        errorText={refuelingErrorText}
-        keyboardType="decimal-pad"
-        returnKeyType="next"
-        onSubmitEditing={() => setFocus("totalEuros")}
-      />
-      <FormTextField
-        control={control}
-        name="totalEuros"
-        label={t("refuelingForm.total")}
-        icon="cash"
-        right={<TextInput.Affix text="€" />}
-        helperText={hint("totalCents")}
-        errorText={refuelingErrorText}
-        keyboardType="decimal-pad"
-        returnKeyType="next"
-        onSubmitEditing={() => setFocus("odometerKm")}
-      />
+      {AMOUNT_FIELDS.map(({ name, labelKey, icon, unit, computes, next }) => {
+        const isComputed = computed?.field === computes;
+        return (
+          <FormTextField
+            key={name}
+            control={control}
+            name={name}
+            label={t(labelKey)}
+            icon={icon}
+            right={<TextInput.Affix text={isComputed ? t("refuelingForm.computedAffix") : unit} />}
+            helperText={
+              isComputed
+                ? t("refuelingForm.computed", { value: formatComputed(computed) })
+                : undefined
+            }
+            // design-system.md → TextField: tonal fill without a border (errors still get theirs).
+            style={isComputed ? { backgroundColor: colors.surfaceVariant } : undefined}
+            outlineColor={isComputed ? "transparent" : undefined}
+            activeOutlineColor={isComputed ? "transparent" : undefined}
+            errorText={refuelingErrorText}
+            keyboardType="decimal-pad"
+            returnKeyType="next"
+            onSubmitEditing={() => setFocus(next)}
+          />
+        );
+      })}
     </View>
   );
 }

@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, type UseFormHandleSubmit, type UseFormSetError } from "react-hook-form";
 
 import { newId } from "@/lib/id";
 import { todayIsoDate } from "@/lib/today";
@@ -15,27 +15,12 @@ import {
 } from "../logic/formSchema";
 import type { RefuelingFormValues } from "../logic/formValues";
 import type { RefuelingContext } from "../logic/rules";
-import { saveErrorKind, saveFieldError } from "../logic/saveError";
-import { saveErrorText } from "../messages";
 import type { Refueling, RefuelingInput } from "../types";
-import { useCreateRefueling } from "./createRefuelingMutation";
+import { useSaveRefueling, type SaveOutcome } from "./useSaveRefueling";
 
-/**
- * Form state for adding a refueling (M3, M4). The fields hold text; after validation the
- * mutation gets a `RefuelingInput` in database units. The rules need the vehicle and its other
- * refuelings, so the caller loads them first. `onSaved` runs once the save went through.
- */
-export function useRefuelingForm(
-  vehicle: Vehicle,
-  refuelings: readonly Refueling[],
-  onSaved: () => void,
-) {
-  const { mutateAsync: createRefueling } = useCreateRefueling();
-  // One id per form: a retry after a failed attempt sends the same one (ADR 0017).
-  const [id] = useState(newId);
-  const [defaultValues] = useState(() => defaultFormValues(todayIsoDate()));
-
-  const context = useMemo<RefuelingContext>(
+/** What the validation rules need: the vehicle and its other refuelings. */
+function useRefuelingContext(vehicle: Vehicle, refuelings: readonly Refueling[]) {
+  return useMemo<RefuelingContext>(
     () => ({
       today: todayIsoDate,
       tankCapacityMl: vehicle.tankCapacityMl,
@@ -44,6 +29,58 @@ export function useRefuelingForm(
     }),
     [vehicle, refuelings],
   );
+}
+
+type Form = {
+  handleSubmit: UseFormHandleSubmit<RefuelingFormValues, RefuelingInput>;
+  setError: UseFormSetError<RefuelingFormValues>;
+};
+
+/**
+ * Returns `submit`: validates and saves, and resolves to true if the refueling is saved, so the
+ * caller can leave. A rejected save becomes a field error or an error above the button.
+ */
+function useSubmit(
+  { handleSubmit, setError }: Form,
+  save: (i: RefuelingInput) => Promise<SaveOutcome>,
+) {
+  // react-hook-form does not block a second submit while the first one runs: two taps in the
+  // same frame both see isSubmitting as false, so this ref lets only the first one through.
+  const isSaving = useRef(false);
+
+  return async function submit(): Promise<boolean> {
+    if (isSaving.current) return false;
+    isSaving.current = true;
+    let saved = false;
+    try {
+      await handleSubmit(async (input) => {
+        const outcome = await save(input);
+        saved = outcome.status === "saved";
+        // The form keeps every value, so the user can try again without typing anything (M15).
+        if (outcome.status === "fieldError") {
+          const { field, code } = outcome.error;
+          setError(formFieldOf(field), { message: code }, { shouldFocus: true });
+        } else if (outcome.status === "failed") {
+          setError("root", { message: outcome.message });
+        }
+      })();
+    } finally {
+      isSaving.current = false;
+    }
+    return saved;
+  };
+}
+
+/**
+ * Form state for adding a refueling (M3, M4). The fields hold text; after validation the
+ * mutation gets a `RefuelingInput` in database units. The rules need the vehicle and its other
+ * refuelings, so the caller loads them first.
+ */
+export function useRefuelingForm(vehicle: Vehicle, refuelings: readonly Refueling[]) {
+  // One id per form: a retry after a failed attempt sends the same one (ADR 0017).
+  const [id] = useState(newId);
+  const [defaultValues] = useState(() => defaultFormValues(todayIsoDate()));
+  const context = useRefuelingContext(vehicle, refuelings);
   const resolver = useMemo(() => zodResolver(createRefuelingFormSchema(context)), [context]);
 
   const { control, handleSubmit, setError, setFocus, clearErrors, formState } = useForm<
@@ -64,35 +101,8 @@ export function useRefuelingForm(
     if (computedField) clearErrors(formFieldOf(computedField));
   }, [computedField, clearErrors]);
 
-  // react-hook-form does not block a second submit while the first one runs; the keyboard's
-  // action key can still submit while the button is disabled.
-  const isSaving = useRef(false);
-
-  const submitValidForm = handleSubmit(async (input) => {
-    try {
-      await createRefueling({ id, vehicleId: vehicle.id, input });
-    } catch (error) {
-      // The form keeps every value, so the user can try again without typing anything (M15).
-      const fieldError = saveFieldError(error);
-      if (fieldError) {
-        setError(formFieldOf(fieldError.field), { message: fieldError.code });
-      } else {
-        setError("root", { message: saveErrorText(saveErrorKind(error)) });
-      }
-      return;
-    }
-    onSaved();
-  });
-
-  async function submit() {
-    if (isSaving.current) return;
-    isSaving.current = true;
-    try {
-      await submitValidForm();
-    } finally {
-      isSaving.current = false;
-    }
-  }
+  const save = useSaveRefueling(vehicle.id, id);
+  const submit = useSubmit({ handleSubmit, setError }, save);
 
   return {
     control,

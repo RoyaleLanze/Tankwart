@@ -1,27 +1,50 @@
+import type { Control, UseFormSetFocus } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from "react-native";
 import { Button, HelperText, TextInput } from "react-native-paper";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-import type { useRefuelingForm } from "@/features/refuelings/hooks/useRefuelingForm";
+import type { ComputedAmount } from "@/features/refuelings/logic/computeMissing";
+import type { RefuelingFormValues } from "@/features/refuelings/logic/formValues";
+import type { RefuelingWarningCode } from "@/features/refuelings/logic/rules";
 import { refuelingErrorText, refuelingWarningText } from "@/features/refuelings/messages";
+import type { RefuelingInput } from "@/features/refuelings/types";
+import { UNIT_KM } from "@/lib/format";
 import { sizes, spacing, useAppTheme } from "@/lib/theme";
 
-import { FormSwitch } from "./FormSwitch";
 import { FormTextField } from "./FormTextField";
 import { RefuelingAmountFields } from "./RefuelingAmountFields";
+import { RefuelingDetailFields } from "./RefuelingDetailFields";
 
 type Props = {
-  /** State and actions from useRefuelingForm. */
-  form: ReturnType<typeof useRefuelingForm>;
+  control: Control<RefuelingFormValues, unknown, RefuelingInput>;
+  setFocus: UseFormSetFocus<RefuelingFormValues>;
+  onSubmit: () => void;
+  isSubmitting: boolean;
+  /** Error that belongs to no field, shown above the button. */
+  submitError?: string;
+  /** The empty amount the app computes, see computedAmount(). */
+  computed: ComputedAmount | null;
+  /** Warning for the odometer; does not block saving. */
+  odometerWarning?: RefuelingWarningCode;
 };
 
-/** Adding a refueling (M3, M4, mockup 7.4): the fields, the switches and saving. */
-export function RefuelingForm({ form }: Props) {
+/**
+ * Adding a refueling (M3, M4, mockup 7.4): the fields scroll, the save button stays at the
+ * bottom (design-system.md → Layout).
+ */
+export function RefuelingForm({
+  control,
+  setFocus,
+  onSubmit,
+  isSubmitting,
+  submitError,
+  computed,
+  odometerWarning,
+}: Props) {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const { control, setFocus, submit, isSubmitting, submitError, computed, odometerWarning } = form;
 
   return (
     // The app is drawn edge to edge, so keep the button above the system navigation.
@@ -39,6 +62,7 @@ export function RefuelingForm({ form }: Props) {
             icon="calendar-outline"
             helperText={t("refuelingForm.dateHint")}
             errorText={refuelingErrorText}
+            keyboardType="numbers-and-punctuation"
             returnKeyType="next"
             onSubmitEditing={() => setFocus("volumeLiters")}
           />
@@ -48,56 +72,33 @@ export function RefuelingForm({ form }: Props) {
             name="odometerKm"
             label={t("refuelingForm.odometer")}
             icon="speedometer"
-            right={<TextInput.Affix text="km" />}
+            right={<TextInput.Affix text={UNIT_KM} />}
             helperText={odometerWarning && refuelingWarningText(odometerWarning)}
             helperColor={colors.warningStrong}
+            helperIcon="alert-outline"
             errorText={refuelingErrorText}
             keyboardType="number-pad"
             returnKeyType="next"
             onSubmitEditing={() => setFocus("stationName")}
           />
-          <FormTextField
-            control={control}
-            name="stationName"
-            label={t("refuelingForm.station")}
-            icon="gas-station"
-            errorText={refuelingErrorText}
-            autoCapitalize="words"
-            returnKeyType="next"
-            onSubmitEditing={() => setFocus("note")}
-          />
-          <FormSwitch control={control} name="isFullTank" label={t("refuelingForm.fullTank")} />
-          <FormSwitch
-            control={control}
-            name="previousMissed"
-            label={t("refuelingForm.previousMissed")}
-            description={t("refuelingForm.previousMissedHint")}
-          />
-          <FormTextField
-            control={control}
-            name="note"
-            label={t("refuelingForm.note")}
-            icon="note-text-outline"
-            errorText={refuelingErrorText}
-            multiline
-          />
-          <View style={styles.footer}>
-            {submitError && (
-              <HelperText type="error" accessibilityLiveRegion="assertive">
-                {submitError}
-              </HelperText>
-            )}
-            <Button
-              mode="contained"
-              onPress={submit}
-              loading={isSubmitting}
-              disabled={isSubmitting}
-              contentStyle={styles.buttonContent}
-            >
-              {t("refuelingForm.save")}
-            </Button>
-          </View>
+          <RefuelingDetailFields control={control} setFocus={setFocus} />
         </ScrollView>
+        <View style={styles.footer}>
+          {submitError && (
+            <HelperText type="error" accessibilityLiveRegion="assertive">
+              {submitError}
+            </HelperText>
+          )}
+          <Button
+            mode="contained"
+            onPress={onSubmit}
+            loading={isSubmitting}
+            disabled={isSubmitting}
+            contentStyle={styles.buttonContent}
+          >
+            {t("refuelingForm.save")}
+          </Button>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     gap: spacing("space-2"),
-    marginTop: spacing("space-4"),
+    padding: spacing("space-4"),
   },
   buttonContent: {
     minHeight: sizes("touch-min"),

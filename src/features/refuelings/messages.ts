@@ -38,7 +38,7 @@ const ERROR_TEXTS: Record<RefuelingErrorCode, string> = {
 };
 
 const WARNING_TEXTS: Record<RefuelingWarningCode, string> = {
-  distanceUnusuallyLarge: `Mehr als ${formatKm(DISTANCE_WARNING_KM)} seit der letzten Betankung. Fehlt eine Betankung?`,
+  distanceUnusuallyLarge: `Mehr als ${formatKm(DISTANCE_WARNING_KM)} seit der letzten Betankung. Fehlt eine Betankung? Dann aktiviere ‚Vorherige Betankung nicht erfasst‘.`,
 };
 
 // Failed requests. Without a network is the usual cause, so the text says what to check.

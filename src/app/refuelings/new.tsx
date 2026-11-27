@@ -1,4 +1,4 @@
-import { useNavigation, useRouter } from "expo-router";
+import { useNavigation, usePreventRemove, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper";
@@ -49,7 +49,10 @@ export default function NewRefuelingScreen() {
   return <NewRefuelingForm vehicle={vehicle} refuelings={refuelings.data} />;
 }
 
-/** The form reads its start values once, so it is only shown once the refuelings are known. */
+/**
+ * The form reads its start values once, so it is only shown once the refuelings are known.
+ * Going back is blocked while saving: the answer would otherwise arrive at a closed screen.
+ */
 function NewRefuelingForm({
   vehicle,
   refuelings,
@@ -58,12 +61,18 @@ function NewRefuelingForm({
   refuelings: readonly Refueling[];
 }) {
   const navigation = useNavigation();
-  const form = useRefuelingForm(vehicle, refuelings, () => {
-    // The user may have gone back while saving; then this screen is closed already.
-    if (navigation.isFocused()) navigation.goBack();
-  });
+  const { submit, ...formProps } = useRefuelingForm(vehicle, refuelings);
+  const allowLeaving = usePreventRemove(formProps.isSubmitting);
 
-  return <RefuelingForm form={form} />;
+  async function save() {
+    if (!(await submit())) return;
+    // Not focused anymore, e.g. after a sign-out while saving: nothing to close.
+    if (!navigation.isFocused()) return;
+    allowLeaving();
+    navigation.goBack();
+  }
+
+  return <RefuelingForm {...formProps} onSubmit={save} />;
 }
 
 const styles = StyleSheet.create({
