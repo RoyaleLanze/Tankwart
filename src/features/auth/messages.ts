@@ -1,38 +1,43 @@
-// German texts for the auth codes (ADR 0014). The logic only knows codes; the wording lives here.
+// Texts for the auth codes (ADR 0014, 0016). The logic only knows codes; they map to i18n keys
+// here and the wording lives in src/locales.
+import { i18n, translate, type TextKey } from "@/lib/i18n";
+
 import type { AuthServerErrorCode } from "./logic/authErrors";
 import { MIN_PASSWORD_LENGTH, type AuthFieldErrorCode } from "./logic/authSchema";
 
-// Records over the full unions: a new code without a text is a type error.
-const FIELD_ERROR_TEXTS: Record<AuthFieldErrorCode, string> = {
-  emailMissing: "Gib deine E-Mail-Adresse ein.",
-  emailInvalid: "Diese E-Mail-Adresse ist ungültig.",
-  passwordMissing: "Gib dein Passwort ein.",
-  passwordTooShort: `Das Passwort braucht mindestens ${MIN_PASSWORD_LENGTH} Zeichen.`,
+// Records over the full unions: a new code without a key is a type error.
+const FIELD_ERROR_KEYS: Record<AuthFieldErrorCode, TextKey> = {
+  emailMissing: "auth.fieldErrors.emailMissing",
+  emailInvalid: "auth.fieldErrors.emailInvalid",
+  passwordMissing: "auth.fieldErrors.passwordMissing",
+  passwordTooShort: "auth.fieldErrors.passwordTooShort",
 };
 
-const SERVER_ERROR_TEXTS: Record<AuthServerErrorCode, string> = {
-  invalidCredentials: "E-Mail oder Passwort ist falsch.",
-  alreadyRegistered: "Zu dieser E-Mail gibt es schon ein Konto. Melde dich an.",
-  emailNotAccepted: "Diese E-Mail-Adresse wird nicht akzeptiert.",
-  weakPassword: `Das Passwort ist zu schwach. Nutze mindestens ${MIN_PASSWORD_LENGTH} Zeichen.`,
-  rateLimited: "Zu viele Versuche. Warte kurz und versuche es dann erneut.",
-  emailNotConfirmed: "Bestätige zuerst deine E-Mail-Adresse über den Link in der Mail.",
-  network: "Keine Verbindung zum Server. Prüfe deine Internetverbindung und versuche es erneut.",
-  unknown: "Das hat nicht geklappt. Versuche es später erneut.",
+const SERVER_ERROR_KEYS: Record<AuthServerErrorCode, TextKey> = {
+  invalidCredentials: "auth.serverErrors.invalidCredentials",
+  alreadyRegistered: "auth.serverErrors.alreadyRegistered",
+  emailNotAccepted: "auth.serverErrors.emailNotAccepted",
+  weakPassword: "auth.serverErrors.weakPassword",
+  rateLimited: "auth.serverErrors.rateLimited",
+  emailNotConfirmed: "auth.serverErrors.emailNotConfirmed",
+  network: "common.networkError",
+  unknown: "auth.serverErrors.unknown",
 };
 
 /** Shown if a validation message is not one of our codes, so the user never sees a raw code. */
-export const UNKNOWN_FIELD_ERROR_TEXT = "Bitte prüfe deine Eingabe.";
+export const UNKNOWN_FIELD_ERROR_TEXT = i18n.t("auth.fieldErrors.unknown");
 
 function isFieldErrorCode(message: string): message is AuthFieldErrorCode {
-  return Object.hasOwn(FIELD_ERROR_TEXTS, message);
+  return Object.hasOwn(FIELD_ERROR_KEYS, message);
 }
 
 /** Text for a schema issue; takes the issue's `message`, which is a code. */
 export function authFieldErrorText(message: string): string {
-  return isFieldErrorCode(message) ? FIELD_ERROR_TEXTS[message] : UNKNOWN_FIELD_ERROR_TEXT;
+  return isFieldErrorCode(message)
+    ? translate(FIELD_ERROR_KEYS[message], { min: MIN_PASSWORD_LENGTH })
+    : UNKNOWN_FIELD_ERROR_TEXT;
 }
 
 export function authServerErrorText(code: AuthServerErrorCode): string {
-  return SERVER_ERROR_TEXTS[code];
+  return translate(SERVER_ERROR_KEYS[code], { min: MIN_PASSWORD_LENGTH });
 }
