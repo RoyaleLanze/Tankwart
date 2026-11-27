@@ -1,4 +1,4 @@
-import { saveErrorKind, saveFieldError } from "./saveError";
+import { isAlreadySaved, saveErrorKind, saveFieldError } from "./saveError";
 
 // Same shape as the error local Supabase returns for a duplicate insert.
 const duplicateDayOdometer = {
@@ -107,12 +107,34 @@ describe("saveErrorKind", () => {
     expect(saveErrorKind(error)).toBe("network");
   });
 
-  // Current behavior, not a wish: a repeated insert with the same id hits refuelings_pkey. The
-  // user sees "check your input" although the refueling is saved. #107 turns this into
-  // "already saved".
+  // A repeated insert with the same id hits refuelings_pkey. Without a row to find (see
+  // isAlreadySaved) it stays a rejection.
   it("reports a duplicate id as rejected data, with no field error", () => {
     const duplicateId = { code: "23505", message: 'violates unique constraint "refuelings_pkey"' };
     expect(saveFieldError(duplicateId)).toBeNull();
     expect(saveErrorKind(duplicateId)).toBe("rejected");
+  });
+});
+
+describe("isAlreadySaved", () => {
+  const duplicateId = {
+    code: "23505",
+    message: 'duplicate key value violates unique constraint "refuelings_pkey"',
+  };
+
+  it("recognizes a duplicate id", () => {
+    expect(isAlreadySaved(duplicateId)).toBe(true);
+    expect(isAlreadySaved(Object.assign(new Error(duplicateId.message), { code: "23505" }))).toBe(
+      true,
+    );
+  });
+
+  it("ignores the day and odometer constraint, other codes and non-errors", () => {
+    expect(isAlreadySaved(duplicateDayOdometer)).toBe(false);
+    expect(isAlreadySaved({ ...duplicateId, code: "23514" })).toBe(false);
+    expect(isAlreadySaved({ code: "23505" })).toBe(false);
+    expect(isAlreadySaved({ message: duplicateId.message })).toBe(false);
+    expect(isAlreadySaved(new TypeError("Network request failed"))).toBe(false);
+    expect(isAlreadySaved(null)).toBe(false);
   });
 });

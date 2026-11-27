@@ -7,6 +7,9 @@ const UNIQUE_VIOLATION = "23505";
 /** Same vehicle, day and odometer (migration 20261125120000, ADR 0012). */
 const DAY_ODOMETER_CONSTRAINT = "refuelings_vehicle_day_odometer_key";
 
+/** The primary key: the same id was inserted before (ADR 0017). */
+const PRIMARY_KEY_CONSTRAINT = "refuelings_pkey";
+
 export type SaveFieldError = { field: keyof RefuelingFields; code: RefuelingErrorCode };
 
 /**
@@ -14,12 +17,24 @@ export type SaveFieldError = { field: keyof RefuelingFields; code: RefuelingErro
  * PostgREST does not report the constraint separately, only inside the message.
  */
 export function saveFieldError(error: unknown): SaveFieldError | null {
-  if (typeof error !== "object" || error === null) return null;
-  if (!("code" in error) || error.code !== UNIQUE_VIOLATION) return null;
-  if (!("message" in error) || typeof error.message !== "string") return null;
-  return error.message.includes(DAY_ODOMETER_CONSTRAINT)
+  return hasUniqueViolation(error, DAY_ODOMETER_CONSTRAINT)
     ? { field: "odometerKm", code: "odometerDuplicateSameDay" }
     : null;
+}
+
+function hasUniqueViolation(error: unknown, constraint: string): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  if (!("code" in error) || error.code !== UNIQUE_VIOLATION) return false;
+  if (!("message" in error) || typeof error.message !== "string") return false;
+  return error.message.includes(constraint);
+}
+
+/**
+ * True if the insert failed because a row with this id exists. That can mean an earlier attempt
+ * went through although the app never saw the answer; the caller reads the row to find out.
+ */
+export function isAlreadySaved(error: unknown): boolean {
+  return hasUniqueViolation(error, PRIMARY_KEY_CONSTRAINT);
 }
 
 /** Why a save failed, for the text the user sees. */
