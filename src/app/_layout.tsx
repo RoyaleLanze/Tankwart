@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { DarkTheme, DefaultTheme, SplashScreen, Stack, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -14,6 +14,7 @@ import { useActiveVehicleId } from "@/features/vehicles/hooks/useActiveVehicle";
 import { useVehicles } from "@/features/vehicles/hooks/useVehicles";
 import { LOAD_ERROR_TEXT } from "@/features/vehicles/messages";
 import "@/lib/i18n";
+import { createQueryClient } from "@/lib/queryClient";
 import { darkTheme, lightTheme, type AppTheme } from "@/lib/theme";
 
 // Gives the navigation containers (screen backgrounds, headers) the same colors as Paper.
@@ -38,10 +39,7 @@ const navigationThemes = {
   dark: navigationTheme(darkTheme, DarkTheme),
 };
 
-// Cache for all server data (ADR 0008), shared by every screen. No retries here: supabase-js
-// already retries a failed GET three times (1, 2 and 4 s). With TanStack's own three retries
-// on top, the error state took 35 s to appear when offline.
-const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+const queryClient = createQueryClient();
 
 // Keeps the splash screen visible until the stored session has been read.
 SplashScreen.preventAutoHideAsync();

@@ -10,7 +10,8 @@ function channels(hex: string): number[] {
 /** Paints `overlay` at `opacity` (0–1) over `base` and returns the opaque result as #RRGGBB. */
 export function mixColors(base: string, overlay: string, opacity: number): string {
   // Written as a positive range check so that NaN is rejected too.
-  if (!(opacity >= 0 && opacity <= 1)) throw new Error(`Opacity must be between 0 and 1: ${opacity}`);
+  if (!(opacity >= 0 && opacity <= 1))
+    throw new Error(`Opacity must be between 0 and 1: ${opacity}`);
   const top = channels(overlay);
   const mixed = channels(base).map((value, i) => Math.round(value + (top[i] - value) * opacity));
   return `#${mixed.map((value) => value.toString(16).padStart(2, "0")).join("")}`.toUpperCase();
