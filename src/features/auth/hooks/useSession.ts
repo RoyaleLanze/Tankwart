@@ -1,19 +1,35 @@
-import type { Session } from "@supabase/supabase-js";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { subscribeToSession } from "../api/authApi";
+import { loadSession, subscribeToSessionChanges } from "../api/authApi";
+import { sessionStatus, type SessionStatus } from "../logic/sessionStatus";
 
-type SessionState = {
-  session: Session | null;
-  /** True until the session stored on the device has been read. */
-  isLoading: boolean;
+export type SessionState = {
+  /** "loading" until the stored session has been read and, if it had expired, renewed. */
+  status: SessionStatus | "loading";
+  /** Reads the stored session again, for "Erneut versuchen" when the server was unreachable. */
+  retry: () => void;
 };
 
-/** The current Supabase session. The auth guard in the root layout decides on it. */
+/** The state of the Supabase session. The auth guard in the root layout decides on it. */
 export function useSession(): SessionState {
-  const [state, setState] = useState<SessionState>({ session: null, isLoading: true });
+  const [status, setStatus] = useState<SessionState["status"]>("loading");
 
-  useEffect(() => subscribeToSession((session) => setState({ session, isLoading: false })), []);
+  const read = useCallback(() => {
+    loadSession().then(
+      (session) => setStatus(sessionStatus(session)),
+      (error: unknown) => setStatus(sessionStatus(null, error)),
+    );
+  }, []);
 
-  return state;
+  useEffect(() => {
+    read();
+    return subscribeToSessionChanges((session) => setStatus(sessionStatus(session)));
+  }, [read]);
+
+  const retry = useCallback(() => {
+    setStatus("loading");
+    read();
+  }, [read]);
+
+  return { status, retry };
 }

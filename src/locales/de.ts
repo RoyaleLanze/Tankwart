@@ -5,4 +5,8 @@ export const de = {
     cancel: "Abbrechen",
     retry: "Erneut versuchen",
   },
+  auth: {
+    sessionUnreachable:
+      "Keine Verbindung zum Server. Du bist weiter angemeldet. Prüfe deine Internetverbindung und versuche es erneut.",
+  },
 } as const;

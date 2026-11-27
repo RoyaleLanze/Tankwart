@@ -2,13 +2,14 @@ import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { DarkTheme, DefaultTheme, SplashScreen, Stack, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useColorScheme } from "react-native";
 import { PaperProvider } from "react-native-paper";
 
 import { AppBar } from "@/components/AppBar";
 import { ErrorScreen } from "@/components/ErrorScreen";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { useSession } from "@/features/auth/hooks/useSession";
+import { useSession, type SessionState } from "@/features/auth/hooks/useSession";
 import { useSignOut } from "@/features/auth/hooks/useSignOut";
 import { registerCreateRefuelingDefaults } from "@/features/refuelings/hooks/createRefuelingMutation";
 import { useActiveVehicleId } from "@/features/vehicles/hooks/useActiveVehicle";
@@ -52,7 +53,8 @@ const MAX_SPLASH_MS = 2000;
 
 export default function RootLayout() {
   const isDark = useColorScheme() === "dark";
-  const { session, isLoading } = useSession();
+  const session = useSession();
+  const isLoading = session.status === "loading";
 
   useEffect(() => {
     if (!isLoading) {
@@ -68,17 +70,24 @@ export default function RootLayout() {
       <PaperProvider theme={isDark ? darkTheme : lightTheme}>
         <ThemeProvider value={isDark ? navigationThemes.dark : navigationThemes.light}>
           <StatusBar style="auto" />
-          {/* The navigator waits for the session. Otherwise the guard would show the login screen
-              on every cold start and switch to the tabs while they are still mounting. */}
-          {isLoading ? (
-            <LoadingScreen label="Anmeldung wird geprüft …" />
-          ) : (
-            <RootNavigator isSignedIn={session !== null} />
-          )}
+          <SessionGate {...session} />
         </ThemeProvider>
       </PaperProvider>
     </QueryClientProvider>
   );
+}
+
+// The navigator waits for the session. Otherwise the guard would show the login screen on every
+// cold start and switch to the tabs while they are still mounting. If an expired session could
+// not be renewed offline, the user is still signed in and gets an error instead (M15, #111).
+function SessionGate({ status, retry }: SessionState) {
+  const { t } = useTranslation();
+
+  if (status === "loading") return <LoadingScreen label="Anmeldung wird geprüft …" />;
+  if (status === "unreachable") {
+    return <ErrorScreen message={t("auth.sessionUnreachable")} onRetry={retry} />;
+  }
+  return <RootNavigator isSignedIn={status === "signedIn"} />;
 }
 
 function RootNavigator({ isSignedIn }: { isSignedIn: boolean }) {
