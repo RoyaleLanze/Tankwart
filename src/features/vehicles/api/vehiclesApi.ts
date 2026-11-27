@@ -39,11 +39,7 @@ function toRow(input: VehicleInput): VehicleRow {
 
 /** All vehicles of the signed-in user, oldest first; the id makes equal creation times stable. */
 export async function listVehicles(): Promise<Vehicle[]> {
-  const { data, error } = await supabase
-    .from("vehicles")
-    .select()
-    .order("created_at")
-    .order("id");
+  const { data, error } = await supabase.from("vehicles").select().order("created_at").order("id");
   if (error) throw error;
   return data.map(toVehicle);
 }
@@ -53,6 +49,16 @@ export async function createVehicle(input: VehicleInput): Promise<Vehicle> {
   const { data, error } = await supabase.from("vehicles").insert(toRow(input)).select().single();
   if (error) throw error;
   return toVehicle(data);
+}
+
+/**
+ * Deletes a vehicle. The database deletes its refuelings with it and clears it as the active
+ * vehicle (foreign keys, ADR 0012). A vehicle that is already gone is no error: the result is
+ * the same.
+ */
+export async function deleteVehicle(id: string): Promise<void> {
+  const { error } = await supabase.from("vehicles").delete().eq("id", id);
+  if (error) throw error;
 }
 
 /**

@@ -2,6 +2,7 @@ import { FUEL_TYPES, vehicleSchema } from "./logic/vehicleSchema";
 import {
   FUEL_TYPE_LABELS,
   UNKNOWN_ERROR_TEXT,
+  deleteVehicleTitle,
   vehicleCountText,
   vehicleErrorText,
 } from "./messages";
@@ -50,5 +51,11 @@ describe("vehicleCountText", () => {
     [0, "0 Fahrzeuge"],
   ])("%i → %s", (count, text) => {
     expect(vehicleCountText(count)).toBe(text);
+  });
+});
+
+describe("deleteVehicleTitle", () => {
+  it("quotes the name in a question", () => {
+    expect(deleteVehicleTitle("Golf")).toBe("„Golf“ löschen?");
   });
 });

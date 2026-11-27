@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { StyleSheet } from "react-native";
-import { Avatar, Card, IconButton, Menu } from "react-native-paper";
+import { Avatar, Card, Icon, IconButton, Menu } from "react-native-paper";
 
 import { FUEL_TYPE_LABELS } from "@/features/vehicles/messages";
 import type { Vehicle } from "@/features/vehicles/types";
@@ -9,12 +9,13 @@ import { radius, sizes, useAppTheme } from "@/lib/theme";
 type Props = {
   vehicle: Vehicle;
   onEdit: () => void;
+  onDelete: () => void;
 };
 
 const AVATAR_SIZE = 44;
 
 /** One vehicle in the list (mockup 7.10): name, plate and fuel, actions in the ⋮ menu. */
-export function VehicleCard({ vehicle, onEdit }: Props) {
+export function VehicleCard({ vehicle, onEdit, onDelete }: Props) {
   const { colors } = useAppTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   // "WES-GT 740 · Diesel", or only the fuel when there is no plate.
@@ -67,6 +68,15 @@ export function VehicleCard({ vehicle, onEdit }: Props) {
               leadingIcon="pencil-outline"
               title="Bearbeiten"
               onPress={() => select(onEdit)}
+            />
+            {/* Only the icon is red: the menu is tinted (ADR 0013), so red text would stay
+                below 4.5:1 in dark mode, while icons need only 3:1. */}
+            <Menu.Item
+              leadingIcon={({ size }) => (
+                <Icon source="delete-outline" size={size} color={colors.error} />
+              )}
+              title="Löschen"
+              onPress={() => select(onDelete)}
             />
           </Menu>
         )}
