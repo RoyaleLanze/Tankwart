@@ -1,61 +1,57 @@
-// German texts of the vehicle feature (ADR 0014). The logic only knows codes and enum values;
-// the wording lives here, on the presentation side.
+// Texts of the vehicle feature (ADR 0014, 0016). The logic only knows codes and enum values;
+// they map to i18n keys here and the wording lives in src/locales.
+import { i18n, translate, type TextKey } from "@/lib/i18n";
+
 import type { VehicleErrorCode } from "./logic/vehicleSchema";
 import type { FuelType } from "./types";
 
 /** Names as on the pump and in Tankerkönig (M1). */
 export const FUEL_TYPE_LABELS: Record<FuelType, string> = {
-  e5: "Super E5",
-  e10: "Super E10",
-  diesel: "Diesel",
+  e5: i18n.t("vehicles.fuelTypes.e5"),
+  e10: i18n.t("vehicles.fuelTypes.e10"),
+  diesel: i18n.t("vehicles.fuelTypes.diesel"),
 };
 
-// Record over the full union: a new code without a text is a type error.
-const ERROR_TEXTS: Record<VehicleErrorCode, string> = {
-  nameMissing: "Gib einen Namen ein.",
-  fuelTypeMissing: "Wähle einen Kraftstoff.",
-  odometerMissing: "Gib den Kilometerstand ein.",
-  odometerInvalid: "Gib den Kilometerstand als ganze Zahl ohne Punkt ein.",
-  tankCapacityMissing: "Gib das Tankvolumen ein.",
-  tankCapacityInvalid: "Das Tankvolumen muss eine Zahl größer als 0 sein.",
-  consumptionInvalid: "Der Verbrauch muss eine Zahl größer als 0 sein.",
-  valueTooLarge: "Der Wert ist zu groß.",
+// Record over the full union: a new code without a key is a type error.
+const ERROR_KEYS: Record<VehicleErrorCode, TextKey> = {
+  nameMissing: "vehicles.errors.nameMissing",
+  fuelTypeMissing: "vehicles.errors.fuelTypeMissing",
+  odometerMissing: "vehicles.errors.odometerMissing",
+  odometerInvalid: "vehicles.errors.odometerInvalid",
+  tankCapacityMissing: "vehicles.errors.tankCapacityMissing",
+  tankCapacityInvalid: "vehicles.errors.tankCapacityInvalid",
+  consumptionInvalid: "vehicles.errors.consumptionInvalid",
+  valueTooLarge: "vehicles.errors.valueTooLarge",
 };
 
 // Failed requests. Without a network is the usual cause, so the text says what to check.
-export const LOAD_ERROR_TEXT =
-  "Deine Fahrzeuge konnten nicht geladen werden. Prüfe deine Internetverbindung und versuche es erneut.";
-export const SAVE_ERROR_TEXT =
-  "Das Fahrzeug konnte nicht gespeichert werden. Prüfe deine Internetverbindung und versuche es erneut.";
-export const SWITCH_ERROR_TEXT =
-  "Das Fahrzeug konnte nicht gewechselt werden. Prüfe deine Internetverbindung und versuche es erneut.";
-
-export const DELETE_ERROR_TEXT =
-  "Das Fahrzeug konnte nicht gelöscht werden. Prüfe deine Internetverbindung und versuche es erneut.";
+export const LOAD_ERROR_TEXT = i18n.t("vehicles.loadError");
+export const SAVE_ERROR_TEXT = i18n.t("vehicles.saveError");
+export const SWITCH_ERROR_TEXT = i18n.t("vehicles.switchError");
+export const DELETE_ERROR_TEXT = i18n.t("vehicles.deleteError");
 
 /** Confirmation before deleting (M1). Says what else is lost, because it cannot be undone. */
 export function deleteVehicleTitle(name: string): string {
-  return `„${name}“ löschen?`;
+  return i18n.t("vehicles.deleteTitle", { name });
 }
-export const DELETE_VEHICLE_MESSAGE =
-  "Alle Betankungen dieses Fahrzeugs werden mit gelöscht. Das lässt sich nicht rückgängig machen.";
+export const DELETE_VEHICLE_MESSAGE = i18n.t("vehicles.deleteMessage");
 
 /** Edit screen of a vehicle that was deleted meanwhile, e.g. on another device. */
-export const NOT_FOUND_TEXT = "Dieses Fahrzeug gibt es nicht mehr.";
+export const NOT_FOUND_TEXT = i18n.t("vehicles.notFound");
 
-/** "1 Fahrzeug", "2 Fahrzeuge" (settings, mockup 7.9). */
+/** "1 Fahrzeug", "2 Fahrzeuge" (settings, mockup 7.9). Plural forms live in the locale file. */
 export function vehicleCountText(count: number): string {
-  return count === 1 ? "1 Fahrzeug" : `${count} Fahrzeuge`;
+  return i18n.t("vehicles.count", { count });
 }
 
 /** Shown if a validation message is not one of our codes, so the user never sees a raw code. */
-export const UNKNOWN_ERROR_TEXT = "Bitte prüfe deine Eingabe.";
+export const UNKNOWN_ERROR_TEXT = i18n.t("vehicles.errors.unknown");
 
 function isErrorCode(message: string): message is VehicleErrorCode {
-  return Object.hasOwn(ERROR_TEXTS, message);
+  return Object.hasOwn(ERROR_KEYS, message);
 }
 
 /** Text for a schema issue; takes the issue's `message`, which is a code. */
 export function vehicleErrorText(message: string): string {
-  return isErrorCode(message) ? ERROR_TEXTS[message] : UNKNOWN_ERROR_TEXT;
+  return isErrorCode(message) ? translate(ERROR_KEYS[message]) : UNKNOWN_ERROR_TEXT;
 }
