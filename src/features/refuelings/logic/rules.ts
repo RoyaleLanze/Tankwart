@@ -28,7 +28,9 @@ export type RefuelingErrorCode =
   | "odometerBelowInitial"
   | "odometerNotAbovePrevious"
   | "odometerNotBelowNext"
-  | "odometerDuplicateSameDay";
+  | "odometerDuplicateSameDay"
+  // Form only: the field was computed from the other two and breaks a rule (formSchema.ts).
+  | "computedAmountInvalid";
 
 export type RefuelingWarningCode = "distanceUnusuallyLarge";
 
