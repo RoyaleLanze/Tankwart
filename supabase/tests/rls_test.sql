@@ -1,7 +1,7 @@
 -- RLS tests with two users (M14): user A must neither read nor write user B's data.
 -- Silent RLS effects (0 rows updated/deleted) are verified afterwards as postgres.
 begin;
-select plan(41);
+select plan(45);
 
 -- Fixtures, created as postgres (bypasses RLS).
 insert into auth.users (id, email) values
@@ -91,6 +91,26 @@ select throws_ok(
   $$insert into public.refuelings (vehicle_id, refueled_on, volume_ml, price_per_liter_tenth_cents, total_cents, odometer_km, station_name)
     values ('bbbbbbbb-0000-0000-0000-00000000000b', '2026-11-02', 10000, 1700, 1700, 2500, 'Esso')$$,
   '42501', null, 'A colliding with B''s refueling gets 42501, not 23505');
+-- Client-chosen ids (ADR 0017): B's id on A's own vehicle only hits the primary key (#120).
+select throws_ok(
+  $$insert into public.refuelings (id, vehicle_id, refueled_on, volume_ml, price_per_liter_tenth_cents, total_cents, odometer_km, station_name)
+    values ('bbbbbbbb-0000-0000-0000-0000000000f2', 'aaaaaaaa-0000-0000-0000-00000000000a', '2026-11-05', 10000, 1700, 1700, 1700, 'Esso')$$,
+  '23505', 'duplicate key value violates unique constraint "refuelings_pkey"',
+  'A reusing B''s refueling id on an own vehicle gets 23505 on the primary key');
+select throws_ok(
+  $$insert into public.refuelings (id, vehicle_id, refueled_on, volume_ml, price_per_liter_tenth_cents, total_cents, odometer_km, station_name)
+    values ('bbbbbbbb-0000-0000-0000-0000000000f2', 'aaaaaaaa-0000-0000-0000-00000000000a', '2026-11-05', 10000, 1700, 1700, 1700, 'Esso')
+    on conflict (id) do update set note = 'Hacked', vehicle_id = excluded.vehicle_id$$,
+  '42501', null, 'A cannot upsert over B''s refueling');
+
+select set_config('request.jwt.claims', '{"sub":"bbbbbbbb-0000-0000-0000-000000000000","role":"authenticated"}', true);
+select results_eq(
+  $$select vehicle_id, note, odometer_km from public.refuelings where id = 'bbbbbbbb-0000-0000-0000-0000000000f2'$$,
+  $$values ('bbbbbbbb-0000-0000-0000-00000000000b'::uuid, 'orig'::text, 2500)$$,
+  'B''s refueling is unchanged after the id collisions');
+select is((select count(*) from public.refuelings where id = 'bbbbbbbb-0000-0000-0000-0000000000f2'), 1::bigint,
+  'B still sees exactly one row with that id');
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-000000000000","role":"authenticated"}', true);
 select throws_ok(
   $$update public.refuelings set vehicle_id = 'bbbbbbbb-0000-0000-0000-00000000000b'
     where id = 'aaaaaaaa-0000-0000-0000-0000000000f1'$$,
