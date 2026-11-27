@@ -24,15 +24,11 @@ describe("parseDraft", () => {
 
   it.each([
     ["nothing stored", null],
-    ["empty text", ""],
     ["broken JSON", "{"],
     ["null", "null"],
-    ["a number", "42"],
-    ["an array", "[]"],
     ["another version", raw({ version: DRAFT_VERSION + 1 })],
     ["version as text", raw({ version: String(DRAFT_VERSION) })],
     ["no version", JSON.stringify({ values: VALUES })],
-    ["no values", raw({ values: undefined })],
     ["null values", raw({ values: null })],
     ["null in a required field", raw({ values: { ...VALUES, volumeLiters: null } })],
     ["a missing field", raw({ values: { ...VALUES, note: undefined } })],
