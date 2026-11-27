@@ -33,6 +33,8 @@ const ERROR_TEXTS: Record<RefuelingErrorCode, string> = {
   odometerNotAbovePrevious: "Kilometerstand muss höher sein als bei der vorherigen Betankung.",
   odometerNotBelowNext: "Kilometerstand muss niedriger sein als bei der nächsten Betankung.",
   odometerDuplicateSameDay: "Am selben Tag gibt es schon eine Betankung mit diesem Kilometerstand.",
+  computedAmountInvalid:
+    "Der berechnete Wert ist nicht plausibel. Prüfe die beiden eingegebenen Werte.",
 };
 
 const WARNING_TEXTS: Record<RefuelingWarningCode, string> = {
