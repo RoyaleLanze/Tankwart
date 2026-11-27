@@ -46,6 +46,15 @@ describe("vehicleEditErrors", () => {
       });
     });
 
+    it("rounds the limit down for a tank that is not a round number", () => {
+      // 50001 ml * 110 % = 55001.1 ml, so 55001 ml is the last accepted volume
+      const tank = { initialOdometerKm: 84000, tankCapacityMl: 50001 };
+      expect(vehicleEditErrors(tank, [refueling(84500, 55001)])).toEqual({});
+      expect(vehicleEditErrors(tank, [refueling(84500, 55002)])).toEqual({
+        tankCapacityLiters: "tankCapacityBelowRefueling",
+      });
+    });
+
     it("checks the largest of several refuelings", () => {
       const refuelings = [
         refueling(84500, 30000),
