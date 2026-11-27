@@ -16,7 +16,12 @@ export function useDeleteVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteVehicle,
-    onSuccess: (_, id) => {
+    onSuccess: async (_, id) => {
+      // A running reload would otherwise overwrite the patches below and bring the vehicle back.
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: VEHICLES_KEY }),
+        queryClient.cancelQueries({ queryKey: ACTIVE_VEHICLE_ID_KEY }),
+      ]);
       queryClient.setQueryData<Vehicle[]>(VEHICLES_KEY, (vehicles) =>
         vehicles?.filter((vehicle) => vehicle.id !== id),
       );
