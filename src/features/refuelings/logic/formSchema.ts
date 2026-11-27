@@ -10,7 +10,7 @@ import { CENTS_PER_EURO, MAX_DB_INTEGER, ML_PER_LITER, TENTH_CENTS_PER_EURO } fr
 import type { RefuelingInput } from "../types";
 import { computeMissing, type Amounts, type ComputedAmount } from "./computeMissing";
 import { refuelingFormValuesSchema, type RefuelingFormValues } from "./formValues";
-import type { RefuelingContext, RefuelingWarningCode } from "./rules";
+import type { RefuelingContext, RefuelingErrorCode, RefuelingWarningCode } from "./rules";
 import { createRefuelingSchema, getRefuelingWarnings, type RefuelingFields } from "./schema";
 
 /** Which form field shows the error of a validated field (the names differ by unit). */
@@ -41,7 +41,10 @@ function finite(value: number): number {
   return value === Infinity ? MAX_DB_INTEGER + 1 : value;
 }
 
-/** Empty text stays `undefined` (missing); text that is no number becomes NaN (see lib/parse). */
+/**
+ * Empty text stays `undefined` (missing); text that is no number becomes NaN (see lib/parse).
+ * Digits beyond the unit are rounded, not rejected: "1,7495" €/L becomes 1750 tenths of a cent.
+ */
 function amountFromText(text: string, unitsPerInput: number): number | undefined {
   return text.trim() === "" ? undefined : finite(Math.round(parseDecimal(text) * unitsPerInput));
 }
@@ -82,7 +85,33 @@ function fieldsFromValues(values: RefuelingFormValues) {
   };
 }
 
-const emptyToNull = (text: string) => text.trim() || null;
+const emptyToNull = (text: string | null) => text?.trim() || null;
+
+/** Typed shorthand, so a misspelled code is a type error. */
+const COMPUTED_AMOUNT_INVALID: RefuelingErrorCode = "computedAmountInvalid";
+
+/**
+ * Reports the rule violations at the form fields, one per field (the first: "too large" comes
+ * before "above the tank"). A computed value was not typed by the user, so a rule code like
+ * "out of range" would confuse; it gets its own code.
+ */
+function addFieldIssues(
+  issues: readonly { path: PropertyKey[]; message: string }[],
+  values: RefuelingFormValues,
+  ctx: z.RefinementCtx,
+) {
+  const computed = computedAmount(values);
+  const computedFormField = computed && FORM_FIELD_OF[computed.field];
+  const reported = new Set<string>();
+  for (const issue of issues) {
+    const key = issue.path[0];
+    const field = isValidatedField(key) ? FORM_FIELD_OF[key] : undefined;
+    if (field && reported.has(field)) continue;
+    if (field) reported.add(field);
+    const message = field && field === computedFormField ? COMPUTED_AMOUNT_INVALID : issue.message;
+    ctx.addIssue({ code: "custom", message, path: field ? [field] : [] });
+  }
+}
 
 /** Builds the form's schema for one vehicle: text in, `RefuelingInput` in database units out. */
 export function createRefuelingFormSchema(context: RefuelingContext) {
@@ -90,16 +119,12 @@ export function createRefuelingFormSchema(context: RefuelingContext) {
   return refuelingFormValuesSchema.transform((values, ctx): RefuelingInput => {
     const result = rules.safeParse(fieldsFromValues(values));
     if (!result.success) {
-      for (const issue of result.error.issues) {
-        const key = issue.path[0];
-        const path = isValidatedField(key) ? [FORM_FIELD_OF[key]] : [];
-        ctx.addIssue({ code: "custom", message: issue.message, path });
-      }
+      addFieldIssues(result.error.issues, values, ctx);
       return z.NEVER;
     }
     return {
       ...result.data,
-      stationId: values.stationId,
+      stationId: emptyToNull(values.stationId),
       stationAddress: emptyToNull(values.stationAddress),
       isFullTank: values.isFullTank,
       previousMissed: values.previousMissed,
@@ -131,7 +156,8 @@ export function odometerWarning(
   context: RefuelingContext,
 ): RefuelingWarningCode | undefined {
   const odometerKm = parseWholeNumber(values.odometerKm);
-  return Number.isFinite(odometerKm)
+  // Above MAX_DB_INTEGER the form shows valueTooLarge; a warning next to it would be noise.
+  return Number.isFinite(odometerKm) && odometerKm <= MAX_DB_INTEGER
     ? getRefuelingWarnings({ odometerKm }, context).odometerKm
     : undefined;
 }

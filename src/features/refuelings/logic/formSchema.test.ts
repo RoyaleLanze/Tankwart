@@ -2,6 +2,7 @@ import {
   computedAmount,
   createRefuelingFormSchema,
   defaultFormValues,
+  formFieldOf,
   odometerWarning,
 } from "./formSchema";
 import type { RefuelingFormValues } from "./formValues";
@@ -27,10 +28,10 @@ function parse(overrides: Partial<RefuelingFormValues> = {}, ctx = context) {
   return createRefuelingFormSchema(ctx).safeParse({ ...valid, ...overrides });
 }
 
-/** Field name → error code of every issue. */
+/** Form field → error code of every issue; fails the test if the input is accepted. */
 function errors(overrides: Partial<RefuelingFormValues>) {
   const result = parse(overrides);
-  if (result.success) return {};
+  if (result.success) throw new Error("expected the form values to be rejected");
   return Object.fromEntries(result.error.issues.map((issue) => [issue.path[0], issue.message]));
 }
 
@@ -84,10 +85,31 @@ describe("createRefuelingFormSchema", () => {
     });
   });
 
-  it("reports unreadable and huge numbers", () => {
+  it("reports unreadable numbers as missing", () => {
     expect(errors({ odometerKm: "abc" })).toEqual({ odometerKm: "odometerMissing" });
-    expect(errors({ odometerKm: "9".repeat(400) })).toEqual({ odometerKm: "valueTooLarge" });
-    expect(errors({ volumeLiters: "9".repeat(400) })).toHaveProperty("volumeLiters");
+  });
+
+  it.each(["volumeLiters", "pricePerLiter", "totalEuros", "odometerKm"] as const)(
+    "reports a number with 400 digits at %s as too large",
+    (field) => {
+      expect(errors({ [field]: "9".repeat(400) })).toEqual({ [field]: "valueTooLarge" });
+    },
+  );
+
+  it("reports a computed value that breaks a rule at the computed field", () => {
+    // 100 € for 1 L is 100 €/L, 500 € at 1,749 €/L is 285 L in a 50 L tank.
+    expect(errors({ volumeLiters: "1", pricePerLiter: "", totalEuros: "100" })).toEqual({
+      pricePerLiter: "computedAmountInvalid",
+    });
+    expect(errors({ volumeLiters: "", pricePerLiter: "1,749", totalEuros: "500" })).toEqual({
+      volumeLiters: "computedAmountInvalid",
+    });
+  });
+
+  it("keeps the rule code at a typed field when another value is computed", () => {
+    expect(errors({ pricePerLiter: "4,5", totalEuros: "" })).toEqual({
+      pricePerLiter: "priceOutOfRange",
+    });
   });
 
   it("requires a station", () => {
@@ -104,6 +126,77 @@ describe("createRefuelingFormSchema", () => {
   it("keeps the station id and address of a suggested station", () => {
     const data = parse({ stationId: "abc", stationAddress: " Hauptstr. 1 " }).data;
     expect(data).toMatchObject({ stationId: "abc", stationAddress: "Hauptstr. 1" });
+  });
+
+  it("stores an empty station id and address as null", () => {
+    const data = parse({ stationId: " ", stationAddress: " " }).data;
+    expect(data).toMatchObject({ stationId: null, stationAddress: null });
+  });
+
+  // ADR 0012: no consistency check between the three values, the total stays as typed.
+  it("accepts three contradicting amounts and keeps the typed total", () => {
+    const result = parse({ volumeLiters: "40", pricePerLiter: "1,749", totalEuros: "5,00" });
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({ volumeMl: 40_000, totalCents: 500 });
+  });
+});
+
+describe("rounding of typed and computed amounts", () => {
+  it.each([
+    [
+      "total from liters and price",
+      { volumeLiters: "41,3", pricePerLiter: "1,759", totalEuros: "" },
+      { totalCents: 7265 },
+    ],
+    [
+      "liters from total and price",
+      { volumeLiters: "", pricePerLiter: "1,899", totalEuros: "50,00" },
+      { volumeMl: 26_330 },
+    ],
+    [
+      "price from total and liters",
+      { volumeLiters: "28,5", pricePerLiter: "", totalEuros: "50" },
+      { pricePerLiterTenthCents: 1754 },
+    ],
+  ])("%s", (_name, overrides, expected) => {
+    expect(parse(overrides).data).toMatchObject(expected);
+  });
+
+  // Documented behavior: more than three decimals are rounded, not rejected.
+  it("rounds a price with more than 3 decimals to tenths of a cent", () => {
+    expect(parse({ pricePerLiter: "1,7495", totalEuros: "" }).data).toMatchObject({
+      pricePerLiterTenthCents: 1750,
+    });
+  });
+});
+
+describe("price limits typed as text", () => {
+  it.each(["0,50", "4,00"])("accepts %s €/L", (pricePerLiter) => {
+    expect(parse({ pricePerLiter, totalEuros: "" }).success).toBe(true);
+  });
+
+  it.each(["0,49", "4,01"])("rejects %s €/L", (pricePerLiter) => {
+    expect(errors({ pricePerLiter, totalEuros: "" })).toEqual({ pricePerLiter: "priceOutOfRange" });
+  });
+});
+
+describe("unreadable input", () => {
+  it.each([
+    ["dateInvalid", { refueledOn: "2026-02-30" }, "refueledOn"],
+    ["totalNotPositive", { totalEuros: "0" }, "totalEuros"],
+    ["volumeMissing", { volumeLiters: "-5" }, "volumeLiters"],
+    ["odometerMissing", { odometerKm: "84.500" }, "odometerKm"],
+  ])("gives %s", (code, overrides, field) => {
+    expect(errors(overrides)).toEqual({ [field]: code });
+  });
+});
+
+describe("formFieldOf", () => {
+  it("maps validated fields to the form field of the same value", () => {
+    expect(formFieldOf("volumeMl")).toBe("volumeLiters");
+    expect(formFieldOf("pricePerLiterTenthCents")).toBe("pricePerLiter");
+    expect(formFieldOf("totalCents")).toBe("totalEuros");
+    expect(formFieldOf("odometerKm")).toBe("odometerKm");
   });
 });
 
@@ -130,9 +223,13 @@ describe("odometerWarning", () => {
     expect(odometerWarning({ ...valid, odometerKm: "86000" }, context)).toBeUndefined();
   });
 
-  it("is silent for empty or unreadable text", () => {
-    expect(odometerWarning({ ...valid, odometerKm: "" }, context)).toBeUndefined();
-    expect(odometerWarning({ ...valid, odometerKm: "x" }, context)).toBeUndefined();
+  it.each([
+    ["empty", ""],
+    ["unreadable", "x"],
+    ["above the database limit", "2147483648"],
+    ["400 digits", "9".repeat(400)],
+  ])("is silent for %s text", (_name, odometerKm) => {
+    expect(odometerWarning({ ...valid, odometerKm }, context)).toBeUndefined();
   });
 });
 
