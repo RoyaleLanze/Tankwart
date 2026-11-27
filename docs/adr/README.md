@@ -23,3 +23,4 @@ Kurze, nummerierte Entscheidungen im Format von [MADR](https://adr.github.io/mad
 | 0013 | Theme, Icons und Schriften | Accepted |
 | 0014 | Fehlercodes statt Texte in der Domänenlogik | Accepted |
 | 0015 | Preis-Cache in Postgres | Accepted |
+| 0016 | Mehrsprachigkeit (i18next, expo-localization) | Accepted |
