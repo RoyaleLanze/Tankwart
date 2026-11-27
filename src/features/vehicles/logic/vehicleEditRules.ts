@@ -5,16 +5,18 @@ import { maxVolumeMl } from "@/features/refuelings/logic/rules";
 import type { Refueling } from "@/features/refuelings/types";
 
 import type { VehicleInput } from "../types";
-import type { VehicleErrorCode } from "./vehicleSchema";
+import type { VehicleErrorCode, VehicleFormValues } from "./vehicleSchema";
 
 export type EditedVehicle = Pick<VehicleInput, "initialOdometerKm" | "tankCapacityMl">;
 export type EditCheckRefueling = Pick<Refueling, "odometerKm" | "volumeMl">;
 
 /** Form field names, as in `VehicleFormValues`. */
-export type VehicleEditErrors = {
-  initialOdometerKm?: VehicleErrorCode;
-  tankCapacityLiters?: VehicleErrorCode;
-};
+export type VehicleEditErrors = Partial<
+  Record<
+    Extract<keyof VehicleFormValues, "initialOdometerKm" | "tankCapacityLiters">,
+    VehicleErrorCode
+  >
+>;
 
 /**
  * Errors for fields whose new value would make an existing refueling invalid: an initial
