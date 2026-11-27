@@ -19,7 +19,9 @@ type Props = {
 export function AppBar({ title, start, onBack, onSettings }: Props) {
   return (
     <Appbar.Header>
-      {onBack && <Appbar.BackAction onPress={onBack} accessibilityLabel="Zurück" style={styles.iconButton} />}
+      {onBack && (
+        <Appbar.BackAction onPress={onBack} accessibilityLabel="Zurück" style={styles.iconButton} />
+      )}
       {start ? <View style={styles.start}>{start}</View> : <Appbar.Content title={title ?? ""} />}
       {onSettings && (
         <Appbar.Action
@@ -35,8 +37,10 @@ export function AppBar({ title, start, onBack, onSettings }: Props) {
 
 const styles = StyleSheet.create({
   // Paper's icon button is 40 dp and its hitSlop does not work on Android (overflow hidden),
-  // so the button itself gets touch-min, like the menu button in VehicleCard.
+  // so the button itself gets touch-min, like the menu button in VehicleCard. Paper's IconButton
+  // has margin 6, which is dropped so the 48 dp button sits at the bar padding (M3).
   iconButton: {
+    marginHorizontal: 0,
     width: sizes("touch-min"),
     height: sizes("touch-min"),
     borderRadius: radius("radius-full"),
