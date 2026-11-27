@@ -30,6 +30,16 @@ export const SAVE_ERROR_TEXT =
 export const SWITCH_ERROR_TEXT =
   "Das Fahrzeug konnte nicht gewechselt werden. Prüfe deine Internetverbindung und versuche es erneut.";
 
+export const DELETE_ERROR_TEXT =
+  "Das Fahrzeug konnte nicht gelöscht werden. Prüfe deine Internetverbindung und versuche es erneut.";
+
+/** Confirmation before deleting (M1). Says what else is lost, because it cannot be undone. */
+export function deleteVehicleTitle(name: string): string {
+  return `„${name}“ löschen?`;
+}
+export const DELETE_VEHICLE_MESSAGE =
+  "Alle Betankungen dieses Fahrzeugs werden mit gelöscht. Das lässt sich nicht rückgängig machen.";
+
 /** Edit screen of a vehicle that was deleted meanwhile, e.g. on another device. */
 export const NOT_FOUND_TEXT = "Dieses Fahrzeug gibt es nicht mehr.";
 

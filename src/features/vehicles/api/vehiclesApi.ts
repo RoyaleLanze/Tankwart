@@ -56,6 +56,16 @@ export async function createVehicle(input: VehicleInput): Promise<Vehicle> {
 }
 
 /**
+ * Deletes a vehicle. The database deletes its refuelings with it and clears it as the active
+ * vehicle (foreign keys, ADR 0012). A vehicle that is already gone is no error: the result is
+ * the same.
+ */
+export async function deleteVehicle(id: string): Promise<void> {
+  const { error } = await supabase.from("vehicles").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/**
  * Replaces the user's values of a vehicle and returns it as stored. A vehicle that is gone or
  * belongs to someone else matches no row, so `single()` fails and the error is thrown.
  */
