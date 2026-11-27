@@ -58,6 +58,7 @@
   "jest": {
     "preset": "jest-expo",
     "passWithNoTests": true,
+    "globalSetup": "<rootDir>/jest.globalSetup.js",
     "modulePathIgnorePatterns": [
       "<rootDir>/.claude/worktrees/"
     ],
