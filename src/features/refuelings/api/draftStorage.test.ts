@@ -58,21 +58,13 @@ describe("draftStorage", () => {
     expect(loadDraft("u1", "v1")).toBeNull();
   });
 
-  it("returns false and warns when writing fails", () => {
-    storage.setItem.mockImplementationOnce(fail);
-    expect(saveDraft("u1", "v1", createDraft(values("1")))).toBe(false);
-    expect(warn).toHaveBeenCalledTimes(1);
-  });
-
-  it("returns null and warns when reading fails", () => {
-    storage.getItem.mockImplementationOnce(fail);
-    expect(loadDraft("u1", "v1")).toBeNull();
-    expect(warn).toHaveBeenCalledTimes(1);
-  });
-
-  it("does not throw and warns when clearing fails", () => {
-    storage.removeItem.mockImplementationOnce(fail);
-    expect(() => clearDraft("u1", "v1")).not.toThrow();
+  it.each([
+    ["getItem", () => loadDraft("u1", "v1"), null],
+    ["setItem", () => saveDraft("u1", "v1", createDraft(values("1"))), false],
+    ["removeItem", () => clearDraft("u1", "v1"), undefined],
+  ] as const)("returns %s's fallback and warns when it fails", (method, run, fallback) => {
+    storage[method].mockImplementationOnce(fail);
+    expect(run()).toBe(fallback);
     expect(warn).toHaveBeenCalledTimes(1);
   });
 });
