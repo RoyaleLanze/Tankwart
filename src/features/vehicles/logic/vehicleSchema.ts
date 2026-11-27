@@ -21,7 +21,10 @@ export type VehicleErrorCode =
   | "tankCapacityMissing"
   | "tankCapacityInvalid"
   | "consumptionInvalid"
-  | "valueTooLarge";
+  | "valueTooLarge"
+  // Only from the edit rules (vehicleEditRules.ts), which need the existing refuelings.
+  | "initialOdometerAboveRefueling"
+  | "tankCapacityBelowRefueling";
 
 /** Typed shorthand, so a misspelled code is a type error. */
 const code = (value: VehicleErrorCode) => value;
