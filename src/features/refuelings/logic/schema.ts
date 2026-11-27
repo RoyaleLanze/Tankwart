@@ -48,6 +48,11 @@ export function createRefuelingSchema(context: RefuelingContext) {
           .max(MAX_PRICE_PER_LITER_TENTH_CENTS, code("priceOutOfRange")),
         totalCents: wholeNumber("totalMissing").positive(code("totalNotPositive")),
         odometerKm: wholeNumber("odometerMissing"),
+        // Free text until station search (M5); trimmed, so only spaces count as missing.
+        stationName: z
+          .string({ error: code("stationMissing") })
+          .trim()
+          .min(1, code("stationMissing")),
       })
       // Needs date and odometer together, so it runs on the object and reports at the odometer.
       // `when` lets it run even if other fields are invalid, as long as these two are valid.

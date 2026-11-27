@@ -1,4 +1,4 @@
-import { saveFieldError } from "./saveError";
+import { saveErrorKind, saveFieldError } from "./saveError";
 
 // Same shape as the error local Supabase returns for a duplicate insert.
 const duplicateDayOdometer = {
@@ -77,5 +77,42 @@ describe("saveFieldError", () => {
     { code: "23505", message: 42 },
   ])("returns null for %p", (error) => {
     expect(saveFieldError(error)).toBeNull();
+  });
+});
+
+describe("saveErrorKind", () => {
+  it.each([
+    ["integrity violation (23)", { code: "23514", message: "violates check constraint" }],
+    ["data exception (22)", { code: "22003", message: "integer out of range" }],
+    ["Error carrying a code", Object.assign(new Error("rejected"), { code: "23514" })],
+  ])("treats %s as rejected data", (_name, error) => {
+    expect(saveErrorKind(error)).toBe("rejected");
+  });
+
+  it.each([
+    // What postgrest-js returns when fetch fails (React Native wording).
+    [
+      "failed fetch as postgrest-js reports it",
+      { message: "TypeError: Network request failed", details: "", hint: "", code: "" },
+    ],
+    ["PostgREST JWT error (PGRST303)", { code: "PGRST303", message: "JWT expired" }],
+    ["statement timeout (57014)", { code: "57014", message: "canceling statement" }],
+    ["connection failure (08006)", { code: "08006", message: "connection failure" }],
+    ["thrown TypeError", new TypeError("Network request failed")],
+    ["Error without code", new Error("x")],
+    ["non-JSON error body such as a proxy page", { message: "<html>Bad Gateway</html>" }],
+    ["numeric code", { code: 23514, message: "x" }],
+    ["null", null],
+  ])("treats %s as network", (_name, error) => {
+    expect(saveErrorKind(error)).toBe("network");
+  });
+
+  // Current behavior, not a wish: a repeated insert with the same id hits refuelings_pkey. The
+  // user sees "check your input" although the refueling is saved. #107 turns this into
+  // "already saved".
+  it("reports a duplicate id as rejected data, with no field error", () => {
+    const duplicateId = { code: "23505", message: 'violates unique constraint "refuelings_pkey"' };
+    expect(saveFieldError(duplicateId)).toBeNull();
+    expect(saveErrorKind(duplicateId)).toBe("rejected");
   });
 });

@@ -60,14 +60,18 @@ export async function listRefuelings(vehicleId: string): Promise<Refueling[]> {
   return data.map(toRefueling);
 }
 
-/** Saves a new refueling and returns it as stored, with id and creation time. */
+/**
+ * Saves a new refueling and returns it as stored, with the creation time. The caller creates
+ * the id (a UUID) before the first attempt, so a repeated attempt is the same refueling.
+ */
 export async function createRefueling(
+  id: string,
   vehicleId: string,
   input: RefuelingInput,
 ): Promise<Refueling> {
   const { data, error } = await supabase
     .from("refuelings")
-    .insert({ ...toRow(input), vehicle_id: vehicleId })
+    .insert({ ...toRow(input), id, vehicle_id: vehicleId })
     .select()
     .single();
   if (error) throw error;

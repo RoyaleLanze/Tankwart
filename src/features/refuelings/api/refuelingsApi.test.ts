@@ -58,14 +58,14 @@ beforeEach(() => {
 
 describe("refuelingsApi", () => {
   it("keeps every field through row and refueling without swapping amounts", async () => {
-    const created = await createRefueling("v1", input);
-    const { id, created_at, ...sent } = row;
+    const created = await createRefueling("r1", "v1", input);
+    const { created_at, ...sent } = row;
     expect(sentRow("insert")).toEqual(sent);
-    expect(created).toEqual({ ...input, id, vehicleId: "v1", createdAt: created_at });
+    expect(created).toEqual({ ...input, id: row.id, vehicleId: "v1", createdAt: created_at });
   });
 
   it("sends vehicle_id on create but not on update", async () => {
-    await createRefueling("v1", input);
+    await createRefueling("r1", "v1", input);
     await updateRefueling("r1", input);
     expect(sentRow("insert")).toHaveProperty("vehicle_id", "v1");
     expect(sentRow("update")).not.toHaveProperty("vehicle_id");
@@ -84,7 +84,7 @@ describe("refuelingsApi", () => {
     const error = new Error("boom");
     mockResult = { data: null, error };
     await expect(listRefuelings("v1")).rejects.toBe(error);
-    await expect(createRefueling("v1", input)).rejects.toBe(error);
+    await expect(createRefueling("r1", "v1", input)).rejects.toBe(error);
     await expect(updateRefueling("r1", input)).rejects.toBe(error);
     await expect(deleteRefueling("r1")).rejects.toBe(error);
   });
