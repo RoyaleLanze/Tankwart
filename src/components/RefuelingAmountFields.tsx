@@ -83,35 +83,60 @@ export function RefuelingAmountFields({ control, setFocus, computed }: Props) {
       {AMOUNT_FIELDS.map(({ name, labelKey, icon, unit, computes, next }) => {
         const isComputed = computed?.field === computes;
         return (
-          <FormTextField
-            key={name}
-            control={control}
-            name={name}
-            label={t(labelKey)}
-            icon={icon}
-            right={<TextInput.Affix text={isComputed ? t("refuelingForm.computedAffix") : unit} />}
-            helperText={
-              isComputed
-                ? t("refuelingForm.computed", { value: formatComputed(computed) })
-                : undefined
-            }
-            // design-system.md → TextField: tonal fill without a border (errors still get theirs).
-            style={isComputed ? { backgroundColor: colors.surfaceVariant } : undefined}
-            outlineColor={isComputed ? "transparent" : undefined}
-            activeOutlineColor={isComputed ? "transparent" : undefined}
-            errorText={refuelingErrorText}
-            keyboardType="decimal-pad"
-            returnKeyType="next"
-            onSubmitEditing={() => setFocus(next)}
-          />
+          <View key={name}>
+            <FormTextField
+              control={control}
+              name={name}
+              label={t(labelKey)}
+              icon={icon}
+              right={isComputed ? undefined : <TextInput.Affix text={unit} />}
+              helperText={
+                isComputed
+                  ? t("refuelingForm.computed", { value: formatComputed(computed) })
+                  : undefined
+              }
+              // design-system.md → TextField: tonal fill without a border (errors still get theirs).
+              style={isComputed ? { backgroundColor: colors.surfaceVariant } : undefined}
+              outlineColor={isComputed ? "transparent" : undefined}
+              activeOutlineColor={isComputed ? "transparent" : undefined}
+              errorText={refuelingErrorText}
+              keyboardType="decimal-pad"
+              returnKeyType="next"
+              onSubmitEditing={() => setFocus(next)}
+            />
+            {isComputed && (
+              // Paper hides an affix while the field is empty and unfocused, so it is drawn here.
+              <View style={styles.computedAffix} pointerEvents="none">
+                <Text
+                  variant="bodyLarge"
+                  style={{ color: colors.onSurfaceVariant }}
+                  importantForAccessibility="no"
+                >
+                  {t("refuelingForm.computedAffix")}
+                </Text>
+              </View>
+            )}
+          </View>
         );
       })}
     </View>
   );
 }
 
+/** Height of a text field (design-system.md → TextField). */
+const INPUT_HEIGHT = 56;
+/** Paper draws the outline this far below the field's top edge, leaving room for the label. */
+const OUTLINE_OFFSET = 6;
+
 const styles = StyleSheet.create({
   fields: {
     gap: spacing("space-4"),
+  },
+  computedAffix: {
+    position: "absolute",
+    top: OUTLINE_OFFSET,
+    right: spacing("space-4"),
+    height: INPUT_HEIGHT - OUTLINE_OFFSET,
+    justifyContent: "center",
   },
 });

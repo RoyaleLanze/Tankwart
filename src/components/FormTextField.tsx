@@ -77,7 +77,11 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
             ) : (
               helperText && (
                 <View style={styles.hint}>
-                  {helperIcon && <Icon source={helperIcon} size={ICON_SIZE} color={helperColor} />}
+                  {helperIcon && (
+                    <View style={styles.hintIcon}>
+                      <Icon source={helperIcon} size={ICON_SIZE} color={helperColor} />
+                    </View>
+                  )}
                   {/* Live region: the screen reader announces the hint when it changes. */}
                   <HelperText
                     type="info"
@@ -99,9 +103,13 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
 const styles = StyleSheet.create({
   hint: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     // HelperText has its own horizontal padding of the same size.
     paddingLeft: spacing("space-3"),
+  },
+  // Lines up with the first line of the hint text, which has the same padding on top.
+  hintIcon: {
+    paddingTop: spacing("space-1"),
   },
   hintText: {
     flex: 1,
