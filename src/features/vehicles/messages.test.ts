@@ -1,5 +1,10 @@
 import { FUEL_TYPES, vehicleSchema } from "./logic/vehicleSchema";
-import { FUEL_TYPE_LABELS, UNKNOWN_ERROR_TEXT, vehicleErrorText } from "./messages";
+import {
+  FUEL_TYPE_LABELS,
+  UNKNOWN_ERROR_TEXT,
+  vehicleCountText,
+  vehicleErrorText,
+} from "./messages";
 
 describe("vehicleErrorText", () => {
   it("returns German text for a code", () => {
@@ -35,5 +40,15 @@ describe("FUEL_TYPE_LABELS", () => {
       "Super E10",
       "Diesel",
     ]);
+  });
+});
+
+describe("vehicleCountText", () => {
+  it.each([
+    [1, "1 Fahrzeug"],
+    [2, "2 Fahrzeuge"],
+    [0, "0 Fahrzeuge"],
+  ])("%i → %s", (count, text) => {
+    expect(vehicleCountText(count)).toBe(text);
   });
 });

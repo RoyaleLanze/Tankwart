@@ -1,6 +1,8 @@
 import { MAX_DB_INTEGER } from "@/lib/units";
 
-import { vehicleSchema, type VehicleFormValues } from "./vehicleSchema";
+import type { VehicleInput } from "../types";
+
+import { vehicleSchema, vehicleToFormValues, type VehicleFormValues } from "./vehicleSchema";
 
 type Changes = Partial<Record<keyof VehicleFormValues, unknown>>;
 
@@ -68,6 +70,10 @@ describe("vehicleSchema", () => {
       licensePlate: null,
       manufacturerConsumptionMlPer100Km: null,
     });
+  });
+
+  it.each(["ka-xy 99", "Ka-Xy 99"])("stores the plate %j in capitals", (licensePlate) => {
+    expect(parse({ licensePlate }).data?.licensePlate).toBe("KA-XY 99");
   });
 
   it("drops keys that are not form fields, such as user_id", () => {
@@ -147,5 +153,70 @@ describe("vehicleSchema", () => {
       "initialOdometerKm",
       "tankCapacityLiters",
     ]);
+  });
+});
+
+describe("vehicleToFormValues", () => {
+  const stored: VehicleInput = {
+    name: "Golf VII TDI",
+    fuelType: "diesel",
+    initialOdometerKm: 84_000,
+    tankCapacityMl: 45_501,
+    makeModel: "VW Golf",
+    licensePlate: "WES-GT 740",
+    manufacturerConsumptionMlPer100Km: 5_850,
+  };
+
+  it("writes amounts as liters with a comma, without rounding or unit", () => {
+    expect(vehicleToFormValues(stored)).toMatchObject({
+      initialOdometerKm: "84000",
+      tankCapacityLiters: "45,501",
+      consumptionLitersPer100Km: "5,85",
+    });
+  });
+
+  it("shows unset optional fields as empty text", () => {
+    const bare = { ...stored, makeModel: null, licensePlate: null };
+    expect(vehicleToFormValues({ ...bare, manufacturerConsumptionMlPer100Km: null })).toMatchObject(
+      { makeModel: "", licensePlate: "", consumptionLitersPer100Km: "" },
+    );
+  });
+
+  // Saving the edit form unchanged must not change the vehicle (no factor 1000, no rounding).
+  it.each([
+    ["all fields", stored],
+    [
+      "whole liters",
+      { ...stored, tankCapacityMl: 50_000, manufacturerConsumptionMlPer100Km: 6_000 },
+    ],
+    ["1 ml", { ...stored, tankCapacityMl: 1, manufacturerConsumptionMlPer100Km: 1 }],
+    [
+      "largest values",
+      { ...stored, initialOdometerKm: MAX_DB_INTEGER, tankCapacityMl: MAX_DB_INTEGER },
+    ],
+    [
+      "only required",
+      { ...stored, makeModel: null, licensePlate: null, manufacturerConsumptionMlPer100Km: null },
+    ],
+  ])("round trip keeps the vehicle: %s", (_, vehicle) => {
+    expect(vehicleSchema.parse(vehicleToFormValues(vehicle))).toEqual(vehicle);
+  });
+
+  // Amounts where ml / 1000 is not exact in binary floating point.
+  it.each([1, 7, 999, 1001, 45_501, 1_999_999, MAX_DB_INTEGER - 1])(
+    "round trip keeps %i ml in both amount fields",
+    (ml) => {
+      const vehicle = { ...stored, tankCapacityMl: ml, manufacturerConsumptionMlPer100Km: ml };
+      expect(vehicleSchema.parse(vehicleToFormValues(vehicle))).toEqual(vehicle);
+    },
+  );
+
+  it("normalises text another client stored with spaces (see vehicleToFormValues)", () => {
+    const untrimmed = { ...stored, name: " Golf ", makeModel: "", licensePlate: "ka-tw 1 " };
+    expect(vehicleSchema.parse(vehicleToFormValues(untrimmed))).toMatchObject({
+      name: "Golf",
+      makeModel: null,
+      licensePlate: "KA-TW 1",
+    });
   });
 });

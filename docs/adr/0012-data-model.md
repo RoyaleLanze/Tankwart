@@ -44,3 +44,17 @@ Alle Empfehlungen aus der Tabelle, gewählt von @SealJonny am 19.11.2026.
 **Entscheidung:** Unique-Constraint, gewählt von @SealJonny am 25.11.2026. Er ersetzt den Index `(vehicle_id, refueled_on)`, weil der Unique-Index mit denselben Spalten beginnt.
 
 **Konsequenzen:** Auch Seeds und andere Clients können keine mehrdeutige Reihenfolge mehr anlegen. Der Fehler `23505` (Constraint `refuelings_vehicle_day_odometer_key`) wird im API-Modul der Betankungen (#12) auf den vorhandenen Code `odometerDuplicateSameDay` abgebildet, damit der Nutzer denselben Text sieht wie bei der App-Prüfung. Die Migration scheitert bewusst, falls eine Datenbank schon solche Duplikate enthält. Vor `db push` in die Cloud deshalb prüfen: `select vehicle_id, refueled_on, odometer_km from refuelings group by 1, 2, 3 having count(*) > 1;` muss leer sein.
+
+## Ergänzung 25.11.2026: Fahrzeug bearbeiten bei vorhandenen Betankungen (#9)
+
+**Kontext:** Beim Bearbeiten eines Fahrzeugs lassen sich Anfangs-km-Stand und Tankvolumen ändern. Steigt der Anfangsstand über den km-Stand der ersten Betankung oder sinkt das Tankvolumen unter die größte getankte Menge ÷ 1,1, verstoßen vorhandene Betankungen gegen M4. Gespeichert bleiben sie, aber wer sie später bearbeitet, bekommt `odometerBelowInitial` bzw. `volumeAboveTank`. Gefunden vom `qa-tester` im Review von #69.
+
+**Optionen:**
+
+1. Hinnehmen, festhalten und die Prüfung später ergänzen, sobald es die Betankungs-API aus #12 gibt.
+2. Das Fahrzeugformular prüft gleich gegen den kleinsten km-Stand und die größte Literzahl der Betankungen. Dafür liest die Fahrzeug-API die Tabelle `refuelings`, was sich mit #12 überschneidet.
+3. Anfangsstand und Tankvolumen sperren, sobald es Betankungen gibt.
+
+**Entscheidung:** Option 1, gewählt von @RoyaleLanze am 25.11.2026. #9 bleibt klein, und die Fahrzeug-API greift nicht in den Bereich von #12. Die Prüfung kommt mit #78.
+
+**Konsequenzen:** Bis #78 kann ein bearbeitetes Fahrzeug alte Betankungen „ungültig“ machen. Die Daten gehen dabei nicht verloren, und auch die Verbrauchsberechnung ist nicht betroffen, weil sie nur die Betankungen nutzt. Der Fehler zeigt sich erst beim Bearbeiten einer solchen Betankung, und der Nutzer kann ihn beheben, indem er das Fahrzeug korrigiert.

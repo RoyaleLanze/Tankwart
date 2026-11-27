@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { createVehicle, listVehicles } from "../api/vehiclesApi";
-import type { Vehicle } from "../types";
+import { createVehicle, listVehicles, updateVehicle } from "../api/vehiclesApi";
+import type { Vehicle, VehicleInput } from "../types";
 
 /** Cache key of the vehicle list (ADR 0008). Every change to a vehicle updates this entry. */
 export const VEHICLES_KEY = ["vehicles"] as const;
@@ -26,5 +26,21 @@ export function useCreateVehicle() {
         VEHICLES_KEY,
         (vehicles) => vehicles && [...vehicles, vehicle],
       ),
+  });
+}
+
+/** Saves the edited values of one vehicle; the list keeps its order. */
+export function useUpdateVehicle(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: VehicleInput) => updateVehicle(id, input),
+    // Same as creating: the stored vehicle replaces the old one, only in a list still cached.
+    onSuccess: (updated) =>
+      queryClient.setQueryData<Vehicle[]>(VEHICLES_KEY, (vehicles) =>
+        vehicles?.map((vehicle) => (vehicle.id === updated.id ? updated : vehicle)),
+      ),
+    // The list may be out of date, e.g. the vehicle was deleted on another device. Reloading it
+    // lets the edit screen show that, instead of failing again with the same error.
+    onError: () => queryClient.invalidateQueries({ queryKey: VEHICLES_KEY }),
   });
 }

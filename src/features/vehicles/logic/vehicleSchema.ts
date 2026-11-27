@@ -5,7 +5,7 @@
 import { z } from "zod";
 
 import { Constants } from "@/lib/database.types";
-import { parseDecimal, parseWholeNumber } from "@/lib/parse";
+import { decimalInputText, parseDecimal, parseWholeNumber } from "@/lib/parse";
 import { MAX_DB_INTEGER, ML_PER_LITER } from "@/lib/units";
 
 import type { VehicleInput } from "../types";
@@ -75,7 +75,8 @@ export const vehicleSchema = z
     initialOdometerKm: odometerKm,
     tankCapacityLiters: tankCapacityMl,
     makeModel: optionalText,
-    licensePlate: optionalText,
+    // In capitals like on the plate, also when pasted or typed with shift.
+    licensePlate: optionalText.transform((plate) => plate && plate.toLocaleUpperCase("de-DE")),
     consumptionLitersPer100Km: consumptionMlPer100Km,
   })
   // The form fields are named after what the user types. Their values are already in ml,
@@ -90,3 +91,24 @@ export const vehicleSchema = z
 
 /** The form's values: the text of each input, before parsing. */
 export type VehicleFormValues = z.input<typeof vehicleSchema>;
+
+const litersText = (ml: number) => decimalInputText(ml / ML_PER_LITER);
+
+/**
+ * The way back for editing: a stored vehicle as the text the form starts with. Saving it
+ * unchanged gives the same vehicle again (round trip, see the tests) for everything this app
+ * stores. Text stored by another client is normalised on the next save: trimmed, empty text
+ * as null, the plate in capitals.
+ */
+export function vehicleToFormValues(vehicle: VehicleInput): VehicleFormValues {
+  const consumption = vehicle.manufacturerConsumptionMlPer100Km;
+  return {
+    name: vehicle.name,
+    fuelType: vehicle.fuelType,
+    initialOdometerKm: String(vehicle.initialOdometerKm),
+    tankCapacityLiters: litersText(vehicle.tankCapacityMl),
+    makeModel: vehicle.makeModel ?? "",
+    licensePlate: vehicle.licensePlate ?? "",
+    consumptionLitersPer100Km: consumption === null ? "" : litersText(consumption),
+  };
+}
