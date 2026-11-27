@@ -73,12 +73,15 @@ export function formatPricePerLiter(tenthCents: number): PricePerLiterParts {
   const euros = Math.floor(tenthCents / TENTH_CENTS_PER_EURO);
   const restTenthCents = tenthCents % TENTH_CENTS_PER_EURO;
   const cents = Math.floor(restTenthCents / TENTH_CENTS_PER_CENT);
-  const spokenCents = `${oneDecimal().format(restTenthCents / TENTH_CENTS_PER_CENT)} Cent pro Liter`;
+  const centValue = oneDecimal().format(restTenthCents / TENTH_CENTS_PER_CENT);
   return {
     euroAndCents: `${euros},${String(cents).padStart(2, "0")}`,
     tenthCent: String(restTenthCents % TENTH_CENTS_PER_CENT),
     // "50,0 Cent pro Liter" instead of "0 Euro 50,0 Cent pro Liter".
-    accessibilityLabel: euros > 0 ? `${euros} Euro ${spokenCents}` : spokenCents,
+    accessibilityLabel:
+      euros > 0
+        ? i18n.t("format.euroAndCentPerLiter", { euros, value: centValue })
+        : i18n.t("format.centPerLiter", { value: centValue }),
   };
 }
 
@@ -115,5 +118,5 @@ export function formatMonth(isoDate: string): string {
 
 /** Local time of a price fetch → "abgerufen um 09:52" */
 export function formatFetchedAt(fetchedAt: Date): string {
-  return `abgerufen um ${timeOfDay().format(fetchedAt)}`;
+  return i18n.t("format.fetchedAt", { time: timeOfDay().format(fetchedAt) });
 }
