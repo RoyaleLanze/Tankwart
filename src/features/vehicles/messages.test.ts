@@ -20,6 +20,13 @@ describe("vehicleErrorText", () => {
     }
   });
 
+  it.each(["initialOdometerAboveRefueling", "tankCapacityBelowRefueling"])(
+    "has a text for the edit code %s",
+    (code) => {
+      expect(vehicleErrorText(code)).not.toBe(UNKNOWN_ERROR_TEXT);
+    },
+  );
+
   it.each(["Invalid input: expected number", "toString", ""])(
     "never shows an unknown message like %j to the user",
     (message) => {
