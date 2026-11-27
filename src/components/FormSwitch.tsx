@@ -50,6 +50,9 @@ export function FormSwitch<T extends FieldValues, TTransformed = T>({
               value={field.value === true}
               pointerEvents="none"
               importantForAccessibility="no"
+              // Paper's grey off track has no 3:1 contrast on the surface; use theme colors.
+              trackColor={{ true: colors.primary, false: colors.outline }}
+              thumbColor={field.value === true ? colors.onPrimary : colors.surface}
             />
           </View>
         </TouchableRipple>
