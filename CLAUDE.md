@@ -51,7 +51,7 @@ Muster, die wir bewusst nutzen (im Gespräch erklärbar):
 ## Code-Regeln und Code Smells
 
 - TypeScript `strict`, kein `any`, keine `@ts-ignore`. Supabase-Typen werden aus dem Schema generiert.
-- Code, Bezeichner, Kommentare und Entwickler-Fehlermeldungen auf Englisch. UI-Texte auf Deutsch.
+- Code, Bezeichner, Kommentare und Entwickler-Fehlermeldungen auf Englisch. UI-Texte auf Deutsch, aber nie fest im Code: neue UI nutzt ausschließlich Übersetzungsschlüssel (`t("bereich.schluessel")`, Texte in `src/locales/`, siehe ADR 0016).
 - Komponenten < ~150 Zeilen, Funktionen < ~40 Zeilen. Wird es länger: aufteilen.
 - **Keine Magic Numbers:** Fachgrenzen aus M4/M10 (0,50–4,00 €/L, Tankgröße × 1,1, 2.000 km, 80 %, 2 km) stehen als benannte Konstanten in `logic/`.
 - Keine Duplikation (Formatierung von Preisen, Datum und Liter einmal zentral), keine Boolean-Flag-Parameter, kein Prop-Drilling über mehr als 2 Ebenen, keine God-Components.

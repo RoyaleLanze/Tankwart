@@ -26,3 +26,7 @@ Wir nehmen Option 2, weil die Domänenlogik so frei von Darstellung bleibt und d
 - `logic/` importiert nichts aus `lib/format` oder anderen Darstellungsmodulen.
 - Logik-Tests prüfen Codes und brechen nicht, wenn ein Text umformuliert wird. Die Texte bekommen eigene kleine Tests.
 - Im Übergabegespräch erklären können: warum Codes statt Texte (Trennung von Fachlogik und Darstellung) und wo man den angezeigten Text findet.
+
+## Nachtrag 2026-11-27
+
+[ADR 0016](0016-i18n.md) führt Übersetzungsschlüssel ein. Die Logik liefert weiterhin Codes. `messages.ts` bildet sie künftig auf i18n-Schlüssel statt auf feste Texte ab (`Record<Code, Schlüssel>`), die Texte stehen in `src/locales/`. Die Grenzwerte werden als Parameter übergeben und über `lib/format` formatiert.
