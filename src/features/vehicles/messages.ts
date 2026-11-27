@@ -25,6 +25,7 @@ const ERROR_KEYS: Record<VehicleErrorCode, TextKey> = {
 };
 
 // Failed requests. Without a network is the usual cause, so the text says what to check.
+// Built once at load in the start language; a language change needs a restart (ADR 0016).
 export const LOAD_ERROR_TEXT = i18n.t("vehicles.loadError");
 export const SAVE_ERROR_TEXT = i18n.t("vehicles.saveError");
 export const SWITCH_ERROR_TEXT = i18n.t("vehicles.switchError");

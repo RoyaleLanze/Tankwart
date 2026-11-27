@@ -36,6 +36,7 @@ const WARNING_KEYS: Record<RefuelingWarningCode, TextKey> = {
 };
 
 // Failed requests. Without a network is the usual cause, so the text says what to check.
+// Built once at load in the start language; a language change needs a restart (ADR 0016).
 export const LOAD_ERROR_TEXT = i18n.t("refuelings.loadError");
 export const SAVE_ERROR_TEXT = i18n.t("refuelings.saveError");
 export const DELETE_ERROR_TEXT = i18n.t("refuelings.deleteError");
@@ -50,7 +51,8 @@ function isErrorCode(message: string): message is RefuelingErrorCode {
 /** Text for a schema issue; takes the issue's `message`, which is a code. */
 export function refuelingErrorText(message: string): string {
   if (!isErrorCode(message)) return UNKNOWN_ERROR_TEXT;
-  // The limits are formatted per call, so they follow the active language.
+  // Limits are formatted per call. Module constants in this file are built at load in the start
+  // language; a language change needs a restart (ADR 0016).
   return translate(ERROR_KEYS[message], {
     min: formatEuro(MIN_PRICE_PER_LITER_TENTH_CENTS / TENTH_CENTS_PER_CENT),
     max: formatEuro(MAX_PRICE_PER_LITER_TENTH_CENTS / TENTH_CENTS_PER_CENT),

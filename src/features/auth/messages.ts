@@ -39,5 +39,7 @@ export function authFieldErrorText(message: string): string {
 }
 
 export function authServerErrorText(code: AuthServerErrorCode): string {
-  return translate(SERVER_ERROR_KEYS[code], { min: MIN_PASSWORD_LENGTH });
+  // Only weakPassword has a {{min}} placeholder.
+  const params = code === "weakPassword" ? { min: MIN_PASSWORD_LENGTH } : undefined;
+  return translate(SERVER_ERROR_KEYS[code], params);
 }
