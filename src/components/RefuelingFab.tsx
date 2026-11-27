@@ -3,7 +3,10 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native";
 import { FAB } from "react-native-paper";
 
-import { spacing, useAppTheme } from "@/lib/theme";
+import { sizes, spacing, useAppTheme } from "@/lib/theme";
+
+/** Bottom padding of a list below the FAB (88 dp): margin + FAB height + margin. */
+export const FAB_LIST_PADDING_BOTTOM = spacing("space-4") + sizes("fab") + spacing("space-4");
 
 /**
  * Extended FAB "Betankung erfassen" (design-system.md → ExtendedFab). Home and history show it;
@@ -18,7 +21,8 @@ export function RefuelingFab() {
     <FAB
       icon="plus"
       label={t("refuelingForm.fabLabel")}
-      onPress={() => router.push("/refuelings/new")}
+      // navigate, not push: a second tap while the form opens must not stack another form.
+      onPress={() => router.navigate("/refuelings/new")}
       // design-system.md: the FAB is a primary action, so it uses `primary`, not Paper's container.
       color={colors.onPrimary}
       style={[styles.fab, { backgroundColor: colors.primary }]}

@@ -25,5 +25,6 @@ export const de = {
     loading: "Betankungen werden geladen …",
     noVehicle: "Lege zuerst ein Fahrzeug an, dann kannst du Betankungen erfassen.",
     addVehicle: "Fahrzeug hinzufügen",
+    fabLabel: "Betankung erfassen",
   },
 } as const;
