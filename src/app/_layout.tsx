@@ -13,6 +13,7 @@ import { useSignOut } from "@/features/auth/hooks/useSignOut";
 import { useActiveVehicleId } from "@/features/vehicles/hooks/useActiveVehicle";
 import { useVehicles } from "@/features/vehicles/hooks/useVehicles";
 import { LOAD_ERROR_TEXT } from "@/features/vehicles/messages";
+import "@/lib/i18n";
 import { darkTheme, lightTheme, type AppTheme } from "@/lib/theme";
 
 // Gives the navigation containers (screen backgrounds, headers) the same colors as Paper.
