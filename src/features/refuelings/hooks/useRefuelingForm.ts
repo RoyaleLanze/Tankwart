@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import { newId } from "@/lib/id";
@@ -46,7 +46,7 @@ export function useRefuelingForm(
   );
   const resolver = useMemo(() => zodResolver(createRefuelingFormSchema(context)), [context]);
 
-  const { control, handleSubmit, setError, setFocus, formState } = useForm<
+  const { control, handleSubmit, setError, setFocus, clearErrors, formState } = useForm<
     RefuelingFormValues,
     unknown,
     RefuelingInput
@@ -56,6 +56,13 @@ export function useRefuelingForm(
     control,
     name: ["volumeLiters", "pricePerLiter", "totalEuros", "odometerKm"],
   });
+
+  const computed = computedAmount({ volumeLiters, pricePerLiter, totalEuros });
+  // The field shows its computed value instead of a "missing" error from an earlier save attempt.
+  const computedField = computed?.field;
+  useEffect(() => {
+    if (computedField) clearErrors(formFieldOf(computedField));
+  }, [computedField, clearErrors]);
 
   // react-hook-form does not block a second submit while the first one runs; the keyboard's
   // action key can still submit while the button is disabled.
@@ -95,7 +102,7 @@ export function useRefuelingForm(
     /** Error that belongs to no field (rejected or not reached), shown above the button. */
     submitError: formState.errors.root?.message,
     /** The empty one of volume, price and total once the other two allow computing it. */
-    computed: computedAmount({ volumeLiters, pricePerLiter, totalEuros }),
+    computed,
     /** Warning for the odometer; does not block saving. */
     odometerWarning: odometerWarning({ odometerKm }, context),
   };
