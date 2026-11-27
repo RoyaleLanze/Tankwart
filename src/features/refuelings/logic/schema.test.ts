@@ -197,12 +197,19 @@ describe("createRefuelingSchema", () => {
       expect(issues({ stationName })[0].message).toBe("stationMissing");
     });
 
-    it("rejects a missing value with the same code", () => {
-      const { stationName, ...withoutStation } = valid;
-      const result = createRefuelingSchema(context).safeParse(withoutStation);
-      expect(result.success ? [] : result.error.issues.map((issue) => issue.message)).toEqual([
-        "stationMissing",
-      ]);
+    it.each([null, undefined])("rejects %p with the same code", (stationName) => {
+      const stationIssues = issues({ stationName } as Partial<RefuelingFields>);
+      expect(stationIssues.map((issue) => issue.message)).toEqual(["stationMissing"]);
+    });
+
+    it("reports it together with an odometer error", () => {
+      const reported = issues({ stationName: "", odometerKm: 80_000 - 1 });
+      expect(reported.map((issue) => [issue.path[0], issue.message])).toEqual(
+        expect.arrayContaining([
+          ["stationName", "stationMissing"],
+          ["odometerKm", "odometerBelowInitial"],
+        ]),
+      );
     });
 
     it("accepts a name and stores it trimmed", () => {

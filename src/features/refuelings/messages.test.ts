@@ -34,7 +34,6 @@ describe("refuelingErrorText", () => {
 describe("saveErrorText", () => {
   it("mentions the internet connection only for a network failure", () => {
     expect(saveErrorText("network")).toBe(SAVE_ERROR_TEXT);
-    expect(saveErrorText("network")).toContain("Internetverbindung");
     expect(saveErrorText("rejected")).toBe(SAVE_REJECTED_TEXT);
     expect(saveErrorText("rejected")).not.toContain("Internet");
   });

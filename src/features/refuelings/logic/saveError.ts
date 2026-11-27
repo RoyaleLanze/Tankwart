@@ -25,15 +25,23 @@ export function saveFieldError(error: unknown): SaveFieldError | null {
 /** Why a save failed, for the text the user sees. */
 export type SaveErrorKind = "network" | "rejected";
 
+/** SQLSTATE class 22: data exception, e.g. 22003 numeric value out of range. */
+const DATA_EXCEPTION_CLASS = "22";
+/** SQLSTATE class 23: integrity violation, e.g. 23514 check, 23505 unique. */
+const INTEGRITY_VIOLATION_CLASS = "23";
+
 /**
- * Tells a failure to reach the server from data the server turned down. supabase-js does not
- * throw on a failed fetch (offline, timeout): it returns a plain object with `code: ""`
- * (postgrest-js, FetchError). Any answer from the server carries a non-empty code: a Postgres
- * SQLSTATE such as 23514 (check) or 22003 (overflow), or a PostgREST code such as PGRST116.
- * Anything without such a code, including a thrown TypeError, counts as network.
+ * Tells data the server turned down from every other failure. Only SQLSTATE classes 22 and 23
+ * mean "your input is wrong". Everything else is treated as a problem the user can retry: a
+ * failed fetch (supabase-js does not throw, it returns a plain object with `code: ""`), a
+ * timeout (57014), a lost connection (08xxx), overload (53300), a serialization failure
+ * (40001), or PostgREST's own codes (PGRST000-003, PGRST301/303). A thrown TypeError has no
+ * code and counts as network too.
  */
 export function saveErrorKind(error: unknown): SaveErrorKind {
   if (typeof error !== "object" || error === null) return "network";
-  const hasServerCode = "code" in error && typeof error.code === "string" && error.code !== "";
-  return hasServerCode ? "rejected" : "network";
+  if (!("code" in error) || typeof error.code !== "string") return "network";
+  const isDataError =
+    error.code.startsWith(DATA_EXCEPTION_CLASS) || error.code.startsWith(INTEGRITY_VIOLATION_CLASS);
+  return isDataError ? "rejected" : "network";
 }

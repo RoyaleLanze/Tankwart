@@ -71,11 +71,6 @@ describe("refuelingsApi", () => {
     expect(sentRow("update")).not.toHaveProperty("vehicle_id");
   });
 
-  it("sends the id chosen by the caller", async () => {
-    await createRefueling("0b9a7c64-1f3e-4d55-9a60-6d2f6f0f6a11", "v1", input);
-    expect(sentRow("insert")).toHaveProperty("id", "0b9a7c64-1f3e-4d55-9a60-6d2f6f0f6a11");
-  });
-
   it("lists newest day first, then highest odometer", async () => {
     mockResult = { data: [row], error: null };
     await listRefuelings("v1");

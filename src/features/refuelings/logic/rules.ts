@@ -85,5 +85,7 @@ export function distanceWarning(
     .map((other) => other.odometerKm)
     .filter((km) => km < odometerKm);
   if (lower.length === 0) return null;
-  return odometerKm - Math.max(...lower) > DISTANCE_WARNING_KM ? "distanceUnusuallyLarge" : null;
+  return odometerKm - Math.max(...lower) > DISTANCE_WARNING_KM
+    ? "distanceUnusuallyLarge"
+    : null;
 }

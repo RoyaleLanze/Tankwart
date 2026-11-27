@@ -64,6 +64,24 @@ describe("registerCreateRefuelingDefaults", () => {
     createMock.mockRejectedValue(error);
     const invalidate = jest.spyOn(queryClient, "invalidateQueries");
     await expect(run(queryClient)).rejects.toBe(error);
+    expect(createMock).toHaveBeenCalledTimes(1); // no silent retry
     expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it("stays pending until the list is loaded again", async () => {
+    createMock.mockResolvedValue(stored);
+    let finishInvalidation: () => void = () => {};
+    jest.spyOn(queryClient, "invalidateQueries").mockReturnValue(
+      new Promise<void>((resolve) => {
+        finishInvalidation = resolve;
+      }),
+    );
+    const onSettled = jest.fn();
+    run(queryClient).then(onSettled);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(onSettled).not.toHaveBeenCalled();
+    finishInvalidation();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(onSettled).toHaveBeenCalledWith(stored);
   });
 });

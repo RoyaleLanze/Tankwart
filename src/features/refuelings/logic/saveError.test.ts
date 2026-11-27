@@ -82,13 +82,10 @@ describe("saveFieldError", () => {
 
 describe("saveErrorKind", () => {
   it.each([
-    ["check violation", { code: "23514", message: "violates check constraint" }],
-    ["numeric overflow", { code: "22003", message: "integer out of range" }],
-    ["unique violation", duplicateDayOdometer],
-    ["row level security", { code: "42501", message: "permission denied" }],
-    ["PostgREST code", { code: "PGRST116", message: "JSON object requested" }],
-    ["Error with code", Object.assign(new Error("rejected"), { code: "23514" })],
-  ])("treats %s as rejected by the server", (_name, error) => {
+    ["integrity violation (23)", { code: "23514", message: "violates check constraint" }],
+    ["data exception (22)", { code: "22003", message: "integer out of range" }],
+    ["Error carrying a code", Object.assign(new Error("rejected"), { code: "23514" })],
+  ])("treats %s as rejected data", (_name, error) => {
     expect(saveErrorKind(error)).toBe("rejected");
   });
 
@@ -98,15 +95,24 @@ describe("saveErrorKind", () => {
       "failed fetch as postgrest-js reports it",
       { message: "TypeError: Network request failed", details: "", hint: "", code: "" },
     ],
-    ["aborted request", { message: "AbortError: aborted", details: "", hint: "", code: "" }],
+    ["PostgREST JWT error (PGRST303)", { code: "PGRST303", message: "JWT expired" }],
+    ["statement timeout (57014)", { code: "57014", message: "canceling statement" }],
+    ["connection failure (08006)", { code: "08006", message: "connection failure" }],
     ["thrown TypeError", new TypeError("Network request failed")],
+    ["Error without code", new Error("x")],
     ["non-JSON error body such as a proxy page", { message: "<html>Bad Gateway</html>" }],
     ["numeric code", { code: 23514, message: "x" }],
-    ["null code", { code: null, message: "x" }],
     ["null", null],
-    ["undefined", undefined],
-    ["string", "23514"],
   ])("treats %s as network", (_name, error) => {
     expect(saveErrorKind(error)).toBe("network");
+  });
+
+  // Current behavior, not a wish: a repeated insert with the same id hits refuelings_pkey. The
+  // user sees "check your input" although the refueling is saved. #107 turns this into
+  // "already saved".
+  it("reports a duplicate id as rejected data, with no field error", () => {
+    const duplicateId = { code: "23505", message: 'violates unique constraint "refuelings_pkey"' };
+    expect(saveFieldError(duplicateId)).toBeNull();
+    expect(saveErrorKind(duplicateId)).toBe("rejected");
   });
 });

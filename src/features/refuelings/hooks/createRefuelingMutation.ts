@@ -33,7 +33,11 @@ export function registerCreateRefuelingDefaults(queryClient: QueryClient): void 
   });
 }
 
-/** Saves a new refueling: `mutateAsync({ id, vehicleId, input })`. */
+/**
+ * Saves a new refueling: `mutateAsync({ id, vehicleId, input })`. Callers must not pass their
+ * own `onSuccess`: it would replace the one from the defaults, and the list would no longer be
+ * loaded again after saving.
+ */
 export function useCreateRefueling() {
   return useMutation<Refueling, Error, CreateRefuelingVariables>({
     mutationKey: CREATE_REFUELING_MUTATION_KEY,
