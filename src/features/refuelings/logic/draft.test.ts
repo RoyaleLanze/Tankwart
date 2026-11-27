@@ -48,17 +48,14 @@ describe("parseDraft", () => {
 });
 
 describe("hasUserInput", () => {
+  const EMPTY = { ...VALUES, volumeLiters: "", odometerKm: "", stationName: "" };
+
   it("is false for values the form starts with, spaces included", () => {
-    expect(hasUserInput({ ...VALUES, volumeLiters: " ", odometerKm: "", stationName: "" })).toBe(
-      false,
-    );
+    expect(hasUserInput({ ...EMPTY, note: "  " })).toBe(false);
   });
 
   it.each(["volumeLiters", "pricePerLiter", "totalEuros", "odometerKm", "stationName", "note"])(
     "is true when %s has text",
-    (field) => {
-      const empty = { ...VALUES, volumeLiters: "", odometerKm: "", stationName: "" };
-      expect(hasUserInput({ ...empty, [field]: "1" })).toBe(true);
-    },
+    (field) => expect(hasUserInput({ ...EMPTY, [field]: "1" })).toBe(true),
   );
 });
