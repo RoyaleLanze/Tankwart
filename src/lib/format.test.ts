@@ -7,6 +7,7 @@ import {
   formatLiters,
   formatMonth,
   formatPricePerLiter,
+  formatPricePerLiterText,
 } from "./format";
 
 // Units are joined with a non-breaking space; written as a normal space here for readability.
@@ -56,6 +57,15 @@ describe("number formats", () => {
   });
 });
 
+describe("formatPricePerLiterText", () => {
+  it.each([
+    [1749, "1,749 €/L"],
+    [500, "0,500 €/L"],
+  ])("%i → %s", (tenthCents, expected) => {
+    expect(readable(formatPricePerLiterText(tenthCents))).toBe(expected);
+  });
+});
+
 describe("formatPricePerLiter", () => {
   it.each([
     [1749, "1,74", "9", "1 Euro 74,9 Cent pro Liter"],
@@ -65,7 +75,11 @@ describe("formatPricePerLiter", () => {
     [999, "0,99", "9", "99,9 Cent pro Liter"],
     [4000, "4,00", "0", "4 Euro 0,0 Cent pro Liter"],
   ])("%i → %s + %s", (tenthCents, euroAndCents, tenthCent, accessibilityLabel) => {
-    expect(formatPricePerLiter(tenthCents)).toEqual({ euroAndCents, tenthCent, accessibilityLabel });
+    expect(formatPricePerLiter(tenthCents)).toEqual({
+      euroAndCents,
+      tenthCent,
+      accessibilityLabel,
+    });
   });
 
   it.each([-5, 1749.5, Number.NaN])("rejects %d instead of printing broken text", (tenthCents) => {
