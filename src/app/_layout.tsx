@@ -10,6 +10,7 @@ import { ErrorScreen } from "@/components/ErrorScreen";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useSession } from "@/features/auth/hooks/useSession";
 import { useSignOut } from "@/features/auth/hooks/useSignOut";
+import { registerCreateRefuelingDefaults } from "@/features/refuelings/hooks/createRefuelingMutation";
 import { useActiveVehicleId } from "@/features/vehicles/hooks/useActiveVehicle";
 import { useVehicles } from "@/features/vehicles/hooks/useVehicles";
 import { LOAD_ERROR_TEXT } from "@/features/vehicles/messages";
@@ -40,6 +41,7 @@ const navigationThemes = {
 };
 
 const queryClient = createQueryClient();
+registerCreateRefuelingDefaults(queryClient);
 
 // Keeps the splash screen visible until the stored session has been read.
 SplashScreen.preventAutoHideAsync();
