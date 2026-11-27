@@ -32,10 +32,23 @@ export async function signOut(): Promise<void> {
 }
 
 /**
- * Calls back with the stored session right away (event INITIAL_SESSION) and again after every
- * sign-in, sign-out and token refresh. Returns the function that ends the subscription.
+ * The stored session, or null if there is none. supabase-js renews an expired session first and
+ * returns the error if that fails; it keeps the session on the device after a network error.
  */
-export function subscribeToSession(onChange: (session: Session | null) => void): () => void {
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => onChange(session));
+export async function loadSession(): Promise<Session | null> {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  return data.session;
+}
+
+/**
+ * Calls back after every sign-in, sign-out and token refresh. Returns the function that ends
+ * the subscription. The start event INITIAL_SESSION is skipped: it reports a session that could
+ * not be renewed offline as null, the same as signed out (#111). `loadSession` covers the start.
+ */
+export function subscribeToSessionChanges(onChange: (session: Session | null) => void): () => void {
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event !== "INITIAL_SESSION") onChange(session);
+  });
   return () => data.subscription.unsubscribe();
 }
