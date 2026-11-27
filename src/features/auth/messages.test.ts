@@ -31,6 +31,8 @@ describe("authServerErrorText", () => {
   });
 
   it("names the minimum length for a weak password", () => {
-    expect(authServerErrorText("weakPassword")).toContain("mindestens 8 Zeichen");
+    expect(authServerErrorText("weakPassword")).toBe(
+      "Das Passwort ist zu schwach. Nutze mindestens 8 Zeichen.",
+    );
   });
 });
