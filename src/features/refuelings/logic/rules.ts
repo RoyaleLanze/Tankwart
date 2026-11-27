@@ -23,6 +23,7 @@ export type RefuelingErrorCode =
   | "totalMissing"
   | "totalNotPositive"
   | "odometerMissing"
+  | "stationMissing"
   | "valueTooLarge"
   | "odometerBelowInitial"
   | "odometerNotAbovePrevious"
@@ -84,7 +85,5 @@ export function distanceWarning(
     .map((other) => other.odometerKm)
     .filter((km) => km < odometerKm);
   if (lower.length === 0) return null;
-  return odometerKm - Math.max(...lower) > DISTANCE_WARNING_KM
-    ? "distanceUnusuallyLarge"
-    : null;
+  return odometerKm - Math.max(...lower) > DISTANCE_WARNING_KM ? "distanceUnusuallyLarge" : null;
 }

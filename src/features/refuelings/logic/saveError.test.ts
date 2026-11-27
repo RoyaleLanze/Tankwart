@@ -1,4 +1,4 @@
-import { saveFieldError } from "./saveError";
+import { saveErrorKind, saveFieldError } from "./saveError";
 
 // Same shape as the error local Supabase returns for a duplicate insert.
 const duplicateDayOdometer = {
@@ -77,5 +77,36 @@ describe("saveFieldError", () => {
     { code: "23505", message: 42 },
   ])("returns null for %p", (error) => {
     expect(saveFieldError(error)).toBeNull();
+  });
+});
+
+describe("saveErrorKind", () => {
+  it.each([
+    ["check violation", { code: "23514", message: "violates check constraint" }],
+    ["numeric overflow", { code: "22003", message: "integer out of range" }],
+    ["unique violation", duplicateDayOdometer],
+    ["row level security", { code: "42501", message: "permission denied" }],
+    ["PostgREST code", { code: "PGRST116", message: "JSON object requested" }],
+    ["Error with code", Object.assign(new Error("rejected"), { code: "23514" })],
+  ])("treats %s as rejected by the server", (_name, error) => {
+    expect(saveErrorKind(error)).toBe("rejected");
+  });
+
+  it.each([
+    // What postgrest-js returns when fetch fails (React Native wording).
+    [
+      "failed fetch as postgrest-js reports it",
+      { message: "TypeError: Network request failed", details: "", hint: "", code: "" },
+    ],
+    ["aborted request", { message: "AbortError: aborted", details: "", hint: "", code: "" }],
+    ["thrown TypeError", new TypeError("Network request failed")],
+    ["non-JSON error body such as a proxy page", { message: "<html>Bad Gateway</html>" }],
+    ["numeric code", { code: 23514, message: "x" }],
+    ["null code", { code: null, message: "x" }],
+    ["null", null],
+    ["undefined", undefined],
+    ["string", "23514"],
+  ])("treats %s as network", (_name, error) => {
+    expect(saveErrorKind(error)).toBe("network");
   });
 });

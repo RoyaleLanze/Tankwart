@@ -1,4 +1,11 @@
-import { refuelingErrorText, refuelingWarningText, UNKNOWN_ERROR_TEXT } from "./messages";
+import {
+  refuelingErrorText,
+  refuelingWarningText,
+  SAVE_ERROR_TEXT,
+  SAVE_REJECTED_TEXT,
+  saveErrorText,
+  UNKNOWN_ERROR_TEXT,
+} from "./messages";
 
 // Units are joined with a non-breaking space; written as a normal space here for readability.
 const readable = (text: string) => text.replace(/ /g, " ");
@@ -22,6 +29,19 @@ describe("refuelingErrorText", () => {
       expect(refuelingErrorText(message)).toBe(UNKNOWN_ERROR_TEXT);
     },
   );
+});
+
+describe("saveErrorText", () => {
+  it("mentions the internet connection only for a network failure", () => {
+    expect(saveErrorText("network")).toBe(SAVE_ERROR_TEXT);
+    expect(saveErrorText("network")).toContain("Internetverbindung");
+    expect(saveErrorText("rejected")).toBe(SAVE_REJECTED_TEXT);
+    expect(saveErrorText("rejected")).not.toContain("Internet");
+  });
+
+  it("names the missing station", () => {
+    expect(refuelingErrorText("stationMissing")).toBe("Bitte die Tankstelle angeben.");
+  });
 });
 
 describe("refuelingWarningText", () => {

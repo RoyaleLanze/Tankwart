@@ -30,6 +30,7 @@ const valid: RefuelingFields = {
   pricePerLiterTenthCents: 1749,
   totalCents: 6996,
   odometerKm: 84_500,
+  stationName: "Aral",
 };
 
 function issues(input: Partial<RefuelingFields>, ctx: RefuelingContext = context) {
@@ -187,6 +188,26 @@ describe("createRefuelingSchema", () => {
       expect(errorFields({ ...sameDay, odometerKm: 83_900 })).toEqual([]);
       expect(errorFields({ ...sameDay, odometerKm: 84_100 })).toEqual([]);
       expect(errorFields({ ...sameDay, odometerKm: 84_000 })).toEqual(["odometerKm"]);
+    });
+  });
+
+  describe("station name (required, free text until M5)", () => {
+    it.each(["", " ", "\t\n  "])("rejects %j at the field", (stationName) => {
+      expect(errorFields({ stationName })).toEqual(["stationName"]);
+      expect(issues({ stationName })[0].message).toBe("stationMissing");
+    });
+
+    it("rejects a missing value with the same code", () => {
+      const { stationName, ...withoutStation } = valid;
+      const result = createRefuelingSchema(context).safeParse(withoutStation);
+      expect(result.success ? [] : result.error.issues.map((issue) => issue.message)).toEqual([
+        "stationMissing",
+      ]);
+    });
+
+    it("accepts a name and stores it trimmed", () => {
+      const result = createRefuelingSchema(context).safeParse({ ...valid, stationName: "  Aral " });
+      expect(result.success && result.data.stationName).toBe("Aral");
     });
   });
 

@@ -3,6 +3,7 @@
 import { formatEuro, formatKm } from "@/lib/format";
 import { TENTH_CENTS_PER_CENT } from "@/lib/units";
 
+import type { SaveErrorKind } from "./logic/saveError";
 import {
   DISTANCE_WARNING_KM,
   MAX_PRICE_PER_LITER_TENTH_CENTS,
@@ -26,6 +27,7 @@ const ERROR_TEXTS: Record<RefuelingErrorCode, string> = {
   totalMissing: "Bitte den Gesamtbetrag angeben.",
   totalNotPositive: "Gesamtbetrag muss größer als 0 sein.",
   odometerMissing: "Bitte den Kilometerstand angeben.",
+  stationMissing: "Bitte die Tankstelle angeben.",
   valueTooLarge: "Wert ist zu groß.",
   odometerBelowInitial: "Kilometerstand liegt unter dem Anfangsstand des Fahrzeugs.",
   odometerNotAbovePrevious: "Kilometerstand muss höher sein als bei der vorherigen Betankung.",
@@ -42,6 +44,9 @@ export const LOAD_ERROR_TEXT =
   "Deine Betankungen konnten nicht geladen werden. Prüfe deine Internetverbindung und versuche es erneut.";
 export const SAVE_ERROR_TEXT =
   "Die Betankung konnte nicht gespeichert werden. Prüfe deine Internetverbindung und versuche es erneut.";
+// The server was reached but refused the data, so a network hint would mislead.
+export const SAVE_REJECTED_TEXT =
+  "Die Betankung konnte nicht gespeichert werden. Bitte prüfe deine Eingaben.";
 export const DELETE_ERROR_TEXT =
   "Die Betankung konnte nicht gelöscht werden. Prüfe deine Internetverbindung und versuche es erneut.";
 
@@ -55,6 +60,11 @@ function isErrorCode(message: string): message is RefuelingErrorCode {
 /** Text for a schema issue; takes the issue's `message`, which is a code. */
 export function refuelingErrorText(message: string): string {
   return isErrorCode(message) ? ERROR_TEXTS[message] : UNKNOWN_ERROR_TEXT;
+}
+
+/** Text for a failed save; a field error (saveFieldError) is shown at its field instead. */
+export function saveErrorText(kind: SaveErrorKind): string {
+  return kind === "rejected" ? SAVE_REJECTED_TEXT : SAVE_ERROR_TEXT;
 }
 
 export function refuelingWarningText(code: RefuelingWarningCode): string {

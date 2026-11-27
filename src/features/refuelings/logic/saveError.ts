@@ -21,3 +21,19 @@ export function saveFieldError(error: unknown): SaveFieldError | null {
     ? { field: "odometerKm", code: "odometerDuplicateSameDay" }
     : null;
 }
+
+/** Why a save failed, for the text the user sees. */
+export type SaveErrorKind = "network" | "rejected";
+
+/**
+ * Tells a failure to reach the server from data the server turned down. supabase-js does not
+ * throw on a failed fetch (offline, timeout): it returns a plain object with `code: ""`
+ * (postgrest-js, FetchError). Any answer from the server carries a non-empty code: a Postgres
+ * SQLSTATE such as 23514 (check) or 22003 (overflow), or a PostgREST code such as PGRST116.
+ * Anything without such a code, including a thrown TypeError, counts as network.
+ */
+export function saveErrorKind(error: unknown): SaveErrorKind {
+  if (typeof error !== "object" || error === null) return "network";
+  const hasServerCode = "code" in error && typeof error.code === "string" && error.code !== "";
+  return hasServerCode ? "rejected" : "network";
+}
