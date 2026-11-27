@@ -51,7 +51,7 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
               label={label}
               // Paper's label is a separate text view; the native field needs its own name.
               accessibilityLabel={label}
-              accessibilityHint={shownError ?? helperText}
+              accessibilityHint={shownError}
               left={
                 icon ? (
                   <TextInput.Icon icon={icon} importantForAccessibility="no" focusable={false} />
@@ -68,10 +68,10 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
               </HelperText>
             ) : (
               helperText && (
-                // Already read as the field's hint, so the screen reader skips it here.
+                // Live region: the screen reader announces the hint when it changes, e.g. a computed value.
                 <HelperText
                   type="info"
-                  importantForAccessibility="no"
+                  accessibilityLiveRegion="polite"
                   style={helperColor ? { color: helperColor } : undefined}
                 >
                   {helperText}
