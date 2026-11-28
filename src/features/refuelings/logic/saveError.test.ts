@@ -183,11 +183,23 @@ describe("isRefuelingGone", () => {
     message: "Cannot coerce the result to a single JSON object",
   };
 
-  it("recognizes PGRST116, also on an Error carrying the code", () => {
-    expect(isRefuelingGone(noRow)).toBe(true);
-    expect(isRefuelingGone(Object.assign(new Error(noRow.message), { code: "PGRST116" }))).toBe(
-      true,
-    );
+  it.each([
+    ["a plain PostgREST error", noRow],
+    ["an Error carrying the code", Object.assign(new Error(noRow.message), { code: "PGRST116" })],
+    ["details that mention 2 rows", { ...noRow, details: "The result contains 2 rows" }],
+  ])("recognizes PGRST116 on %s", (_name, error) => {
+    expect(isRefuelingGone(error)).toBe(true);
+  });
+
+  it.each([
+    ["a lower-case code", { code: "pgrst116" }],
+    ["a code with spaces", { code: " PGRST116 " }],
+    ["an undefined code", { code: undefined }],
+    ["a numeric code", { code: 116 }],
+    ["an array", ["PGRST116"]],
+    ["a missing code", { message: noRow.message }],
+  ])("ignores %s", (_name, error) => {
+    expect(isRefuelingGone(error)).toBe(false);
   });
 
   it("is the gone kind, not network and not rejected", () => {
