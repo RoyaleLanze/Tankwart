@@ -14,20 +14,20 @@ import {
   odometerWarning,
 } from "../logic/formSchema";
 import type { RefuelingFormValues } from "../logic/formValues";
-import type { RefuelingContext } from "../logic/rules";
+import { withoutRefueling, type RefuelingContext } from "../logic/rules";
 import type { Refueling, RefuelingInput } from "../types";
 import { useSaveRefueling, type SaveOutcome } from "./useSaveRefueling";
 
 /** What the validation rules need: the vehicle and its other refuelings. */
-function useRefuelingContext(vehicle: Vehicle, refuelings: readonly Refueling[]) {
+function useRefuelingContext(vehicle: Vehicle, refuelings: readonly Refueling[], id: string) {
   return useMemo<RefuelingContext>(
     () => ({
       today: todayIsoDate,
       tankCapacityMl: vehicle.tankCapacityMl,
       initialOdometerKm: vehicle.initialOdometerKm,
-      otherRefuelings: refuelings,
+      otherRefuelings: withoutRefueling(refuelings, id),
     }),
-    [vehicle, refuelings],
+    [vehicle, refuelings, id],
   );
 }
 
@@ -80,7 +80,7 @@ export function useRefuelingForm(vehicle: Vehicle, refuelings: readonly Refuelin
   // One id per form: a retry after a failed attempt sends the same one (ADR 0017).
   const [id] = useState(newId);
   const [defaultValues] = useState(() => defaultFormValues(todayIsoDate()));
-  const context = useRefuelingContext(vehicle, refuelings);
+  const context = useRefuelingContext(vehicle, refuelings, id);
   const resolver = useMemo(() => zodResolver(createRefuelingFormSchema(context)), [context]);
 
   const { control, handleSubmit, setError, setFocus, clearErrors, formState } = useForm<

@@ -47,6 +47,17 @@ export type RefuelingContext = {
   otherRefuelings: readonly OtherRefueling[];
 };
 
+/**
+ * The refuelings the rules compare against: all but the one being saved. A first save whose
+ * response got lost already put that row in the list, and a retry must not clash with itself.
+ */
+export function withoutRefueling<T extends { id: string }>(
+  refuelings: readonly T[],
+  id: string,
+): T[] {
+  return refuelings.filter((refueling) => refueling.id !== id);
+}
+
 /** Largest volume accepted for a tank; integer math avoids 50000 * 1.1 = 55000.000000000004. */
 export function maxVolumeMl(tankCapacityMl: number): number {
   return Math.floor((tankCapacityMl * MAX_FILL_PERCENT_OF_TANK) / 100);
