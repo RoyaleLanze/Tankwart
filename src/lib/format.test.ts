@@ -75,11 +75,7 @@ describe("formatPricePerLiter", () => {
     [999, "0,99", "9", "99,9 Cent pro Liter"],
     [4000, "4,00", "0", "4 Euro 0,0 Cent pro Liter"],
   ])("%i → %s + %s", (tenthCents, euroAndCents, tenthCent, accessibilityLabel) => {
-    expect(formatPricePerLiter(tenthCents)).toEqual({
-      euroAndCents,
-      tenthCent,
-      accessibilityLabel,
-    });
+    expect(formatPricePerLiter(tenthCents)).toEqual({ euroAndCents, tenthCent, accessibilityLabel });
   });
 
   it.each([-5, 1749.5, Number.NaN])("rejects %d instead of printing broken text", (tenthCents) => {
