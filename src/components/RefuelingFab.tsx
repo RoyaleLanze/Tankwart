@@ -3,10 +3,7 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native";
 import { FAB } from "react-native-paper";
 
-import { sizes, spacing, useAppTheme } from "@/lib/theme";
-
-/** Bottom padding of a list below the FAB (88 dp): margin + FAB height + margin. */
-export const FAB_LIST_PADDING_BOTTOM = spacing("space-4") + sizes("fab") + spacing("space-4");
+import { spacing, useAppTheme } from "@/lib/theme";
 
 /**
  * Extended FAB "Betankung erfassen" (design-system.md → ExtendedFab). Home and history show it;
