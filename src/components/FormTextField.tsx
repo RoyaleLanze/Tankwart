@@ -82,25 +82,14 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
                 <HelperText type="error" accessibilityLiveRegion="polite">
                   {shownError}
                 </HelperText>
-              ) : (
-                helperText && (
-                  <View style={styles.hint}>
-                    {helperIcon && (
-                      <View style={styles.hintIcon} importantForAccessibility="no">
-                        <Icon source={helperIcon} size={ICON_SIZE} color={helperColor} />
-                      </View>
-                    )}
-                    <HelperText
-                      type="info"
-                      // Without helperLive the text is the field's hint; hide the node, so it is not read twice.
-                      importantForAccessibility={helperLive ? "auto" : "no"}
-                      style={[styles.hintText, helperColor ? { color: helperColor } : undefined]}
-                    >
-                      {helperText}
-                    </HelperText>
-                  </View>
-                )
-              )}
+              ) : helperText ? (
+                <FieldHint
+                  text={helperText}
+                  color={helperColor}
+                  icon={helperIcon}
+                  isLive={helperLive}
+                />
+              ) : null}
             </View>
           </View>
         );
@@ -109,11 +98,47 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
   );
 }
 
+type FieldHintProps = {
+  text: string;
+  color?: string;
+  icon?: string;
+  isLive?: boolean;
+};
+
+/** Hint below a field. Without an icon it looks exactly like the error text that replaces it. */
+function FieldHint({ text, color, icon, isLive }: FieldHintProps) {
+  // Without isLive the text is the field's accessibility hint; hide the node, so it is not read twice.
+  const importance = isLive ? "auto" : "no";
+  const colorStyle = color ? { color } : undefined;
+
+  if (!icon) {
+    return (
+      <HelperText type="info" importantForAccessibility={importance} style={colorStyle}>
+        {text}
+      </HelperText>
+    );
+  }
+  return (
+    <View style={styles.hint}>
+      <View style={styles.hintIcon} importantForAccessibility="no">
+        <Icon source={icon} size={ICON_SIZE} color={color} />
+      </View>
+      <HelperText
+        type="info"
+        importantForAccessibility={importance}
+        style={[styles.hintText, colorStyle]}
+      >
+        {text}
+      </HelperText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   hint: {
     flexDirection: "row",
     alignItems: "flex-start",
-    // HelperText has its own horizontal padding of the same size.
+    // Same left edge as the error text, which gets it from HelperText's own horizontal padding.
     paddingLeft: spacing("space-3"),
   },
   // Lines up with the first line of the hint text, which has the same padding on top.
