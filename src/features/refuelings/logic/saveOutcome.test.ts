@@ -1,4 +1,5 @@
-import { formStateOf } from "./saveOutcome";
+import type { SaveFieldError } from "./saveError";
+import { formStateOf, type SaveOutcome } from "./saveOutcome";
 
 describe("formStateOf", () => {
   it("leaves with no error after a save", () => {
@@ -36,5 +37,40 @@ describe("formStateOf", () => {
       saved: false,
       error: { name: "root", message: "Anders gespeichert", shouldFocus: false },
     });
+  });
+
+  it.each<[SaveFieldError["field"], string]>([
+    ["refueledOn", "refueledOn"],
+    ["volumeMl", "volumeLiters"],
+    ["pricePerLiterTenthCents", "pricePerLiter"],
+    ["totalCents", "totalEuros"],
+    ["odometerKm", "odometerKm"],
+    ["stationName", "stationName"],
+  ])("maps the database field %s to the form field %s and focuses it", (field, formField) => {
+    const state = formStateOf({
+      status: "fieldError",
+      error: { field, code: "valueTooLarge" },
+    });
+    expect(state.error).toEqual({ name: formField, message: "valueTooLarge", shouldFocus: true });
+  });
+
+  it("focuses a field only for a field error and reports saved only for saved", () => {
+    const outcomes: SaveOutcome[] = [
+      { status: "saved" },
+      { status: "fieldError", error: { field: "odometerKm", code: "odometerDuplicateSameDay" } },
+      { status: "differs", message: "Anders gespeichert" },
+      { status: "failed", message: "Kein Netz" },
+    ];
+    const states = outcomes.map((outcome) => ({
+      status: outcome.status,
+      saved: formStateOf(outcome).saved,
+      shouldFocus: formStateOf(outcome).error?.shouldFocus ?? false,
+    }));
+    expect(states).toEqual([
+      { status: "saved", saved: true, shouldFocus: false },
+      { status: "fieldError", saved: false, shouldFocus: true },
+      { status: "differs", saved: false, shouldFocus: false },
+      { status: "failed", saved: false, shouldFocus: false },
+    ]);
   });
 });
