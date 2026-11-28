@@ -96,4 +96,31 @@ describe("failedOutcome", () => {
   ])("passes the kind of %s to the wording", (_name, error, message) => {
     expect(failedOutcome(error, textOf)).toEqual({ status: "failed", message });
   });
+
+  it("does not ask for a text when a field error is found", () => {
+    const textOf = jest.fn(() => "unused");
+    const error = {
+      code: "23505",
+      message: 'violates unique constraint "refuelings_vehicle_day_odometer_key"',
+    };
+    failedOutcome(error, textOf);
+    expect(textOf).not.toHaveBeenCalled();
+  });
+
+  it("keeps a missing row failed as gone, even if the message names a constraint", () => {
+    const error = {
+      code: "PGRST116",
+      message: "refuelings_vehicle_day_odometer_key refuelings_pkey",
+    };
+    expect(failedOutcome(error, textOf)).toEqual({ status: "failed", message: "text:gone" });
+  });
+
+  it("treats a duplicate id as rejected, not as a field error", () => {
+    const error = { code: "23505", message: 'violates unique constraint "refuelings_pkey"' };
+    expect(failedOutcome(error, textOf)).toEqual({ status: "failed", message: "text:rejected" });
+  });
+
+  it.each([null, undefined, "boom"])("treats %p as a network failure", (error) => {
+    expect(failedOutcome(error, textOf)).toEqual({ status: "failed", message: "text:network" });
+  });
 });
