@@ -38,6 +38,12 @@ describe("saveErrorText", () => {
     expect(saveErrorText("rejected")).not.toContain("Internet");
   });
 
+  it("says the refueling is gone without a network hint or a rejection", () => {
+    expect(saveErrorText("gone")).toBe("Diese Betankung gibt es nicht mehr.");
+    expect(saveErrorText("gone")).not.toBe(SAVE_ERROR_TEXT);
+    expect(saveErrorText("gone")).not.toBe(SAVE_REJECTED_TEXT);
+  });
+
   it("names the missing station", () => {
     expect(refuelingErrorText("stationMissing")).toBe("Bitte die Tankstelle angeben.");
   });

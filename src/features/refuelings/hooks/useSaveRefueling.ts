@@ -2,8 +2,8 @@ import { i18n } from "@/lib/i18n";
 
 import { getRefueling } from "../api/refuelingsApi";
 import { decideRetry, type ReadBack } from "../logic/retryDecision";
-import { isAlreadySaved, saveErrorKind, saveFieldError } from "../logic/saveError";
-import type { SaveOutcome } from "../logic/saveOutcome";
+import { isAlreadySaved } from "../logic/saveError";
+import { failedOutcome, type SaveOutcome } from "../logic/saveOutcome";
 import { saveErrorText } from "../messages";
 import type { RefuelingInput } from "../types";
 import { useCreateRefueling } from "./createRefuelingMutation";
@@ -44,9 +44,7 @@ export function useSaveRefueling(vehicleId: string, id: string) {
         }
         if (decision === "network") return { status: "failed", message: saveErrorText("network") };
       }
-      const fieldError = saveFieldError(error);
-      if (fieldError) return { status: "fieldError", error: fieldError };
-      return { status: "failed", message: saveErrorText(saveErrorKind(error)) };
+      return failedOutcome(error, saveErrorText);
     }
   };
 }

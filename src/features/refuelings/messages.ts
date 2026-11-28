@@ -69,7 +69,14 @@ export function refuelingErrorText(message: string): string {
 
 /** Text for a failed save; a field error (saveFieldError) is shown at its field instead. */
 export function saveErrorText(kind: SaveErrorKind): string {
-  return kind === "rejected" ? SAVE_REJECTED_TEXT : SAVE_ERROR_TEXT;
+  switch (kind) {
+    case "rejected":
+      return SAVE_REJECTED_TEXT;
+    case "gone":
+      return i18n.t("refuelingForm.notFound");
+    case "network":
+      return SAVE_ERROR_TEXT;
+  }
 }
 
 export function refuelingWarningText(code: RefuelingWarningCode): string {

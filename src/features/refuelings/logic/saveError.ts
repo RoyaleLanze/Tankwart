@@ -37,8 +37,20 @@ export function isAlreadySaved(error: unknown): boolean {
   return hasUniqueViolation(error, PRIMARY_KEY_CONSTRAINT);
 }
 
+/**
+ * PostgREST code for `.single()` finding no row. An update of a refueling that was deleted
+ * meanwhile, or belongs to someone else (RLS hides it), ends up here.
+ */
+const NO_ROW_FOUND = "PGRST116";
+
+/** True if an update of one row found nothing: the refueling no longer exists. */
+export function isRefuelingGone(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  return "code" in error && error.code === NO_ROW_FOUND;
+}
+
 /** Why a save failed, for the text the user sees. */
-export type SaveErrorKind = "network" | "rejected";
+export type SaveErrorKind = "network" | "rejected" | "gone";
 
 /** SQLSTATE class 22: data exception, e.g. 22003 numeric value out of range. */
 const DATA_EXCEPTION_CLASS = "22";
@@ -54,6 +66,7 @@ const INTEGRITY_VIOLATION_CLASS = "23";
  * code and counts as network too.
  */
 export function saveErrorKind(error: unknown): SaveErrorKind {
+  if (isRefuelingGone(error)) return "gone";
   if (typeof error !== "object" || error === null) return "network";
   if (!("code" in error) || typeof error.code !== "string") return "network";
   const isDataError =

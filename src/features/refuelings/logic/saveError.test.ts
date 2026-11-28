@@ -1,4 +1,4 @@
-import { isAlreadySaved, saveErrorKind, saveFieldError } from "./saveError";
+import { isAlreadySaved, isRefuelingGone, saveErrorKind, saveFieldError } from "./saveError";
 
 // Same shape as the error local Supabase returns for a duplicate insert.
 const duplicateDayOdometer = {
@@ -171,5 +171,36 @@ describe("isAlreadySaved", () => {
     ["no error object", null],
   ])("never fires together with saveFieldError for a %s", (_name, error) => {
     expect(isAlreadySaved(error) && saveFieldError(error) !== null).toBe(false);
+  });
+});
+
+describe("isRefuelingGone", () => {
+  // What `.single()` returns when an update or read matches no row (deleted, or hidden by RLS).
+  const noRow = {
+    code: "PGRST116",
+    details: "The result contains 0 rows",
+    hint: null,
+    message: "Cannot coerce the result to a single JSON object",
+  };
+
+  it("recognizes PGRST116, also on an Error carrying the code", () => {
+    expect(isRefuelingGone(noRow)).toBe(true);
+    expect(isRefuelingGone(Object.assign(new Error(noRow.message), { code: "PGRST116" }))).toBe(
+      true,
+    );
+  });
+
+  it("is the gone kind, not network and not rejected", () => {
+    expect(saveErrorKind(noRow)).toBe("gone");
+  });
+
+  it("ignores other PostgREST codes, other errors and non-errors", () => {
+    expect(isRefuelingGone({ code: "PGRST303", message: "JWT expired" })).toBe(false);
+    expect(isRefuelingGone({ code: "23514", message: "check" })).toBe(false);
+    expect(isRefuelingGone({ code: 116 })).toBe(false);
+    expect(isRefuelingGone({ message: noRow.message })).toBe(false);
+    expect(isRefuelingGone(new TypeError("Network request failed"))).toBe(false);
+    expect(isRefuelingGone(null)).toBe(false);
+    expect(isRefuelingGone("PGRST116")).toBe(false);
   });
 });
