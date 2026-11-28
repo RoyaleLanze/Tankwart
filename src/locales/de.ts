@@ -29,5 +29,6 @@ export const de = {
     addVehicle: "Fahrzeug hinzufügen",
     savedButDiffers:
       "Die Betankung wurde schon gespeichert, deine letzten Änderungen nicht. Bearbeite sie in der Liste.",
+    fabLabel: "Betankung erfassen",
   },
 } as const;
