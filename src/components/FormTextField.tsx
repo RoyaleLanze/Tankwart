@@ -1,6 +1,11 @@
 import { Controller, type Control, type FieldValues, type Path } from "react-hook-form";
-import { View } from "react-native";
-import { HelperText, TextInput, type TextInputProps } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { HelperText, Icon, TextInput, type TextInputProps } from "react-native-paper";
+
+import { spacing } from "@/lib/theme";
+
+/** Size of the icon before a hint; matches the hint text. */
+const ICON_SIZE = 16;
 
 // TTransformed: the values after validation, when the schema turns the text into other types.
 export type FormTextFieldProps<T extends FieldValues, TTransformed = T> = {
@@ -16,6 +21,8 @@ export type FormTextFieldProps<T extends FieldValues, TTransformed = T> = {
   helperText?: string;
   /** Color of the hint, e.g. the warning color; the default is the neutral hint color. */
   helperColor?: string;
+  /** Icon before the hint, so a warning never relies on its color alone. */
+  helperIcon?: string;
   /**
    * Announces the hint when it changes, e.g. a computed value. Without it the hint is a static
    * accessibility hint of the field.
@@ -38,6 +45,7 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
   errorText,
   helperText,
   helperColor,
+  helperIcon,
   helperLive,
   ...inputProps
 }: FormTextFieldProps<T, TTransformed>) {
@@ -74,18 +82,14 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
                 <HelperText type="error" accessibilityLiveRegion="polite">
                   {shownError}
                 </HelperText>
-              ) : (
-                helperText && (
-                  <HelperText
-                    type="info"
-                    // Without helperLive the text is the field's hint; hide the node, so it is not read twice.
-                    importantForAccessibility={helperLive ? "auto" : "no"}
-                    style={helperColor ? { color: helperColor } : undefined}
-                  >
-                    {helperText}
-                  </HelperText>
-                )
-              )}
+              ) : helperText ? (
+                <FieldHint
+                  text={helperText}
+                  color={helperColor}
+                  icon={helperIcon}
+                  isLive={helperLive}
+                />
+              ) : null}
             </View>
           </View>
         );
@@ -93,3 +97,56 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
     />
   );
 }
+
+type FieldHintProps = {
+  text: string;
+  color?: string;
+  icon?: string;
+  isLive?: boolean;
+};
+
+/** Hint below a field. Without an icon it looks exactly like the error text that replaces it. */
+function FieldHint({ text, color, icon, isLive }: FieldHintProps) {
+  // Without isLive the text is the field's accessibility hint; hide the node, so it is not read twice.
+  const importance = isLive ? "auto" : "no";
+  const colorStyle = color ? { color } : undefined;
+
+  if (!icon) {
+    return (
+      <HelperText type="info" importantForAccessibility={importance} style={colorStyle}>
+        {text}
+      </HelperText>
+    );
+  }
+  return (
+    <View style={styles.hint}>
+      <View style={styles.hintIcon} importantForAccessibility="no">
+        <Icon source={icon} size={ICON_SIZE} color={color} />
+      </View>
+      <HelperText
+        type="info"
+        importantForAccessibility={importance}
+        style={[styles.hintText, colorStyle]}
+      >
+        {text}
+      </HelperText>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  hint: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    // Same left edge as the error text, which gets it from HelperText's own horizontal padding.
+    paddingLeft: spacing("space-3"),
+  },
+  // Lines up with the first line of the hint text, which has the same padding on top.
+  hintIcon: {
+    paddingTop: spacing("space-1"),
+  },
+  hintText: {
+    flex: 1,
+    paddingLeft: spacing("space-1"),
+  },
+});
