@@ -20,11 +20,15 @@ export const de = {
     note: "Notiz (optional)",
     fullTank: "Vollgetankt",
     previousMissed: "Vorherige Betankung nicht erfasst",
+    distanceWarning:
+      "Mehr als {{distance}} seit der letzten Betankung. Fehlt eine Betankung? Dann aktiviere ‚$t(refuelingForm.previousMissed)‘.",
     previousMissedHint: "Dann zählt der Verbrauch für diesen Abschnitt nicht.",
     save: "Speichern",
     loading: "Betankungen werden geladen …",
     noVehicle: "Lege zuerst ein Fahrzeug an, dann kannst du Betankungen erfassen.",
     addVehicle: "Fahrzeug hinzufügen",
+    savedButDiffers:
+      "Die Betankung wurde schon gespeichert, deine letzten Änderungen nicht. Bearbeite sie in der Liste.",
     fabLabel: "Betankung erfassen",
   },
 } as const;

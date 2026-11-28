@@ -1,6 +1,7 @@
+import { useState } from "react";
 import type { Control, UseFormSetFocus } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, type LayoutChangeEvent } from "react-native";
 import { Text, TextInput } from "react-native-paper";
 
 import type { ComputedAmount } from "@/features/refuelings/logic/computeMissing";
@@ -19,14 +20,17 @@ import { spacing, useAppTheme } from "@/lib/theme";
 
 import { FormTextField } from "./FormTextField";
 
-type Props = {
+type FormProps = {
   control: Control<RefuelingFormValues, unknown, RefuelingInput>;
   setFocus: UseFormSetFocus<RefuelingFormValues>;
+};
+
+type Props = FormProps & {
   /** The empty field the app is about to compute, see computedAmount(). */
   computed: ComputedAmount | null;
 };
 
-type AmountField = {
+type AmountFieldConfig = {
   name: "volumeLiters" | "pricePerLiter" | "totalEuros";
   labelKey: "refuelingForm.volume" | "refuelingForm.pricePerLiter" | "refuelingForm.total";
   icon: string;
@@ -37,7 +41,7 @@ type AmountField = {
   next: "pricePerLiter" | "totalEuros" | "odometerKm";
 };
 
-const AMOUNT_FIELDS: AmountField[] = [
+const AMOUNT_FIELDS: AmountFieldConfig[] = [
   {
     name: "volumeLiters",
     labelKey: "refuelingForm.volume",
@@ -71,6 +75,60 @@ function formatComputed({ field, value }: ComputedAmount): string {
   return formatPricePerLiterText(value);
 }
 
+/** One amount field. As the computed one it gets the tonal look and the "computed" label. */
+function AmountField({
+  control,
+  setFocus,
+  computed,
+  config: { name, labelKey, icon, unit, computes, next },
+}: FormProps & { computed: ComputedAmount | null; config: AmountFieldConfig }) {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
+  const [affixWidth, setAffixWidth] = useState(0);
+  const isComputed = computed?.field === computes;
+  const onAffixLayout = (event: LayoutChangeEvent) => setAffixWidth(event.nativeEvent.layout.width);
+
+  return (
+    <View>
+      <FormTextField
+        control={control}
+        name={name}
+        label={t(labelKey)}
+        icon={icon}
+        right={isComputed ? undefined : <TextInput.Affix text={unit} />}
+        helperText={
+          isComputed ? t("refuelingForm.computed", { value: formatComputed(computed) }) : undefined
+        }
+        helperLive={isComputed}
+        // design-system.md → TextField: tonal fill without a border (errors still get theirs).
+        // The active outline stays, it is the focus indicator.
+        style={isComputed ? { backgroundColor: colors.surfaceVariant } : undefined}
+        outlineColor={isComputed ? "transparent" : undefined}
+        // On the tonal fill onSurfaceVariant only reaches 4.3:1, so the label uses onSurface.
+        theme={isComputed ? { colors: { onSurfaceVariant: colors.onSurface } } : undefined}
+        // Keeps long values from running under the "computed" label.
+        contentStyle={isComputed ? { paddingRight: affixWidth + 2 * AFFIX_MARGIN } : undefined}
+        errorText={refuelingErrorText}
+        keyboardType="decimal-pad"
+        returnKeyType="next"
+        onSubmitEditing={() => setFocus(next)}
+      />
+      {isComputed && (
+        // Paper hides an affix while the field is empty and unfocused, so it is drawn here.
+        <View style={styles.computedAffix} onLayout={onAffixLayout}>
+          <Text
+            variant="bodyLarge"
+            style={{ color: colors.onSurface }}
+            importantForAccessibility="no"
+          >
+            {t("refuelingForm.computedAffix")}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 /** Volume, price per liter and total: two of the three are enough (M3). */
 export function RefuelingAmountFields({ control, setFocus, computed }: Props) {
   const { t } = useTranslation();
@@ -80,53 +138,27 @@ export function RefuelingAmountFields({ control, setFocus, computed }: Props) {
       <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
         {t("refuelingForm.amountsHint")}
       </Text>
-      {AMOUNT_FIELDS.map(({ name, labelKey, icon, unit, computes, next }) => {
-        const isComputed = computed?.field === computes;
-        return (
-          <View key={name}>
-            <FormTextField
-              control={control}
-              name={name}
-              label={t(labelKey)}
-              icon={icon}
-              right={isComputed ? undefined : <TextInput.Affix text={unit} />}
-              helperText={
-                isComputed
-                  ? t("refuelingForm.computed", { value: formatComputed(computed) })
-                  : undefined
-              }
-              // design-system.md → TextField: tonal fill without a border (errors still get theirs).
-              style={isComputed ? { backgroundColor: colors.surfaceVariant } : undefined}
-              outlineColor={isComputed ? "transparent" : undefined}
-              activeOutlineColor={isComputed ? "transparent" : undefined}
-              errorText={refuelingErrorText}
-              keyboardType="decimal-pad"
-              returnKeyType="next"
-              onSubmitEditing={() => setFocus(next)}
-            />
-            {isComputed && (
-              // Paper hides an affix while the field is empty and unfocused, so it is drawn here.
-              <View style={styles.computedAffix} pointerEvents="none">
-                <Text
-                  variant="bodyLarge"
-                  style={{ color: colors.onSurfaceVariant }}
-                  importantForAccessibility="no"
-                >
-                  {t("refuelingForm.computedAffix")}
-                </Text>
-              </View>
-            )}
-          </View>
-        );
-      })}
+      {AMOUNT_FIELDS.map((config) => (
+        <AmountField
+          key={config.name}
+          control={control}
+          setFocus={setFocus}
+          computed={computed}
+          config={config}
+        />
+      ))}
     </View>
   );
 }
 
-/** Height of a text field (design-system.md → TextField). */
-const INPUT_HEIGHT = 56;
-/** Paper draws the outline this far below the field's top edge, leaving room for the label. */
-const OUTLINE_OFFSET = 6;
+/**
+ * Paper's outlined input is 56 dp high (MD3, design-system.md → TextField) and draws its outline
+ * 6 dp below the top edge, leaving room for the label. Both values are fixed inside Paper and not
+ * exported, and the computed label has to line up with the outline.
+ */
+const PAPER_INPUT_HEIGHT = 56;
+const PAPER_OUTLINE_OFFSET = 6;
+const AFFIX_MARGIN = spacing("space-4");
 
 const styles = StyleSheet.create({
   fields: {
@@ -134,9 +166,11 @@ const styles = StyleSheet.create({
   },
   computedAffix: {
     position: "absolute",
-    top: OUTLINE_OFFSET,
-    right: spacing("space-4"),
-    height: INPUT_HEIGHT - OUTLINE_OFFSET,
+    top: PAPER_OUTLINE_OFFSET,
+    right: AFFIX_MARGIN,
+    height: PAPER_INPUT_HEIGHT - PAPER_OUTLINE_OFFSET,
     justifyContent: "center",
+    // Touches go to the field below.
+    pointerEvents: "none",
   },
 });

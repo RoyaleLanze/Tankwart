@@ -60,7 +60,7 @@ function useSubmit(
         if (outcome.status === "fieldError") {
           const { field, code } = outcome.error;
           setError(formFieldOf(field), { message: code }, { shouldFocus: true });
-        } else if (outcome.status === "failed") {
+        } else if (outcome.status === "failed" || outcome.status === "differs") {
           setError("root", { message: outcome.message });
         }
       })();
