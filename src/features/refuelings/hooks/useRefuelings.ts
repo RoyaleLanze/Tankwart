@@ -29,7 +29,7 @@ export function useRefuelings(vehicleId: string | undefined) {
  * the next user never sees this vehicle's data. Returning the promise keeps the mutation
  * pending until the list is fresh, so a screen that goes back shows the new state.
  */
-function useInvalidateRefuelings(vehicleId: string) {
+export function useInvalidateRefuelings(vehicleId: string) {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: refuelingsKey(vehicleId) });
 }

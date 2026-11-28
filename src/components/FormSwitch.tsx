@@ -1,4 +1,4 @@
-import { Controller, type Control, type FieldValues, type Path } from "react-hook-form";
+import { Controller, type Control, type FieldPathByValue, type FieldValues } from "react-hook-form";
 import { StyleSheet, View } from "react-native";
 import { Switch, Text, TouchableRipple } from "react-native-paper";
 
@@ -7,7 +7,7 @@ import { sizes, spacing, useAppTheme } from "@/lib/theme";
 type Props<T extends FieldValues, TTransformed> = {
   control: Control<T, unknown, TTransformed>;
   /** Must be a boolean field. */
-  name: Path<T>;
+  name: FieldPathByValue<T, boolean>;
   /** Visible label, also read by the screen reader. */
   label: string;
   /** Explains what the switch changes; shown below the label. */
@@ -48,7 +48,7 @@ export function FormSwitch<T extends FieldValues, TTransformed = T>({
             {/* The row handles the touch; the switch only shows the state. */}
             <Switch
               value={field.value === true}
-              pointerEvents="none"
+              style={styles.switch}
               importantForAccessibility="no"
               // Paper's grey off track has no 3:1 contrast on the surface; use theme colors.
               trackColor={{ true: colors.primary, false: colors.outline }}
@@ -73,5 +73,8 @@ const styles = StyleSheet.create({
   },
   texts: {
     flex: 1,
+  },
+  switch: {
+    pointerEvents: "none",
   },
 });
