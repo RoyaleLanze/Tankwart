@@ -3,6 +3,7 @@ import { DarkTheme, DefaultTheme, SplashScreen, Stack, ThemeProvider } from "exp
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { useColorScheme } from "react-native";
+import { useTranslation } from "react-i18next";
 import { PaperProvider } from "react-native-paper";
 
 import { AppBar } from "@/components/AppBar";
@@ -82,6 +83,7 @@ export default function RootLayout() {
 }
 
 function RootNavigator({ isSignedIn }: { isSignedIn: boolean }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const vehicles = useVehicles({ enabled: isSignedIn });
   const activeVehicleId = useActiveVehicleId({ enabled: isSignedIn });
@@ -131,6 +133,7 @@ function RootNavigator({ isSignedIn }: { isSignedIn: boolean }) {
         <Stack.Screen name="vehicles/index" options={{ title: "Fahrzeuge" }} />
         <Stack.Screen name="vehicles/new" options={{ title: "Fahrzeug hinzufügen" }} />
         <Stack.Screen name="vehicles/[id]" options={{ title: "Fahrzeug bearbeiten" }} />
+        <Stack.Screen name="refuelings/new" options={{ title: t("refuelingForm.title") }} />
       </Stack.Protected>
       {/* Without a vehicle the app leads straight to adding one (M1). */}
       <Stack.Protected guard={isSignedIn && !hasVehicle}>
