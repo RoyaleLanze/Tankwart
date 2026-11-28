@@ -1,6 +1,7 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { i18n } from "@/lib/i18n";
 
 import { getRefueling } from "../api/refuelingsApi";
+import { decideRetry, type ReadBack } from "../logic/retryDecision";
 import {
   isAlreadySaved,
   saveErrorKind,
@@ -10,41 +11,50 @@ import {
 import { saveErrorText } from "../messages";
 import type { RefuelingInput } from "../types";
 import { useCreateRefueling } from "./createRefuelingMutation";
-import { refuelingsKey } from "./useRefuelings";
+import { useInvalidateRefuelings } from "./useRefuelings";
 
 /** How one save attempt ended; the form turns it into what the user sees. */
 export type SaveOutcome =
   | { status: "saved" }
   | { status: "fieldError"; error: SaveFieldError }
+  // An earlier attempt saved other values; the user edits that refueling in the list.
+  | { status: "differs"; message: string }
   | { status: "failed"; message: string };
 
-/** Whether the row with this id exists, i.e. an earlier attempt went through unnoticed. */
-async function rowExists(id: string): Promise<boolean> {
+/** Reads the row with this id; a failed read is a result, not an exception. */
+async function readBack(id: string): Promise<ReadBack> {
   try {
-    return (await getRefueling(id)) !== null;
+    const row = await getRefueling(id);
+    return row ? { kind: "found", row } : { kind: "notFound" };
   } catch {
-    // Cannot tell, so the original error counts: the user may retry with the same id.
-    return false;
+    return { kind: "failed" };
   }
 }
 
 /**
  * Saves a new refueling with a fixed id and reports the result instead of throwing. If the id
  * already exists in the database although this form never got the answer (lost response), the
- * refueling is saved: the list is loaded again and the outcome is "saved" (ADR 0017).
+ * row is read back and compared with the input (decideRetry, ADR 0017). The list is loaded
+ * again whenever the row exists, so it shows what is really stored.
  */
 export function useSaveRefueling(vehicleId: string, id: string) {
   const { mutateAsync: createRefueling } = useCreateRefueling();
-  const queryClient = useQueryClient();
+  const invalidateRefuelings = useInvalidateRefuelings(vehicleId);
 
   return async function save(input: RefuelingInput): Promise<SaveOutcome> {
     try {
       await createRefueling({ id, vehicleId, input });
       return { status: "saved" };
     } catch (error) {
-      if (isAlreadySaved(error) && (await rowExists(id))) {
-        await queryClient.invalidateQueries({ queryKey: refuelingsKey(vehicleId) });
-        return { status: "saved" };
+      if (isAlreadySaved(error)) {
+        const row = await readBack(id);
+        const decision = decideRetry(row, vehicleId, input);
+        if (row.kind === "found") await invalidateRefuelings();
+        if (decision === "saved") return { status: "saved" };
+        if (decision === "differs") {
+          return { status: "differs", message: i18n.t("refuelingForm.savedButDiffers") };
+        }
+        if (decision === "network") return { status: "failed", message: saveErrorText("network") };
       }
       const fieldError = saveFieldError(error);
       if (fieldError) return { status: "fieldError", error: fieldError };
