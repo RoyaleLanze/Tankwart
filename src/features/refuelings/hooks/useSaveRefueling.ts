@@ -2,24 +2,12 @@ import { i18n } from "@/lib/i18n";
 
 import { getRefueling } from "../api/refuelingsApi";
 import { decideRetry, type ReadBack } from "../logic/retryDecision";
-import {
-  isAlreadySaved,
-  saveErrorKind,
-  saveFieldError,
-  type SaveFieldError,
-} from "../logic/saveError";
+import { isAlreadySaved, saveErrorKind, saveFieldError } from "../logic/saveError";
+import type { SaveOutcome } from "../logic/saveOutcome";
 import { saveErrorText } from "../messages";
 import type { RefuelingInput } from "../types";
 import { useCreateRefueling } from "./createRefuelingMutation";
 import { useInvalidateRefuelings } from "./useRefuelings";
-
-/** How one save attempt ended; the form turns it into what the user sees. */
-export type SaveOutcome =
-  | { status: "saved" }
-  | { status: "fieldError"; error: SaveFieldError }
-  // An earlier attempt saved other values; the user edits that refueling in the list.
-  | { status: "differs"; message: string }
-  | { status: "failed"; message: string };
 
 /** Reads the row with this id; a failed read is a result, not an exception. */
 async function readBack(id: string): Promise<ReadBack> {
