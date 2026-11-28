@@ -46,7 +46,8 @@ export default function NewRefuelingScreen() {
       <LoadingScreen label={t("refuelingForm.loading")} />
     );
   }
-  return <NewRefuelingForm vehicle={vehicle} refuelings={refuelings.data} />;
+  // The key restarts the form (new id, new defaults) if the active vehicle changes while it is open.
+  return <NewRefuelingForm key={vehicle.id} vehicle={vehicle} refuelings={refuelings.data} />;
 }
 
 /**
