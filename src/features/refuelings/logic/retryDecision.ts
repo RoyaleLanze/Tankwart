@@ -14,14 +14,33 @@ export type ReadBack =
  */
 export type RetryDecision = "saved" | "differs" | "rejected" | "network";
 
-/** An empty string and null both mean "no value" (e.g. a blank note). */
-function blankToNull<T>(value: T): T | null {
-  return value === "" ? null : value;
+/**
+ * Every field of RefuelingInput. `satisfies` makes the compiler report a field that is added to
+ * or removed from the type but not here, so the comparison cannot silently skip one.
+ */
+const INPUT_KEYS = {
+  refueledOn: true,
+  volumeMl: true,
+  pricePerLiterTenthCents: true,
+  totalCents: true,
+  odometerKm: true,
+  stationName: true,
+  stationId: true,
+  stationAddress: true,
+  isFullTank: true,
+  previousMissed: true,
+  note: true,
+} satisfies Record<keyof RefuelingInput, true>;
+
+const COMPARED_FIELDS = Object.keys(INPUT_KEYS) as (keyof RefuelingInput)[];
+
+/** An empty string, undefined and null all mean "no value" (PostgREST omits undefined, the DB stores null). */
+function blankToNull<T>(value: T | undefined): T | null {
+  return value === "" || value === undefined ? null : value;
 }
 
 function sameInput(row: Refueling, input: RefuelingInput): boolean {
-  const keys = Object.keys(input) as (keyof RefuelingInput)[];
-  return keys.every((key) => blankToNull(row[key]) === blankToNull(input[key]));
+  return COMPARED_FIELDS.every((key) => blankToNull(row[key]) === blankToNull(input[key]));
 }
 
 export function decideRetry(
