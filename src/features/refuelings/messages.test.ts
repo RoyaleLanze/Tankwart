@@ -46,7 +46,7 @@ describe("saveErrorText", () => {
 describe("refuelingWarningText", () => {
   it("names the distance limit, formatted from the constant", () => {
     expect(readable(refuelingWarningText("distanceUnusuallyLarge"))).toBe(
-      "Mehr als 2.000 km seit der letzten Betankung. Fehlt eine Betankung?",
+      "Mehr als 2.000 km seit der letzten Betankung. Fehlt eine Betankung? Dann aktiviere ‚Vorherige Betankung nicht erfasst‘.",
     );
   });
 });

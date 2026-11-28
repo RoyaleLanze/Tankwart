@@ -61,6 +61,16 @@ export async function listRefuelings(vehicleId: string): Promise<Refueling[]> {
 }
 
 /**
+ * One refueling by id, or null if there is none or RLS hides it (it belongs to someone else).
+ * Used to find out whether an earlier save attempt went through.
+ */
+export async function getRefueling(id: string): Promise<Refueling | null> {
+  const { data, error } = await supabase.from("refuelings").select().eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data ? toRefueling(data) : null;
+}
+
+/**
  * Saves a new refueling and returns it as stored, with the creation time. The caller creates
  * the id (a UUID) before the first attempt, so a repeated attempt is the same refueling.
  */

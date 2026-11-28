@@ -1,6 +1,7 @@
 // German texts for the refueling validation codes (ADR 0014). The logic only knows codes;
 // wording and number formatting live here, on the presentation side.
 import { formatEuro, formatKm } from "@/lib/format";
+import { i18n } from "@/lib/i18n";
 import { TENTH_CENTS_PER_CENT } from "@/lib/units";
 
 import type { SaveErrorKind } from "./logic/saveError";
@@ -37,8 +38,10 @@ const ERROR_TEXTS: Record<RefuelingErrorCode, string> = {
     "Der berechnete Wert ist nicht plausibel. Prüfe die beiden eingegebenen Werte.",
 };
 
-const WARNING_TEXTS: Record<RefuelingWarningCode, string> = {
-  distanceUnusuallyLarge: `Mehr als ${formatKm(DISTANCE_WARNING_KM)} seit der letzten Betankung. Fehlt eine Betankung?`,
+// The text names the switch with i18next nesting, so it always follows the switch label.
+const WARNING_TEXTS: Record<RefuelingWarningCode, () => string> = {
+  distanceUnusuallyLarge: () =>
+    i18n.t("refuelingForm.distanceWarning", { distance: formatKm(DISTANCE_WARNING_KM) }),
 };
 
 // Failed requests. Without a network is the usual cause, so the text says what to check.
@@ -70,5 +73,5 @@ export function saveErrorText(kind: SaveErrorKind): string {
 }
 
 export function refuelingWarningText(code: RefuelingWarningCode): string {
-  return WARNING_TEXTS[code];
+  return WARNING_TEXTS[code]();
 }

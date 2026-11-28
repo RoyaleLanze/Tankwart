@@ -1,4 +1,4 @@
-import { saveErrorKind, saveFieldError } from "./saveError";
+import { isAlreadySaved, saveErrorKind, saveFieldError } from "./saveError";
 
 // Same shape as the error local Supabase returns for a duplicate insert.
 const duplicateDayOdometer = {
@@ -107,12 +107,69 @@ describe("saveErrorKind", () => {
     expect(saveErrorKind(error)).toBe("network");
   });
 
-  // Current behavior, not a wish: a repeated insert with the same id hits refuelings_pkey. The
-  // user sees "check your input" although the refueling is saved. #107 turns this into
-  // "already saved".
+  // A repeated insert with the same id hits refuelings_pkey. Without a row to find (see
+  // isAlreadySaved) it stays a rejection.
   it("reports a duplicate id as rejected data, with no field error", () => {
     const duplicateId = { code: "23505", message: 'violates unique constraint "refuelings_pkey"' };
     expect(saveFieldError(duplicateId)).toBeNull();
     expect(saveErrorKind(duplicateId)).toBe("rejected");
+  });
+});
+
+describe("isAlreadySaved", () => {
+  const duplicateId = {
+    code: "23505",
+    message: 'duplicate key value violates unique constraint "refuelings_pkey"',
+  };
+
+  it("recognizes a duplicate id", () => {
+    expect(isAlreadySaved(duplicateId)).toBe(true);
+    expect(isAlreadySaved(Object.assign(new Error(duplicateId.message), { code: "23505" }))).toBe(
+      true,
+    );
+  });
+
+  it("recognizes a German server message that names the primary key", () => {
+    const message = "doppelter Schlüsselwert verletzt Unique-Constraint »refuelings_pkey«";
+    expect(isAlreadySaved({ code: "23505", message })).toBe(true);
+  });
+
+  it("recognizes an error class instance with details, as the Supabase client throws it", () => {
+    class PostgrestLikeError extends Error {
+      code = "23505";
+      details = "Key (id)=(r1) already exists.";
+      hint = null;
+    }
+    expect(isAlreadySaved(new PostgrestLikeError(duplicateId.message))).toBe(true);
+  });
+
+  it("ignores the day and odometer constraint, other codes and non-errors", () => {
+    expect(isAlreadySaved(duplicateDayOdometer)).toBe(false);
+    expect(isAlreadySaved({ ...duplicateId, code: "23514" })).toBe(false);
+    expect(isAlreadySaved({ code: "23505" })).toBe(false);
+    expect(isAlreadySaved({ message: duplicateId.message })).toBe(false);
+    expect(isAlreadySaved(new TypeError("Network request failed"))).toBe(false);
+    expect(isAlreadySaved(null)).toBe(false);
+  });
+
+  it("ignores a numeric code and a constraint name that is only in details", () => {
+    expect(isAlreadySaved({ ...duplicateId, code: 23505 })).toBe(false);
+    expect(isAlreadySaved({ code: "23505", message: "conflict", details: "refuelings_pkey" })).toBe(
+      false,
+    );
+  });
+
+  it.each([undefined, "23505", { code: "23505", message: 42 }])("returns false for %p", (error) => {
+    expect(isAlreadySaved(error)).toBe(false);
+  });
+
+  it.each([
+    ["duplicate id", duplicateId],
+    ["duplicate day and odometer", duplicateDayOdometer],
+    ["check violation", { code: "23514", message: "violates check constraint" }],
+    ["network failure", new TypeError("Network request failed")],
+    ["no error object", null],
+  ])("never fires together with saveFieldError for a %s", (_name, error) => {
+    expect(isAlreadySaved(error) && saveFieldError(error) !== null).toBe(false);
   });
 });
