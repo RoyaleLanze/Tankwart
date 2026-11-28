@@ -62,7 +62,7 @@ export function RefuelingForm({
             icon="calendar-outline"
             helperText={t("refuelingForm.dateHint")}
             errorText={refuelingErrorText}
-            keyboardType="numbers-and-punctuation"
+            keyboardType="numeric"
             returnKeyType="next"
             onSubmitEditing={() => setFocus("volumeLiters")}
           />
@@ -76,6 +76,7 @@ export function RefuelingForm({
             helperText={odometerWarning && refuelingWarningText(odometerWarning)}
             helperColor={colors.warningStrong}
             helperIcon="alert-outline"
+            helperLive
             errorText={refuelingErrorText}
             keyboardType="number-pad"
             returnKeyType="next"
@@ -84,11 +85,10 @@ export function RefuelingForm({
           <RefuelingDetailFields control={control} setFocus={setFocus} />
         </ScrollView>
         <View style={styles.footer}>
-          {submitError && (
-            <HelperText type="error" accessibilityLiveRegion="assertive">
-              {submitError}
-            </HelperText>
-          )}
+          {/* Always mounted: a live region only announces changes below a node that exists. */}
+          <View accessibilityLiveRegion="assertive">
+            {submitError ? <HelperText type="error">{submitError}</HelperText> : null}
+          </View>
           <Button
             mode="contained"
             onPress={onSubmit}
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     padding: spacing("space-4"),
   },
   footer: {
-    gap: spacing("space-2"),
+    // No gap: the always mounted error wrapper is empty without an error and would add one.
     padding: spacing("space-4"),
   },
   buttonContent: {
