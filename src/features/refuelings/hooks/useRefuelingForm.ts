@@ -1,6 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useForm, useWatch, type UseFormHandleSubmit, type UseFormSetError } from "react-hook-form";
+import {
+  useForm,
+  useWatch,
+  type Control,
+  type UseFormClearErrors,
+  type UseFormHandleSubmit,
+  type UseFormSetError,
+} from "react-hook-form";
 
 import { newId } from "@/lib/id";
 import { todayIsoDate } from "@/lib/today";
@@ -14,20 +21,21 @@ import {
   odometerWarning,
 } from "../logic/formSchema";
 import type { RefuelingFormValues } from "../logic/formValues";
-import type { RefuelingContext } from "../logic/rules";
+import { withoutRefueling, type RefuelingContext } from "../logic/rules";
+import { formStateOf, type SaveOutcome } from "../logic/saveOutcome";
 import type { Refueling, RefuelingInput } from "../types";
-import { useSaveRefueling, type SaveOutcome } from "./useSaveRefueling";
+import { useSaveRefueling } from "./useSaveRefueling";
 
 /** What the validation rules need: the vehicle and its other refuelings. */
-function useRefuelingContext(vehicle: Vehicle, refuelings: readonly Refueling[]) {
+function useRefuelingContext(vehicle: Vehicle, refuelings: readonly Refueling[], id: string) {
   return useMemo<RefuelingContext>(
     () => ({
       today: todayIsoDate,
       tankCapacityMl: vehicle.tankCapacityMl,
       initialOdometerKm: vehicle.initialOdometerKm,
-      otherRefuelings: refuelings,
+      otherRefuelings: withoutRefueling(refuelings, id),
     }),
-    [vehicle, refuelings],
+    [vehicle, refuelings, id],
   );
 }
 
@@ -54,14 +62,11 @@ function useSubmit(
     let saved = false;
     try {
       await handleSubmit(async (input) => {
-        const outcome = await save(input);
-        saved = outcome.status === "saved";
-        // The form keeps every value, so the user can try again without typing anything (M15).
-        if (outcome.status === "fieldError") {
-          const { field, code } = outcome.error;
-          setError(formFieldOf(field), { message: code }, { shouldFocus: true });
-        } else if (outcome.status === "failed" || outcome.status === "differs") {
-          setError("root", { message: outcome.message });
+        const state = formStateOf(await save(input));
+        saved = state.saved;
+        if (state.error) {
+          const { name, message, shouldFocus } = state.error;
+          setError(name, { message }, { shouldFocus });
         }
       })();
     } finally {
@@ -69,6 +74,27 @@ function useSubmit(
     }
     return saved;
   };
+}
+
+/**
+ * Watches the amount fields and the odometer; re-renders on every change, so the computed amount
+ * and the odometer warning follow the typing.
+ */
+function useComputedAmount(
+  control: Control<RefuelingFormValues, unknown, RefuelingInput>,
+  clearErrors: UseFormClearErrors<RefuelingFormValues>,
+) {
+  const [volumeLiters, pricePerLiter, totalEuros, odometerKm] = useWatch({
+    control,
+    name: ["volumeLiters", "pricePerLiter", "totalEuros", "odometerKm"],
+  });
+  const computed = computedAmount({ volumeLiters, pricePerLiter, totalEuros });
+  // The field shows its computed value instead of a "missing" error from an earlier save attempt.
+  const computedField = computed?.field;
+  useEffect(() => {
+    if (computedField) clearErrors(formFieldOf(computedField));
+  }, [computedField, clearErrors]);
+  return { computed, odometerKm };
 }
 
 /**
@@ -80,7 +106,7 @@ export function useRefuelingForm(vehicle: Vehicle, refuelings: readonly Refuelin
   // One id per form: a retry after a failed attempt sends the same one (ADR 0017).
   const [id] = useState(newId);
   const [defaultValues] = useState(() => defaultFormValues(todayIsoDate()));
-  const context = useRefuelingContext(vehicle, refuelings);
+  const context = useRefuelingContext(vehicle, refuelings, id);
   const resolver = useMemo(() => zodResolver(createRefuelingFormSchema(context)), [context]);
 
   const { control, handleSubmit, setError, setFocus, clearErrors, formState } = useForm<
@@ -88,18 +114,7 @@ export function useRefuelingForm(vehicle: Vehicle, refuelings: readonly Refuelin
     unknown,
     RefuelingInput
   >({ resolver, defaultValues });
-  // Re-renders on every change: the computed amount and the warning follow the typing.
-  const [volumeLiters, pricePerLiter, totalEuros, odometerKm] = useWatch({
-    control,
-    name: ["volumeLiters", "pricePerLiter", "totalEuros", "odometerKm"],
-  });
-
-  const computed = computedAmount({ volumeLiters, pricePerLiter, totalEuros });
-  // The field shows its computed value instead of a "missing" error from an earlier save attempt.
-  const computedField = computed?.field;
-  useEffect(() => {
-    if (computedField) clearErrors(formFieldOf(computedField));
-  }, [computedField, clearErrors]);
+  const { computed, odometerKm } = useComputedAmount(control, clearErrors);
 
   const save = useSaveRefueling(vehicle.id, id);
   const submit = useSubmit({ handleSubmit, setError }, save);
