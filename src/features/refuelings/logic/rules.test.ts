@@ -1,4 +1,4 @@
-import { odometerError, withoutRefueling, type RefuelingContext } from "./rules";
+import { distanceWarning, odometerError, withoutRefueling, type RefuelingContext } from "./rules";
 
 const FORM_ID = "11111111-1111-4111-8111-111111111111";
 const saved = { id: FORM_ID, refueledOn: "2026-11-20", odometerKm: 84_500 };
@@ -95,5 +95,61 @@ describe("retry after a lost save response", () => {
     expect(odometerError(saved.odometerKm, saved.refueledOn, context)).toBe(
       "odometerDuplicateSameDay",
     );
+  });
+});
+
+describe("editing a refueling in the history", () => {
+  const a = { id: "a", refueledOn: "2026-10-01", odometerKm: 80_500 };
+  const b = { id: "b", refueledOn: "2026-10-10", odometerKm: 81_000 };
+  const c = { id: "c", refueledOn: "2026-10-20", odometerKm: 81_500 };
+
+  /** Context for editing the row with this id: all others, without the edited one. */
+  function editing(id: string): RefuelingContext {
+    return contextWith([a, b, c].map((row) => ({ ...row, id: row.id === id ? FORM_ID : row.id })));
+  }
+
+  it("allows the middle row an odometer between its neighbours", () => {
+    expect(odometerError(81_200, b.refueledOn, editing("b"))).toBeNull();
+  });
+
+  it("allows the middle row to keep its own odometer", () => {
+    expect(odometerError(b.odometerKm, b.refueledOn, editing("b"))).toBeNull();
+  });
+
+  it("rejects a date after the next row if the odometer stays", () => {
+    expect(odometerError(b.odometerKm, "2026-10-21", editing("b"))).toBe(
+      "odometerNotAbovePrevious",
+    );
+  });
+
+  it("rejects an odometer that is not above the previous row", () => {
+    expect(odometerError(a.odometerKm, b.refueledOn, editing("b"))).toBe(
+      "odometerNotAbovePrevious",
+    );
+  });
+
+  it("rejects an odometer that is not below the next row", () => {
+    expect(odometerError(c.odometerKm, b.refueledOn, editing("b"))).toBe("odometerNotBelowNext");
+  });
+
+  it("checks the oldest row against the initial odometer, not against a previous row", () => {
+    const context = editing("a");
+    expect(odometerError(79_999, a.refueledOn, context)).toBe("odometerBelowInitial");
+    expect(odometerError(80_000, a.refueledOn, context)).toBeNull();
+  });
+
+  it("gives the oldest row no distance warning, as it has no lower row", () => {
+    expect(distanceWarning(80_000, editing("a"))).toBeNull();
+  });
+
+  it("measures the distance against the next lower other row at exactly 2,000 km", () => {
+    // Editing c: the lower rows are a and b, the next lower one is b (81,000).
+    expect(distanceWarning(83_000, editing("c"))).toBeNull();
+    expect(distanceWarning(83_001, editing("c"))).toBe("distanceUnusuallyLarge");
+  });
+
+  it("does not measure against the edited row's own stored odometer", () => {
+    // c is stored at 81,500; against that, 83,001 would be only 1,501 km away and not warn.
+    expect(distanceWarning(83_001, editing("c"))).toBe("distanceUnusuallyLarge");
   });
 });

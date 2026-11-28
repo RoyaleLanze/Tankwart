@@ -1,7 +1,12 @@
 // What a save attempt means for the form: whether to leave, and which error to show where.
 import { formFieldOf } from "./formSchema";
 import type { RefuelingFormValues } from "./formValues";
-import type { SaveFieldError } from "./saveError";
+import {
+  type SaveErrorKind,
+  type SaveFieldError,
+  saveErrorKind,
+  saveFieldError,
+} from "./saveError";
 
 /** How one save attempt ended; the form turns it into what the user sees. */
 export type SaveOutcome =
@@ -10,6 +15,20 @@ export type SaveOutcome =
   // An earlier attempt saved other values; the user edits that refueling in the list.
   | { status: "differs"; message: string }
   | { status: "failed"; message: string };
+
+/**
+ * The outcome for an error thrown while saving: a field error where the database checks a rule
+ * the form also checks, otherwise a text for the kind of failure. The wording is passed in, so
+ * the logic stays free of texts.
+ */
+export function failedOutcome(
+  error: unknown,
+  textOf: (kind: SaveErrorKind) => string,
+): SaveOutcome {
+  const fieldError = saveFieldError(error);
+  if (fieldError) return { status: "fieldError", error: fieldError };
+  return { status: "failed", message: textOf(saveErrorKind(error)) };
+}
 
 /** An error to put on the form: at one field (with focus) or on "root", above the button. */
 export type FormError = {

@@ -1,4 +1,4 @@
-import { isAlreadySaved, saveErrorKind, saveFieldError } from "./saveError";
+import { isAlreadySaved, isRefuelingGone, saveErrorKind, saveFieldError } from "./saveError";
 
 // Same shape as the error local Supabase returns for a duplicate insert.
 const duplicateDayOdometer = {
@@ -171,5 +171,48 @@ describe("isAlreadySaved", () => {
     ["no error object", null],
   ])("never fires together with saveFieldError for a %s", (_name, error) => {
     expect(isAlreadySaved(error) && saveFieldError(error) !== null).toBe(false);
+  });
+});
+
+describe("isRefuelingGone", () => {
+  // What `.single()` returns when an update or read matches no row (deleted, or hidden by RLS).
+  const noRow = {
+    code: "PGRST116",
+    details: "The result contains 0 rows",
+    hint: null,
+    message: "Cannot coerce the result to a single JSON object",
+  };
+
+  it.each([
+    ["a plain PostgREST error", noRow],
+    ["an Error carrying the code", Object.assign(new Error(noRow.message), { code: "PGRST116" })],
+    ["details that mention 2 rows", { ...noRow, details: "The result contains 2 rows" }],
+  ])("recognizes PGRST116 on %s", (_name, error) => {
+    expect(isRefuelingGone(error)).toBe(true);
+  });
+
+  it.each([
+    ["a lower-case code", { code: "pgrst116" }],
+    ["a code with spaces", { code: " PGRST116 " }],
+    ["an undefined code", { code: undefined }],
+    ["a numeric code", { code: 116 }],
+    ["an array", ["PGRST116"]],
+    ["a missing code", { message: noRow.message }],
+  ])("ignores %s", (_name, error) => {
+    expect(isRefuelingGone(error)).toBe(false);
+  });
+
+  it("is the gone kind, not network and not rejected", () => {
+    expect(saveErrorKind(noRow)).toBe("gone");
+  });
+
+  it("ignores other PostgREST codes, other errors and non-errors", () => {
+    expect(isRefuelingGone({ code: "PGRST303", message: "JWT expired" })).toBe(false);
+    expect(isRefuelingGone({ code: "23514", message: "check" })).toBe(false);
+    expect(isRefuelingGone({ code: 116 })).toBe(false);
+    expect(isRefuelingGone({ message: noRow.message })).toBe(false);
+    expect(isRefuelingGone(new TypeError("Network request failed"))).toBe(false);
+    expect(isRefuelingGone(null)).toBe(false);
+    expect(isRefuelingGone("PGRST116")).toBe(false);
   });
 });
