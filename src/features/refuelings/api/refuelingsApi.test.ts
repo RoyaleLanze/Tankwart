@@ -111,9 +111,12 @@ describe("refuelingsApi", () => {
   });
 
   it("updates one refueling by id and expects exactly one row back", async () => {
-    await updateRefueling("r1", input);
+    const updated = await updateRefueling("r1", input);
     expect(mockCalls.map(([name]) => name)).toEqual(["from", "update", "eq", "select", "single"]);
     expect(mockCalls).toContainEqual(["eq", ["id", "r1"]]);
+    const { id, created_at, vehicle_id, ...sent } = row;
+    expect(sentRow("update")).toEqual(sent);
+    expect(updated).toEqual({ ...input, id: "r1", vehicleId: vehicle_id, createdAt: created_at });
   });
 
   it("throws PGRST116 when the updated refueling is gone, so the caller can tell", async () => {
