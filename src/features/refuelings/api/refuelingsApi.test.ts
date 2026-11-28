@@ -110,6 +110,30 @@ describe("refuelingsApi", () => {
     expect(await getRefueling("r1")).toBeNull();
   });
 
+  it("updates one refueling by id and expects exactly one row back", async () => {
+    await updateRefueling("r1", input);
+    expect(mockCalls.map(([name]) => name)).toEqual(["from", "update", "eq", "select", "single"]);
+    expect(mockCalls).toContainEqual(["eq", ["id", "r1"]]);
+  });
+
+  it("throws PGRST116 when the updated refueling is gone, so the caller can tell", async () => {
+    const noRow = { code: "PGRST116", message: "Cannot coerce the result to a single JSON object" };
+    mockResult = { data: null, error: noRow };
+    await expect(updateRefueling("r1", input)).rejects.toBe(noRow);
+  });
+
+  it("deletes by id", async () => {
+    await deleteRefueling("r1");
+    expect(mockCalls.map(([name]) => name)).toEqual(["from", "delete", "eq"]);
+    expect(mockCalls).toContainEqual(["eq", ["id", "r1"]]);
+  });
+
+  it("counts deleting a refueling that is already gone as deleted", async () => {
+    // Zero matching rows is no error for a delete without .single(); RLS hides foreign rows alike.
+    mockResult = { data: null, error: null };
+    await expect(deleteRefueling("r1")).resolves.toBeUndefined();
+  });
+
   it("rethrows the original error object", async () => {
     const error = new Error("boom");
     mockResult = { data: null, error };
