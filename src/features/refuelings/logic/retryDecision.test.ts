@@ -35,20 +35,55 @@ describe("decideRetry", () => {
     expect(decideRetry(found({ vehicleId: "v2" }), "v1", input)).toBe("differs");
   });
 
-  it.each<[string, Partial<RefuelingInput>]>([
-    ["date", { refueledOn: "2026-11-21" }],
-    ["volume", { volumeMl: 40_001 }],
-    ["price", { pricePerLiterTenthCents: 1750 }],
-    ["total", { totalCents: 6997 }],
-    ["odometer", { odometerKm: 55_121 }],
-    ["station name", { stationName: "Shell" }],
-    ["station id", { stationId: null }],
-    ["station address", { stationAddress: null }],
-    ["full tank flag", { isFullTank: false }],
-    ["previous missed flag", { previousMissed: true }],
-    ["note", { note: "Stadt" }],
-  ])("reports a changed %s as different", (_name, changes) => {
+  // Typed over every key of RefuelingInput: a field added to the type fails to compile here until
+  // it has a changed value, so the comparison in decideRetry cannot skip it unnoticed.
+  const changedValue: Record<keyof RefuelingInput, Partial<RefuelingInput>> = {
+    refueledOn: { refueledOn: "2026-11-21" },
+    volumeMl: { volumeMl: 40_001 },
+    pricePerLiterTenthCents: { pricePerLiterTenthCents: 1750 },
+    totalCents: { totalCents: 6997 },
+    odometerKm: { odometerKm: 55_121 },
+    stationName: { stationName: "Shell" },
+    stationId: { stationId: "station-2" },
+    stationAddress: { stationAddress: "Nebenstr. 2, Ulm" },
+    isFullTank: { isFullTank: false },
+    previousMissed: { previousMissed: true },
+    note: { note: "Stadt" },
+  };
+
+  it.each(Object.entries(changedValue))("reports a changed %s as different", (_key, changes) => {
     expect(decideRetry(found(changes), "v1", input)).toBe("differs");
+  });
+
+  it.each(["stationId", "stationAddress", "note"] as const)(
+    "reports a %s that is set on one side only as different",
+    (key) => {
+      expect(decideRetry(found({ [key]: null }), "v1", input)).toBe("differs");
+      expect(decideRetry(found(), "v1", { ...input, [key]: null })).toBe("differs");
+    },
+  );
+
+  it("ignores a key in the input that RefuelingInput does not have", () => {
+    const withExtra = { ...input, unknownField: "x" } as RefuelingInput;
+    expect(decideRetry(found(), "v1", withExtra)).toBe("saved");
+  });
+
+  it("ignores a column in the row that RefuelingInput does not have", () => {
+    const withExtra = { unknownColumn: 42 } as Partial<Refueling>;
+    expect(decideRetry(found(withExtra), "v1", input)).toBe("saved");
+  });
+
+  it.each([500, 4000])("counts the price %i against itself as saved", (price) => {
+    const priced = { ...input, pricePerLiterTenthCents: price };
+    expect(decideRetry(found({ pricePerLiterTenthCents: price }), "v1", priced)).toBe("saved");
+  });
+
+  it("compares the date as text, a timestamp is not the same day string", () => {
+    const timestamp = found({ refueledOn: "2026-11-20T00:00:00Z" });
+    expect(decideRetry(timestamp, "v1", input)).toBe("differs");
+    expect(decideRetry(found(), "v1", { ...input, refueledOn: "2026-11-20T00:00:00Z" })).toBe(
+      "differs",
+    );
   });
 
   describe("null fields", () => {
@@ -63,6 +98,32 @@ describe("decideRetry", () => {
       expect(decideRetry(found(sparse), "v1", emptyInput)).toBe("saved");
       expect(decideRetry(found({ ...sparse, note: "" }), "v1", sparse)).toBe("saved");
     });
+
+    it.each(["stationAddress", "note", "stationId"] as const)(
+      "matches an empty %s against null in either direction",
+      (key) => {
+        expect(decideRetry(found(sparse), "v1", { ...sparse, [key]: "" })).toBe("saved");
+        expect(decideRetry(found({ ...sparse, [key]: "" }), "v1", sparse)).toBe("saved");
+      },
+    );
+
+    it.each(["stationAddress", "note", "stationId"] as const)(
+      "matches an undefined %s against null in either direction",
+      (key) => {
+        const undefinedField = { ...sparse, [key]: undefined } as unknown as RefuelingInput;
+        expect(decideRetry(found(sparse), "v1", undefinedField)).toBe("saved");
+        expect(decideRetry(found(undefinedField), "v1", sparse)).toBe("saved");
+      },
+    );
+
+    // Pins the current behaviour: only "" counts as blank, whitespace is a value.
+    it.each(["stationAddress", "note", "stationId"] as const)(
+      "does not treat a whitespace-only %s as null",
+      (key) => {
+        expect(decideRetry(found(sparse), "v1", { ...sparse, [key]: "  " })).toBe("differs");
+        expect(decideRetry(found({ ...sparse, [key]: "  " }), "v1", sparse)).toBe("differs");
+      },
+    );
 
     it("tells a note from null", () => {
       expect(decideRetry(found(sparse), "v1", { ...sparse, note: "Autobahn" })).toBe("differs");
