@@ -9,14 +9,12 @@ import {
   type UseFormSetError,
 } from "react-hook-form";
 
-import { newId } from "@/lib/id";
 import { todayIsoDate } from "@/lib/today";
 import type { Vehicle } from "@/features/vehicles/types";
 
 import {
   computedAmount,
   createRefuelingFormSchema,
-  defaultFormValues,
   formFieldOf,
   odometerWarning,
 } from "../logic/formSchema";
@@ -24,7 +22,6 @@ import type { RefuelingFormValues } from "../logic/formValues";
 import { withoutRefueling, type RefuelingContext } from "../logic/rules";
 import { formStateOf, type SaveOutcome } from "../logic/saveOutcome";
 import type { Refueling, RefuelingInput } from "../types";
-import { useSaveRefueling } from "./useSaveRefueling";
 
 /** What the validation rules need: the vehicle and its other refuelings. */
 function useRefuelingContext(vehicle: Vehicle, refuelings: readonly Refueling[], id: string) {
@@ -97,15 +94,26 @@ function useComputedAmount(
   return { computed, odometerKm };
 }
 
+/** What distinguishes adding from editing: which row, what the fields start with, how to save. */
+export type RefuelingFormSource = {
+  /** Fixed for the life of the form; the rules leave this refueling out of the comparison. */
+  id: string;
+  /** Read once, when the form opens. */
+  defaultValues: RefuelingFormValues;
+  save: (input: RefuelingInput) => Promise<SaveOutcome>;
+};
+
 /**
- * Form state for adding a refueling (M3, M4). The fields hold text; after validation the
- * mutation gets a `RefuelingInput` in database units. The rules need the vehicle and its other
- * refuelings, so the caller loads them first.
+ * Form state for adding or editing a refueling (M3, M4); `source` says which. The fields hold
+ * text; after validation `source.save` gets a `RefuelingInput` in database units. The rules need
+ * the vehicle and its other refuelings, so the caller loads them first.
  */
-export function useRefuelingForm(vehicle: Vehicle, refuelings: readonly Refueling[]) {
-  // One id per form: a retry after a failed attempt sends the same one (ADR 0017).
-  const [id] = useState(newId);
-  const [defaultValues] = useState(() => defaultFormValues(todayIsoDate()));
+export function useRefuelingForm(
+  vehicle: Vehicle,
+  refuelings: readonly Refueling[],
+  { id, defaultValues: startValues, save }: RefuelingFormSource,
+) {
+  const [defaultValues] = useState(startValues);
   const context = useRefuelingContext(vehicle, refuelings, id);
   const resolver = useMemo(() => zodResolver(createRefuelingFormSchema(context)), [context]);
 
@@ -116,7 +124,6 @@ export function useRefuelingForm(vehicle: Vehicle, refuelings: readonly Refuelin
   >({ resolver, defaultValues });
   const { computed, odometerKm } = useComputedAmount(control, clearErrors);
 
-  const save = useSaveRefueling(vehicle.id, id);
   const submit = useSubmit({ handleSubmit, setError }, save);
 
   return {

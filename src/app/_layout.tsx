@@ -134,6 +134,10 @@ function RootNavigator({ isSignedIn }: { isSignedIn: boolean }) {
         <Stack.Screen name="vehicles/new" options={{ title: "Fahrzeug hinzufügen" }} />
         <Stack.Screen name="vehicles/[id]" options={{ title: "Fahrzeug bearbeiten" }} />
         <Stack.Screen name="refuelings/new" options={{ title: t("refuelingForm.title") }} />
+        <Stack.Screen
+          name="refuelings/[id]/edit"
+          options={{ title: t("refuelingForm.editTitle") }}
+        />
       </Stack.Protected>
       {/* Without a vehicle the app leads straight to adding one (M1). */}
       <Stack.Protected guard={isSignedIn && !hasVehicle}>
