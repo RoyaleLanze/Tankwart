@@ -7,6 +7,7 @@ export const de = {
   },
   refuelingForm: {
     title: "Betankung erfassen",
+    editTitle: "Betankung bearbeiten",
     date: "Datum",
     dateHint: "Format: JJJJ-MM-TT",
     volume: "Liter",
@@ -30,6 +31,7 @@ export const de = {
     savedButDiffers:
       "Die Betankung wurde schon gespeichert, deine letzten Änderungen nicht. Bearbeite sie in der Liste.",
     notFound: "Diese Betankung gibt es nicht mehr.",
+    back: "Zurück",
     fabLabel: "Betankung erfassen",
   },
 } as const;

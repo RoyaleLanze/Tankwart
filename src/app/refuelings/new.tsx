@@ -1,4 +1,4 @@
-import { useNavigation, usePreventRemove, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper";
@@ -6,8 +6,9 @@ import { Button, Text } from "react-native-paper";
 import { ErrorScreen } from "@/components/ErrorScreen";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { RefuelingForm } from "@/components/RefuelingForm";
-import { useRefuelingForm } from "@/features/refuelings/hooks/useRefuelingForm";
+import { useNewRefuelingForm } from "@/features/refuelings/hooks/useNewRefuelingForm";
 import { useRefuelings } from "@/features/refuelings/hooks/useRefuelings";
+import { useSaveAndLeave } from "@/features/refuelings/hooks/useSaveAndLeave";
 import { LOAD_ERROR_TEXT } from "@/features/refuelings/messages";
 import type { Refueling } from "@/features/refuelings/types";
 import { useActiveVehicle } from "@/features/vehicles/hooks/useActiveVehicle";
@@ -50,10 +51,7 @@ export default function NewRefuelingScreen() {
   return <NewRefuelingForm key={vehicle.id} vehicle={vehicle} refuelings={refuelings.data} />;
 }
 
-/**
- * The form reads its start values once, so it is only shown once the refuelings are known.
- * Going back is blocked while saving: the answer would otherwise arrive at a closed screen.
- */
+/** The form reads its start values once, so it is only shown once the refuelings are known. */
 function NewRefuelingForm({
   vehicle,
   refuelings,
@@ -61,19 +59,9 @@ function NewRefuelingForm({
   vehicle: Vehicle;
   refuelings: readonly Refueling[];
 }) {
-  const navigation = useNavigation();
-  const { submit, ...formProps } = useRefuelingForm(vehicle, refuelings);
-  const allowLeaving = usePreventRemove(formProps.isSubmitting);
-
-  async function save() {
-    if (!(await submit())) return;
-    // Not focused anymore, e.g. after a sign-out while saving: nothing to close.
-    if (!navigation.isFocused()) return;
-    allowLeaving();
-    navigation.goBack();
-  }
-
-  return <RefuelingForm {...formProps} onSubmit={save} />;
+  const { submit, ...formProps } = useNewRefuelingForm(vehicle, refuelings);
+  const saveAndLeave = useSaveAndLeave(submit, formProps.isSubmitting);
+  return <RefuelingForm {...formProps} onSubmit={saveAndLeave} />;
 }
 
 const styles = StyleSheet.create({
