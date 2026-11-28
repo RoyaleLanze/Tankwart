@@ -23,6 +23,11 @@ export type FormTextFieldProps<T extends FieldValues, TTransformed = T> = {
   helperColor?: string;
   /** Icon before the hint, so a warning never relies on its color alone. */
   helperIcon?: string;
+  /**
+   * Announces the hint when it changes, e.g. a computed value. Without it the hint is a static
+   * accessibility hint of the field.
+   */
+  helperLive?: boolean;
 } & Omit<
   TextInputProps,
   "mode" | "label" | "value" | "onChangeText" | "onBlur" | "error" | "left" | "ref"
@@ -41,6 +46,7 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
   helperText,
   helperColor,
   helperIcon,
+  helperLive,
   ...inputProps
 }: FormTextFieldProps<T, TTransformed>) {
   return (
@@ -59,7 +65,7 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
               label={label}
               // Paper's label is a separate text view; the native field needs its own name.
               accessibilityLabel={label}
-              accessibilityHint={shownError}
+              accessibilityHint={helperLive ? undefined : helperText}
               left={
                 icon ? (
                   <TextInput.Icon icon={icon} importantForAccessibility="no" focusable={false} />
@@ -70,29 +76,32 @@ export function FormTextField<T extends FieldValues, TTransformed = T>({
               onBlur={field.onBlur}
               error={error !== undefined}
             />
-            {shownError ? (
-              <HelperText type="error" accessibilityLiveRegion="polite">
-                {shownError}
-              </HelperText>
-            ) : (
-              helperText && (
-                <View style={styles.hint}>
-                  {helperIcon && (
-                    <View style={styles.hintIcon}>
-                      <Icon source={helperIcon} size={ICON_SIZE} color={helperColor} />
-                    </View>
-                  )}
-                  {/* Live region: the screen reader announces the hint when it changes. */}
-                  <HelperText
-                    type="info"
-                    accessibilityLiveRegion="polite"
-                    style={[styles.hintText, helperColor ? { color: helperColor } : undefined]}
-                  >
-                    {helperText}
-                  </HelperText>
-                </View>
-              )
-            )}
+            {/* Always mounted: a live region only announces changes below a node that exists. */}
+            <View accessibilityLiveRegion={helperLive && !shownError ? "polite" : undefined}>
+              {shownError ? (
+                <HelperText type="error" accessibilityLiveRegion="polite">
+                  {shownError}
+                </HelperText>
+              ) : (
+                helperText && (
+                  <View style={styles.hint}>
+                    {helperIcon && (
+                      <View style={styles.hintIcon} importantForAccessibility="no">
+                        <Icon source={helperIcon} size={ICON_SIZE} color={helperColor} />
+                      </View>
+                    )}
+                    <HelperText
+                      type="info"
+                      // Without helperLive the text is the field's hint; hide the node, so it is not read twice.
+                      importantForAccessibility={helperLive ? "auto" : "no"}
+                      style={[styles.hintText, helperColor ? { color: helperColor } : undefined]}
+                    >
+                      {helperText}
+                    </HelperText>
+                  </View>
+                )
+              )}
+            </View>
           </View>
         );
       }}
